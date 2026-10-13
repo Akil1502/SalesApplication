@@ -12,6 +12,7 @@ using SalesApp.Api.Security;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.DemoData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -145,6 +146,31 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
+
+// Command-line mode: generate demo history and exit, e.g.
+//   dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset
+if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException("--seed-demo only runs in the Development environment, so it can never touch a real database.");
+    }
+
+    await DbInitializer.InitializeAsync(app.Services);
+    var monthsIndex = Array.FindIndex(args, a => a.Equals("--months", StringComparison.OrdinalIgnoreCase));
+    var months = monthsIndex >= 0 && monthsIndex + 1 < args.Length && int.TryParse(args[monthsIndex + 1], out var m) ? m : 24;
+
+    using var scope = app.Services.CreateScope();
+    var summary = await scope.ServiceProvider.GetRequiredService<DemoDataGenerator>()
+        .GenerateAsync(new DemoDataOptions(months, Reset: args.Contains("--reset", StringComparer.OrdinalIgnoreCase)), CancellationToken.None);
+    Console.WriteLine($"""
+        Demo data generated in {summary.Elapsed.TotalSeconds:0.0}s for {summary.From:dd MMM yyyy} to {summary.To:dd MMM yyyy}:
+          {summary.Customers} customers, {summary.Products} products, {summary.Orders} orders, {summary.Invoices} invoices,
+          {summary.Payments} payments, {summary.StockReceipts} goods receipts, {summary.StockMovements} stock movements,
+          taxable sales Rs {summary.TaxableSales:N0}
+        """);
+    return;
+}
 
 if (app.Configuration.GetValue("Database:MigrateOnStartup", defaultValue: false))
 {

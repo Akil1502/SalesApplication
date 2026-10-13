@@ -66,7 +66,7 @@ export const navigation: NavGroup[] = [
   {
     label: 'Insights',
     items: [
-      { title: 'Reports', to: '/reports', icon: ChartColumn, phase: 'P4' },
+      { title: 'Reports', to: '/reports', icon: ChartColumn },
       { title: 'Ask your data', to: '/ask', icon: MessageSquareText, phase: 'P6' },
       { title: 'AI insights', to: '/insights', icon: Lightbulb, roles: managers, phase: 'P8' },
     ],

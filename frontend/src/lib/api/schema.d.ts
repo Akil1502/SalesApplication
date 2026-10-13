@@ -891,6 +891,190 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReportDefinitionDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    /** @description For sales by period: "month" (default) or "day". */
+                    period?: string;
+                };
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReportResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reports/{key}/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The same report as an .xlsx file. */
+        get: {
+            parameters: {
+                query?: {
+                    from?: string;
+                    to?: string;
+                    /** @description For sales by period: "month" (default) or "day". */
+                    period?: string;
+                };
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["FileContentResult"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DashboardDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/orders": {
         parameters: {
             query?: never;
@@ -2396,6 +2580,54 @@ export interface components {
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
         };
+        /** @description Everything the home dashboard shows. Sales values are taxable value (excluding GST). */
+        DashboardDto: {
+            financialYear: string;
+            kpis: components["schemas"]["DashboardKpisDto"];
+            monthlySales: components["schemas"]["MonthlySalesDto"][];
+            topCustomers: components["schemas"]["RankedItemDto"][];
+            topProducts: components["schemas"]["RankedItemDto"][];
+            salesByState: components["schemas"]["RankedItemDto"][];
+            ageing: components["schemas"]["ReceivablesAgeingDto"];
+        };
+        DashboardKpisDto: {
+            /** Format: double */
+            salesMonthToDate: number;
+            /** Format: double */
+            salesLastMonthSamePeriod: number;
+            /** Format: int32 */
+            invoicesMonthToDate: number;
+            /** Format: double */
+            salesFinancialYearToDate: number;
+            /** Format: double */
+            salesPreviousYearSamePeriod: number;
+            /** Format: double */
+            outstanding: number;
+            /** Format: double */
+            overdue: number;
+            /** Format: int32 */
+            overdueInvoices: number;
+            /** Format: double */
+            openOrdersValue: number;
+            /** Format: int32 */
+            openOrders: number;
+            /** Format: int32 */
+            lowStockProducts: number;
+        };
+        EntityTagHeaderValue: {
+            tag?: components["schemas"]["StringSegment"];
+            isWeak?: boolean;
+        };
+        FileContentResult: {
+            /** Format: byte */
+            fileContents?: string;
+            contentType?: null | string;
+            fileDownloadName?: null | string;
+            /** Format: date-time */
+            lastModified?: null | string;
+            entityTag?: null | components["schemas"]["EntityTagHeaderValue"];
+            enableRangeProcessing?: boolean;
+        };
         HsnCodeDto: {
             /** Format: int32 */
             id: number;
@@ -2598,6 +2830,14 @@ export interface components {
             /** Format: date-time */
             expiresAtUtc: string;
             user: components["schemas"]["CurrentUserDto"];
+        };
+        MonthlySalesDto: {
+            /** Format: date */
+            month: string;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: int32 */
+            invoices: number;
         };
         /** @description Status changes carry the row version the user was looking at, so nobody acts on a stale screen. */
         OrderActionRequest: {
@@ -2964,6 +3204,55 @@ export interface components {
         };
         /** @enum {unknown} */
         ProductUnit: "Kg" | "Metre" | "Piece" | "Cone" | "Bale" | "Box" | "Roll" | "Set";
+        RankedItemDto: {
+            label: string;
+            /** Format: double */
+            value: number;
+            /** Format: double */
+            share: number;
+            detail: null | string;
+        };
+        ReceivablesAgeingDto: {
+            /** Format: double */
+            notDue: number;
+            /** Format: double */
+            days1To30: number;
+            /** Format: double */
+            days31To60: number;
+            /** Format: double */
+            days61To90: number;
+            /** Format: double */
+            over90: number;
+        };
+        ReportColumn: {
+            key: string;
+            header: string;
+            type: components["schemas"]["ReportColumnType"];
+        };
+        /** @enum {unknown} */
+        ReportColumnType: "Text" | "Count" | "Money" | "Quantity" | "Percent" | "Date";
+        ReportDefinitionDto: {
+            key: string;
+            title: string;
+            description: string;
+            usesDateRange: boolean;
+        };
+        /**
+         * @description A tabular report: typed columns, rows keyed by column key, and a totals row. The same result feeds the
+         *     on-screen table and the Excel export. Percent values are fractions (0.25 = 25%).
+         */
+        ReportResult: {
+            key: string;
+            title: string;
+            subtitle: string;
+            /** Format: date */
+            from: null | string;
+            /** Format: date */
+            to: null | string;
+            columns: components["schemas"]["ReportColumn"][];
+            rows: Record<string, never>[];
+            totals: Record<string, never>;
+        };
         ResetPasswordRequest: {
             newPassword: string;
         };
@@ -3116,6 +3405,15 @@ export interface components {
             outOfStock: number;
             /** Format: double */
             totalStockValue: null | number;
+        };
+        StringSegment: {
+            buffer?: null | string;
+            /** Format: int32 */
+            offset?: number;
+            /** Format: int32 */
+            length?: number;
+            value?: null | string;
+            hasValue?: boolean;
         };
         UserCreateRequest: {
             email: string;

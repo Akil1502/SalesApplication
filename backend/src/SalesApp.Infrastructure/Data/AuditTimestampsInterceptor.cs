@@ -19,8 +19,16 @@ public sealed class AuditTimestampsInterceptor(TimeProvider timeProvider) : Save
             {
                 if (entry.State == EntityState.Added)
                 {
-                    entry.Entity.CreatedAtUtc = now;
-                    entry.Entity.UpdatedAtUtc = now;
+                    // Respect timestamps set explicitly (the demo-data generator writes history).
+                    if (entry.Entity.CreatedAtUtc == default)
+                    {
+                        entry.Entity.CreatedAtUtc = now;
+                    }
+
+                    if (entry.Entity.UpdatedAtUtc == default)
+                    {
+                        entry.Entity.UpdatedAtUtc = entry.Entity.CreatedAtUtc;
+                    }
                 }
                 else if (entry.State == EntityState.Modified)
                 {

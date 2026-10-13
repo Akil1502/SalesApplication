@@ -63,6 +63,10 @@ public static class DependencyInjection
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IPaymentService, PaymentService>();
 
+        services.AddScoped<Reporting.IReportService, Reporting.ReportService>();
+        services.AddScoped<Reporting.IDashboardService, Reporting.DashboardService>();
+        services.AddScoped<DemoData.DemoDataGenerator>();
+
         // Business dates (receipts, invoices, financial years) follow India time, whatever the server's zone.
         var timeZoneId = configuration["Business:TimeZone"] ?? BusinessClock.IndiaTimeZoneId;
         services.AddSingleton<IBusinessClock>(provider =>

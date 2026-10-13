@@ -42,7 +42,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.HasSequence<int>(StockReceiptConfiguration.NumberSequence).StartsAt(1).IncrementsBy(1);
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Keyless read models over the rpt.* views (not part of migrations; the views come from Sql/*.sql).
+        Reporting.ReportingViewMappings.Map(builder);
     }
+
+    public IQueryable<Reporting.RptSalesLine> RptSalesLines => Set<Reporting.RptSalesLine>().AsNoTracking();
+    public IQueryable<Reporting.RptInvoice> RptInvoices => Set<Reporting.RptInvoice>().AsNoTracking();
+    public IQueryable<Reporting.RptProduct> RptProducts => Set<Reporting.RptProduct>().AsNoTracking();
+    public IQueryable<Reporting.RptPayment> RptPayments => Set<Reporting.RptPayment>().AsNoTracking();
+    public IQueryable<Reporting.RptMargin> RptMargins => Set<Reporting.RptMargin>().AsNoTracking();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {

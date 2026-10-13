@@ -34,6 +34,8 @@ export default defineConfig({
           groups: [
             { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/, priority: 30 },
             { name: 'vendor-ui', test: /node_modules[\\/](radix-ui|@radix-ui|lucide-react|sonner|cn|class-variance-authority)[\\/]/, priority: 20 },
+            // Only the dashboard draws charts, so this chunk loads lazily with it.
+            { name: 'vendor-charts', test: /node_modules[\\/](recharts|victory-vendor|d3-[^\\/]+|@reduxjs|react-redux|reselect|immer|es-toolkit|decimal\.js-light|eventemitter3)[\\/]/, priority: 15 },
             { name: 'vendor-data', test: /node_modules[\\/](@tanstack|zod|react-hook-form|@hookform|openapi-fetch)[\\/]/, priority: 10 },
           ],
         },

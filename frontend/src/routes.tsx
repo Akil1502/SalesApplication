@@ -1,11 +1,11 @@
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { navigation } from '@/components/layout/navigation'
+import { Spinner } from '@/components/ui/spinner'
 import { Roles } from '@/features/auth/auth-context'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAuth, RequireRole } from '@/features/auth/RequireAuth'
 import { ComingSoonPage } from '@/pages/ComingSoonPage'
-import { DashboardPage } from '@/pages/DashboardPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 const managers = [Roles.Admin, Roles.SalesManager]
@@ -29,6 +29,8 @@ const featureRoutes: RouteObject[] = [
   { path: '/payments', lazy: () => import('@/features/sales/PaymentsPage').then((m) => ({ Component: m.PaymentsPage })) },
   { path: '/stock', lazy: () => import('@/features/inventory/StockPage').then((m) => ({ Component: m.StockPage })) },
   { path: '/stock/receipts/:id', lazy: () => import('@/features/inventory/ReceiptDetailPage').then((m) => ({ Component: m.ReceiptDetailPage })) },
+  { path: '/reports', lazy: () => import('@/features/reports/ReportsPage').then((m) => ({ Component: m.ReportsPage })) },
+  { path: '/reports/:key', lazy: () => import('@/features/reports/ReportPage').then((m) => ({ Component: m.ReportPage })) },
   {
     element: <RequireRole roles={managers} />,
     children: [
@@ -65,10 +67,21 @@ export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
   {
     element: <RequireAuth />,
+    // Shown while the first screen's code-split chunk downloads on a fresh page load.
+    hydrateFallbackElement: (
+      <div className="flex h-svh items-center justify-center">
+        <Spinner className="size-6" />
+      </div>
+    ),
     children: [
       {
         element: <AppLayout />,
-        children: [{ index: true, element: <DashboardPage /> }, ...featureRoutes, ...placeholderRoutes],
+        children: [
+          // The dashboard is lazy too: it carries the charting library, which no other screen needs.
+          { index: true, lazy: () => import('@/features/dashboard/DashboardPage').then((m) => ({ Component: m.DashboardPage })) },
+          ...featureRoutes,
+          ...placeholderRoutes,
+        ],
       },
       // Printable documents render without the sidebar.
       { path: '/invoices/:id/print', lazy: () => import('@/features/sales/print/InvoicePrintPage').then((m) => ({ Component: m.InvoicePrintPage })) },

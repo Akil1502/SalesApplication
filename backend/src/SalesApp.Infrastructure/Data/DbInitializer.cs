@@ -22,6 +22,7 @@ public static class DbInitializer
 
         var db = provider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync(cancellationToken);
+        await DbObjectsInitializer.ApplyAsync(db, cancellationToken);
 
         await SeedRolesAsync(provider.GetRequiredService<RoleManager<IdentityRole<Guid>>>(), logger);
         await SeedAdminAsync(provider, logger);

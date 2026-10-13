@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBusinessDate, formatINR, formatPercent, formatQuantity, todayInIndia } from './format'
+import { formatBusinessDate, formatINR, formatINRCompact, formatPercent, formatQuantity, todayInIndia } from './format'
 
 describe('business dates', () => {
   it('formats a DateOnly without shifting the day', () => {
@@ -41,5 +41,19 @@ describe('formatPercent', () => {
   it('drops trailing zeros', () => {
     expect(formatPercent(5)).toBe('5%')
     expect(formatPercent(0.25)).toBe('0.25%')
+  })
+})
+
+describe('formatINRCompact', () => {
+  it('uses crore and lakh for large amounts', () => {
+    expect(formatINRCompact(45230000)).toBe('₹4.52 Cr')
+    expect(formatINRCompact(1234567)).toBe('₹12.35 L')
+    expect(formatINRCompact(100000)).toBe('₹1 L')
+  })
+
+  it('shows smaller amounts in full, and keeps the sign', () => {
+    expect(formatINRCompact(99999.4)).toBe('₹99,999')
+    expect(formatINRCompact(-2500000)).toBe('-₹25 L')
+    expect(formatINRCompact(null)).toBe('—')
   })
 })

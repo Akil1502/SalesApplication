@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="ClosedXML" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -16,6 +17,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SalesApp.Core\SalesApp.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reporting views, database users and grants, applied after migrations by DbObjectsInitializer. -->
+    <EmbeddedResource Include="Sql\*.sql" />
   </ItemGroup>
 
 </Project>

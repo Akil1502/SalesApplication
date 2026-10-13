@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using SalesApp.Core.Contracts.Auth;
 using SalesApp.Core.Entities;
@@ -21,7 +22,7 @@ public static class TestClients
     };
 
     /// <summary>Creates a brand-new user in <paramref name="role"/> and returns a client carrying their token.</summary>
-    public static async Task<(HttpClient Client, Guid UserId)> CreateClientAsync(this SalesAppFactory factory, string role)
+    public static async Task<(HttpClient Client, Guid UserId)> CreateClientAsync(this WebApplicationFactory<Program> factory, string role)
     {
         var email = $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@salesapp.test";
         Guid userId;
@@ -38,7 +39,7 @@ public static class TestClients
         return (await factory.SignInAsync(email, DefaultPassword), userId);
     }
 
-    public static async Task<HttpClient> SignInAsync(this SalesAppFactory factory, string email, string password)
+    public static async Task<HttpClient> SignInAsync(this WebApplicationFactory<Program> factory, string email, string password)
     {
         var client = factory.CreateClient();
         var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = email, Password = password });

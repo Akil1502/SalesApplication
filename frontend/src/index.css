@@ -17,6 +17,15 @@
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
     --color-chart-5: var(--chart-5);
+    --color-viz-series-1: var(--viz-series-1);
+    --color-viz-other: var(--viz-other);
+    --color-viz-age-1: var(--viz-age-1);
+    --color-viz-age-2: var(--viz-age-2);
+    --color-viz-age-3: var(--viz-age-3);
+    --color-viz-age-4: var(--viz-age-4);
+    --color-viz-age-5: var(--viz-age-5);
+    --color-viz-up: var(--viz-up);
+    --color-viz-down: var(--viz-down);
     --color-chart-4: var(--chart-4);
     --color-chart-3: var(--chart-3);
     --color-chart-2: var(--chart-2);
@@ -81,6 +90,17 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    /* Charts: palette checked with the dataviz validator against the white card surface. One series
+       uses slot 1; receivables ageing is an ordinal ramp (older = darker); "Other" is de-emphasis gray. */
+    --viz-series-1: #2a78d6;
+    --viz-other: oklch(0.708 0 0);
+    --viz-age-1: #86b6ef;
+    --viz-age-2: #5598e7;
+    --viz-age-3: #2a78d6;
+    --viz-age-4: #1c5cab;
+    --viz-age-5: #104281;
+    --viz-up: #006300;
+    --viz-down: #d03b3b;
 }
 
 .dark {
@@ -115,6 +135,16 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+    /* Dark steps of the same ramps; on a dark surface "more" reads as lighter. */
+    --viz-series-1: #3987e5;
+    --viz-other: oklch(0.45 0 0);
+    --viz-age-1: #184f95;
+    --viz-age-2: #256abf;
+    --viz-age-3: #3987e5;
+    --viz-age-4: #6da7ec;
+    --viz-age-5: #9ec5f4;
+    --viz-up: #0ca30c;
+    --viz-down: #e66767;
 }
 
 @layer base {

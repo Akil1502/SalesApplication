@@ -67,3 +67,18 @@ export function formatDate(isoUtc: string | null | undefined): string {
   const date = new Date(isoUtc)
   return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date)
 }
+
+const compactFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 })
+
+/**
+ * Short Indian notation for headline figures and chart axes: 4,52,30,000 -> "₹4.52 Cr", 12,34,567 -> "₹12.35 L".
+ * Below a lakh the full amount is short enough to show as is.
+ */
+export function formatINRCompact(amount: number | null | undefined): string {
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return '—'
+  const sign = amount < 0 ? '-' : ''
+  const abs = Math.abs(amount)
+  if (abs >= 1e7) return `${sign}₹${compactFormatter.format(abs / 1e7)} Cr`
+  if (abs >= 1e5) return `${sign}₹${compactFormatter.format(abs / 1e5)} L`
+  return formatINR(amount, 0)
+}

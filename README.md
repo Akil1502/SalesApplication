@@ -14,7 +14,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P1 | Customers, products, HSN/GST rates, users, company settings | ✅ Done |
 | P2 | Inventory: stock ledger, receipts, adjustments, low-stock list | ✅ Done |
 | P3 | Orders and quotations, GST invoicing (CGST/SGST/IGST), payments | ✅ Done |
-| P4 | Demo data generator, dashboard, reports, Excel export | Planned |
+| P4 | Demo data generator, dashboard, reports, Excel export | ✅ Done |
 | P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | Planned |
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | Planned |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | Planned |
@@ -59,6 +59,29 @@ local LocalDB database.
 
 API reference (development only): <http://localhost:5080/scalar>
 
+### Demo data
+
+A fresh database is empty. To see the dashboard, reports and (later) the AI features with something to
+work on, generate two years of synthetic trading history for a Tamil Nadu textile and yarn distributor:
+
+```powershell
+# Stop the API first. --reset replaces existing customers, products, orders, invoices and stock;
+# users, company settings and GST reference data are kept.
+dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset
+```
+
+It runs in under 10 seconds and is repeatable (fixed random seed). The history has a festive October to
+November peak, year-on-year growth, customers who stop buying, slow payers, a few stockouts and a bulk
+order, and a current pipeline of open orders and products due for reorder. It also creates a demo team
+to sign in as, each with the password `Seed:DemoUserPassword` from `appsettings.Development.json`:
+
+| User | Role |
+|---|---|
+| `meena.krishnan@salesapp.local` | Sales manager (sees margins and stock value) |
+| `arun.kumar@salesapp.local`, `divya.rajan@salesapp.local`, `farhan.sheikh@salesapp.local` | Sales reps |
+
+All names, GSTINs and figures are made up. The command only runs in the Development environment.
+
 ## Common tasks
 
 | Task | Command |
@@ -69,6 +92,7 @@ API reference (development only): <http://localhost:5080/scalar>
 | Regenerate TypeScript API types (API must be running) | `npm run gen:api --prefix frontend` |
 | Add an EF Core migration | `dotnet ef migrations add <Name> --project backend/src/SalesApp.Infrastructure --startup-project backend/src/SalesApp.Api --output-dir Data/Migrations` |
 | Production build of the UI (output goes to the API's `wwwroot`) | `npm run build --prefix frontend` |
+| Regenerate demo data (API stopped) | `dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset` |
 
 ## Configuration and secrets
 
@@ -81,6 +105,7 @@ environment variables (for example `Jwt__SigningKey`).
 | `ConnectionStrings:Default` | `appsettings.Development.json` | LocalDB, Windows authentication |
 | `Jwt:SigningKey` | user-secrets | Random, at least 32 characters. `setup-dev.ps1` generates it. |
 | `Seed:AdminPassword` | `appsettings.Development.json` (dev only) / user-secrets or env elsewhere | Creates the first admin when none exists |
+| `Seed:DemoUserPassword` | `appsettings.Development.json` (dev only) | Password for the demo team created by `--seed-demo` |
 | `Anthropic:ApiKey` | user-secrets | Needed from P5. The app works without it; AI features stay hidden. |
 
 ## Project structure
@@ -89,11 +114,12 @@ environment variables (for example `Jwt__SigningKey`).
 backend/
   src/SalesApp.Api/              Controllers, auth, error handling, OpenAPI
   src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET)
-  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding
+  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data
+                                 Sql/*.sql: reporting views (rpt, rpt_mgr) and the AI read-only users, applied after migrations
   tests/SalesApp.Tests/          Unit tests
   tests/SalesApp.IntegrationTests/  API tests against a throwaway LocalDB database
 frontend/
-  src/features/                  Feature folders (auth, customers, products, catalog, users, settings)
+  src/features/                  Feature folders (auth, customers, products, inventory, sales, dashboard, reports, ...)
   src/components/                App shell and shadcn/ui components
   src/lib/api/                   Typed API client generated from OpenAPI
 scripts/setup-dev.ps1            One-time developer setup
