@@ -33,6 +33,25 @@ export function formatPercent(value: number): string {
   return `${percentFormatter.format(value)}%`
 }
 
+const businessDateFormatter = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
+
+/**
+ * Formats a calendar date from the API ("2026-10-13", a DateOnly) as "13 Oct 2026". Parsed and formatted
+ * in UTC so the day never shifts with the viewer's time zone.
+ */
+export function formatBusinessDate(dateOnly: string | null | undefined): string {
+  if (!dateOnly) return '—'
+  const date = new Date(`${dateOnly}T00:00:00Z`)
+  return Number.isNaN(date.getTime()) ? '—' : businessDateFormatter.format(date)
+}
+
+const indiaDateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' })
+
+/** Today's date in India as "YYYY-MM-DD", the server's notion of "today" for receipts and invoices. */
+export function todayInIndia(now = new Date()): string {
+  return indiaDateFormatter.format(now)
+}
+
 const dateFormatter = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
 /** "13 Oct 2026" in the viewer's local time zone. */

@@ -61,7 +61,7 @@ export const navigation: NavGroup[] = [
   },
   {
     label: 'Inventory',
-    items: [{ title: 'Stock', to: '/stock', icon: Boxes, phase: 'P2' }],
+    items: [{ title: 'Stock', to: '/stock', icon: Boxes }],
   },
   {
     label: 'Insights',

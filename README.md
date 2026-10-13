@@ -12,7 +12,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 |---|---|---|
 | P0 | Foundation: solution layout, sign-in (JWT + roles), React app shell, tests | ✅ Done |
 | P1 | Customers, products, HSN/GST rates, users, company settings | ✅ Done |
-| P2 | Inventory: stock ledger, receipts, adjustments, low-stock list | Planned |
+| P2 | Inventory: stock ledger, receipts, adjustments, low-stock list | ✅ Done |
 | P3 | Orders and quotations, GST invoicing (CGST/SGST/IGST), payments | Planned |
 | P4 | Demo data generator, dashboard, reports, Excel export | Planned |
 | P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | Planned |

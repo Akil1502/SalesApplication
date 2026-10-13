@@ -23,7 +23,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
         .Add("name", p => p.Name)
         .Add("category", p => p.Category!.Name)
         .Add("listPrice", p => p.ListPrice)
-        .Add("quantityOnHand", p => p.QuantityOnHand)
+        .Add("quantityOnHand", p => p.Stock!.QuantityOnHand)
         .Add("updatedAt", p => p.UpdatedAtUtc);
 
     public async Task<PagedResult<ProductListItemDto>> ListAsync(ProductListRequest request, CancellationToken cancellationToken)
@@ -42,7 +42,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
 
         if (request.LowStockOnly)
         {
-            query = query.Where(p => p.QuantityOnHand <= p.ReorderLevel);
+            query = query.Where(p => p.Stock!.QuantityOnHand <= p.ReorderLevel);
         }
 
         if (Text.NullIfBlank(request.Q) is { } q)
@@ -54,7 +54,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
             .ThenBy(p => p.Id)
             .Select(p => new ProductListItemDto(
                 p.Id, p.Sku, p.Name, p.Category!.Name, p.HsnCode!.Code, p.HsnCode.GstRate,
-                p.Unit, p.ListPrice, p.QuantityOnHand, p.ReorderLevel, p.IsActive))
+                p.Unit, p.ListPrice, p.Stock != null ? p.Stock.QuantityOnHand : 0m, p.ReorderLevel, p.IsActive))
             .ToPagedResultAsync(request, cancellationToken);
     }
 
@@ -64,6 +64,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
             .AsNoTracking()
             .Include(p => p.Category)
             .Include(p => p.HsnCode)
+            .Include(p => p.Stock)
             .SingleOrDefaultAsync(p => p.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Product {id} was not found.");
 
@@ -76,7 +77,8 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
         await EnsureSkuIsFreeAsync(sku, excludeId: null, cancellationToken);
         await EnsureReferencesAsync(request.CategoryId, request.HsnCodeId, current: null, cancellationToken);
 
-        var product = new Product { Sku = sku, Name = request.Name.Trim() };
+        // Every product gets its stock row up front; quantities then only change through the stock ledger.
+        var product = new Product { Sku = sku, Name = request.Name.Trim(), Stock = new StockLevel() };
         Apply(product, request);
         db.Products.Add(product);
         await db.SaveChangesAsync(cancellationToken);
@@ -156,6 +158,6 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
         p.HsnCodeId, p.HsnCode!.Code, p.HsnCode.GstRate,
         p.Unit, p.ListPrice,
         currentUser.IsManagerOrAdmin ? p.CostPrice : null,
-        p.ReorderLevel, p.ReorderQuantity, p.LeadTimeDays, p.QuantityOnHand,
+        p.ReorderLevel, p.ReorderQuantity, p.LeadTimeDays, p.Stock?.QuantityOnHand ?? 0m,
         p.IsActive, p.CreatedAtUtc, p.UpdatedAtUtc, RowVersions.ToToken(p.RowVersion));
 }

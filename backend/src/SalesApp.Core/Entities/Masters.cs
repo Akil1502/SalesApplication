@@ -122,11 +122,8 @@ public sealed class Product : IAuditable
     public decimal ReorderQuantity { get; set; }
     public int LeadTimeDays { get; set; }
 
-    /// <summary>
-    /// Cached stock on hand. Maintained by the stock ledger (phase P2), never edited directly,
-    /// so the product form doesn't expose it.
-    /// </summary>
-    public decimal QuantityOnHand { get; set; }
+    /// <summary>Stock on hand lives in its own table, maintained only by the stock ledger.</summary>
+    public StockLevel? Stock { get; set; }
 
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; }

@@ -978,6 +978,326 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Headline counts for the stock page. Stock value is shown to managers and admins only. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockSummaryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stock on hand per product, with status against the reorder level. */
+        get: {
+            parameters: {
+                query?: {
+                    categoryId?: number;
+                    /** @description Low includes out-of-stock items (anything at or below its reorder level). */
+                    status?: components["schemas"]["StockStatus"];
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfStockLevelDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The stock ledger, newest first. Filter by product, movement type and date range. */
+        get: {
+            parameters: {
+                query?: {
+                    productId?: number;
+                    type?: components["schemas"]["StockMovementType"];
+                    from?: string;
+                    to?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfStockMovementDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Free-text search; each list decides which columns it matches. */
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    /** @description Column to sort by; prefix with '-' for descending, e.g. "-createdAt". */
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfStockReceiptListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Records a goods receipt (GRN): stock in for one or more products. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["StockReceiptCreateRequest"];
+                    "text/json": components["schemas"]["StockReceiptCreateRequest"];
+                    "application/*+json": components["schemas"]["StockReceiptCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockReceiptDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/receipts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockReceiptDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Corrects stock: add/remove a quantity, or set it to a counted figure. Notes are required. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentRequest"];
+                    "text/json": components["schemas"]["StockAdjustmentRequest"];
+                    "application/*+json": components["schemas"]["StockAdjustmentRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockMovementDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users": {
         parameters: {
             query?: never;
@@ -1244,6 +1564,10 @@ export interface components {
             stateCode: string;
             pincode: string;
         };
+        /** @enum {unknown} */
+        AdjustmentMode: "Change" | "SetCount";
+        /** @enum {unknown} */
+        AdjustmentReason: "OpeningBalance" | "StockCount" | "Damaged" | "Lost" | "Found" | "Other" | null;
         /**
          * @description The one error shape every endpoint returns. string ApiError.TraceId matches the server log
          *     entry, so a user can quote it when reporting a problem. IReadOnlyDictionary&lt;string, string[]&gt;? ApiError.Errors is only present
@@ -1445,6 +1769,39 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        PagedResultOfStockLevelDto: {
+            items: components["schemas"]["StockLevelDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfStockMovementDto: {
+            items: components["schemas"]["StockMovementDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfStockReceiptListItemDto: {
+            items: components["schemas"]["StockReceiptListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
         PagedResultOfUserDto: {
             items: components["schemas"]["UserDto"][];
             /** Format: int32 */
@@ -1541,6 +1898,145 @@ export interface components {
             code: string;
             name: string;
             usesUtgst: boolean;
+        };
+        StockAdjustmentRequest: {
+            /** Format: int32 */
+            productId?: number;
+            mode?: components["schemas"]["AdjustmentMode"];
+            /**
+             * Format: double
+             * @description For Change: the signed amount (non-zero). For SetCount: the counted quantity (zero or more).
+             */
+            quantity?: number;
+            reason?: components["schemas"]["AdjustmentReason"];
+            /** Format: date */
+            movementDate?: null | string;
+            /** @description Why the stock changed. Required, because adjustments are what auditors ask about. */
+            notes: string;
+        };
+        /** @description Stock position of one product. StockValue (quantity × cost) is null for sales reps. */
+        StockLevelDto: {
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            name: string;
+            categoryName: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantityOnHand: number;
+            /** Format: double */
+            reorderLevel: number;
+            /** Format: double */
+            reorderQuantity: number;
+            status: components["schemas"]["StockStatus"];
+            /** Format: date-time */
+            lastMovementAtUtc: null | string;
+            /** Format: double */
+            stockValue: null | number;
+        };
+        StockMovementDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            unit: components["schemas"]["ProductUnit"];
+            type: components["schemas"]["StockMovementType"];
+            /** Format: date */
+            movementDate: string;
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            balanceAfter: number;
+            /** Format: double */
+            unitCost: null | number;
+            reason: null | components["schemas"]["AdjustmentReason"];
+            referenceType: null | string;
+            /** Format: int32 */
+            referenceId: null | number;
+            referenceNumber: null | string;
+            notes: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+        };
+        /** @enum {unknown} */
+        StockMovementType: "Opening" | "Receipt" | "Adjustment" | "Sale" | "SaleReversal";
+        StockReceiptCreateRequest: {
+            /**
+             * Format: date
+             * @description Defaults to today (India time). Can't be in the future.
+             */
+            receiptDate?: null | string;
+            supplierName?: null | string;
+            supplierReference?: null | string;
+            notes?: null | string;
+            lines: components["schemas"]["StockReceiptLineInput"][];
+        };
+        StockReceiptDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            /** Format: date */
+            receiptDate: string;
+            supplierName: null | string;
+            supplierReference: null | string;
+            notes: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            lines: components["schemas"]["StockReceiptLineDto"][];
+        };
+        StockReceiptLineDto: {
+            /** Format: int64 */
+            movementId: number;
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            unitCost: null | number;
+        };
+        StockReceiptLineInput: {
+            /** Format: int32 */
+            productId?: number;
+            /** Format: double */
+            quantity?: number;
+            /** Format: double */
+            unitCost?: null | number;
+        };
+        StockReceiptListItemDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            /** Format: date */
+            receiptDate: string;
+            supplierName: null | string;
+            supplierReference: null | string;
+            /** Format: int32 */
+            lineCount: number;
+            /** Format: double */
+            totalCost: null | number;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+        };
+        /** @enum {unknown} */
+        StockStatus: "InStock" | "Low" | "OutOfStock";
+        /** @description Headline numbers for the stock page. TotalStockValue is null for sales reps. */
+        StockSummaryDto: {
+            /** Format: int32 */
+            activeProducts: number;
+            /** Format: int32 */
+            lowStock: number;
+            /** Format: int32 */
+            outOfStock: number;
+            /** Format: double */
+            totalStockValue: null | number;
         };
         UserCreateRequest: {
             email: string;

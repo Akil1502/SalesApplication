@@ -19,6 +19,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<HsnCode> HsnCodes => Set<HsnCode>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<StockLevel> StockLevels => Set<StockLevel>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<StockReceipt> StockReceipts => Set<StockReceipt>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -30,6 +33,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         });
 
         builder.HasSequence<int>(CustomerConfiguration.CodeSequence).StartsAt(1).IncrementsBy(1);
+        builder.HasSequence<int>(StockReceiptConfiguration.NumberSequence).StartsAt(1).IncrementsBy(1);
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }

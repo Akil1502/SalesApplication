@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { formatINR, formatPercent, formatQuantity } from './format'
+import { formatBusinessDate, formatINR, formatPercent, formatQuantity, todayInIndia } from './format'
+
+describe('business dates', () => {
+  it('formats a DateOnly without shifting the day', () => {
+    expect(formatBusinessDate('2026-04-01')).toBe('01 Apr 2026')
+    expect(formatBusinessDate(null)).toBe('—')
+  })
+
+  it("uses India's date, which is ahead of UTC", () => {
+    // 20:00 UTC on 31 March is already 1 April in India.
+    expect(todayInIndia(new Date('2027-03-31T20:00:00Z'))).toBe('2027-04-01')
+    expect(todayInIndia(new Date('2027-03-31T10:00:00Z'))).toBe('2027-03-31')
+  })
+})
 
 describe('formatINR', () => {
   it('uses lakh and crore grouping', () => {

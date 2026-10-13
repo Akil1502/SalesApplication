@@ -53,6 +53,28 @@ public sealed partial class IndianPhoneAttribute : ValidationAttribute
     }
 }
 
+/// <summary>
+/// Limits a decimal to the scale of its database column (2 for money, 3 for quantities). Without this,
+/// SQL Server would silently round 12.345 into a money column, and the user would never know.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
+public sealed class DecimalPlacesAttribute(int places) : ValidationAttribute
+{
+    public int Places { get; } = places;
+
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
+    {
+        if (value is not decimal number || decimal.Round(number, Places) == number)
+        {
+            return ValidationResult.Success;
+        }
+
+        return new ValidationResult(
+            Places == 0 ? "Use a whole number." : $"Use at most {Places} decimal places.",
+            validationContext.MemberName is { } member ? [member] : null);
+    }
+}
+
 /// <summary>Indian Financial System Code: 4 letters, a zero, then 6 letters or digits.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
 public sealed class IfscAttribute() : RegularExpressionAttribute("^[A-Z]{4}0[A-Z0-9]{6}$")

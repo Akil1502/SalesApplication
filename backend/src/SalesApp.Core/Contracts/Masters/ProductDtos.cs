@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Entities;
+using SalesApp.Core.Validation;
 
 namespace SalesApp.Core.Contracts.Masters;
 
@@ -69,16 +70,16 @@ public sealed record ProductSaveRequest
     [EnumDataType(typeof(ProductUnit))]
     public ProductUnit Unit { get; init; }
 
-    [Range(typeof(decimal), "0", "99999999", ErrorMessage = "Price must be between 0 and 9,99,99,999.")]
+    [Range(typeof(decimal), "0", "99999999", ErrorMessage = "Price must be between 0 and 9,99,99,999."), DecimalPlaces(2)]
     public decimal ListPrice { get; init; }
 
-    [Range(typeof(decimal), "0", "99999999", ErrorMessage = "Cost must be between 0 and 9,99,99,999.")]
+    [Range(typeof(decimal), "0", "99999999", ErrorMessage = "Cost must be between 0 and 9,99,99,999."), DecimalPlaces(2)]
     public decimal? CostPrice { get; init; }
 
-    [Range(typeof(decimal), "0", "99999999")]
+    [Range(typeof(decimal), "0", "99999999"), DecimalPlaces(3)]
     public decimal ReorderLevel { get; init; }
 
-    [Range(typeof(decimal), "0", "99999999")]
+    [Range(typeof(decimal), "0", "99999999"), DecimalPlaces(3)]
     public decimal ReorderQuantity { get; init; }
 
     [Range(0, 365, ErrorMessage = "Lead time must be between 0 and 365 days.")]

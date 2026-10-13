@@ -31,7 +31,7 @@ public sealed record HsnCodeSaveRequest
     public string Description { get; init; } = string.Empty;
 
     /// <summary>Total GST %, 0 to 40 (the highest slab after the 2025 rationalisation).</summary>
-    [Range(typeof(decimal), "0", "40", ErrorMessage = "GST rate must be between 0% and 40%.")]
+    [Range(typeof(decimal), "0", "40", ErrorMessage = "GST rate must be between 0% and 40%."), DecimalPlaces(2)]
     public decimal GstRate { get; init; }
 
     public bool IsActive { get; init; } = true;

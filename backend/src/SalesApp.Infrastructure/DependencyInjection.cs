@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SalesApp.Core.Common;
 using SalesApp.Core.Entities;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.Services;
@@ -52,6 +53,15 @@ public static class DependencyInjection
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+
+        services.Configure<InventoryOptions>(configuration.GetSection(InventoryOptions.SectionName));
+        services.AddScoped<IStockLedger, StockLedger>();
+        services.AddScoped<IInventoryService, InventoryService>();
+
+        // Business dates (receipts, invoices, financial years) follow India time, whatever the server's zone.
+        var timeZoneId = configuration["Business:TimeZone"] ?? BusinessClock.IndiaTimeZoneId;
+        services.AddSingleton<IBusinessClock>(provider =>
+            new BusinessClock(provider.GetRequiredService<TimeProvider>(), TimeZoneInfo.FindSystemTimeZoneById(timeZoneId)));
 
         return services;
     }

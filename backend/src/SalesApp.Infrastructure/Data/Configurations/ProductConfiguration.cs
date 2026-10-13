@@ -18,7 +18,6 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         // Quantities carry three decimals (kg to the gram, metres to the millimetre).
         builder.Property(p => p.ReorderLevel).HasPrecision(18, 3);
         builder.Property(p => p.ReorderQuantity).HasPrecision(18, 3);
-        builder.Property(p => p.QuantityOnHand).HasPrecision(18, 3);
 
         builder.Property(p => p.RowVersion).IsRowVersion();
 

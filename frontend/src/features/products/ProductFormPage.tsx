@@ -164,9 +164,20 @@ export function ProductFormPage() {
           <CardHeader>
             <CardTitle>Stock planning</CardTitle>
             <CardDescription>
-              {product.data
-                ? `In stock: ${formatQuantity(product.data.quantityOnHand, product.data.unit)}. Stock changes through receipts and invoices (coming in P2).`
-                : 'Opening stock is entered through stock receipts (coming in P2).'}
+              {product.data ? (
+                <>
+                  In stock: {formatQuantity(product.data.quantityOnHand, product.data.unit)}. Stock changes only through receipts,
+                  adjustments and invoices.{' '}
+                  <Link
+                    className="underline underline-offset-4"
+                    to={`/stock?tab=movements&productId=${product.data.id}&product=${encodeURIComponent(`${product.data.sku} · ${product.data.name}`)}`}
+                  >
+                    View stock ledger
+                  </Link>
+                </>
+              ) : (
+                'After saving, add opening stock from Stock → Adjust stock (reason: opening balance) or record a goods receipt.'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
