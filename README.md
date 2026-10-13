@@ -15,7 +15,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P2 | Inventory: stock ledger, receipts, adjustments, low-stock list | ✅ Done |
 | P3 | Orders and quotations, GST invoicing (CGST/SGST/IGST), payments | ✅ Done |
 | P4 | Demo data generator, dashboard, reports, Excel export | ✅ Done |
-| P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | Planned |
+| P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Built (live check with a real key pending) |
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | Planned |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | Planned |
 | P8 | AI: insights, anomaly detection and demand forecasting | Planned |
@@ -106,7 +106,37 @@ environment variables (for example `Jwt__SigningKey`).
 | `Jwt:SigningKey` | user-secrets | Random, at least 32 characters. `setup-dev.ps1` generates it. |
 | `Seed:AdminPassword` | `appsettings.Development.json` (dev only) / user-secrets or env elsewhere | Creates the first admin when none exists |
 | `Seed:DemoUserPassword` | `appsettings.Development.json` (dev only) | Password for the demo team created by `--seed-demo` |
-| `Anthropic:ApiKey` | user-secrets | Needed from P5. The app works without it; AI features stay hidden. |
+| `Anthropic:ApiKey` | user-secrets / `Anthropic__ApiKey` env | Turns on the AI features. Without it the app works normally and hides them. |
+| `Ai:*` | `appsettings.json` | Model and effort per feature, daily budget per user, requests per minute, price list. See [AI features](#ai-features). |
+
+## AI features
+
+AI runs on the server only; the browser never sees the API key. To turn it on, add your
+[Claude API key](https://console.anthropic.com/) to user-secrets and restart the API:
+
+```powershell
+dotnet user-secrets set "Anthropic:ApiKey" "<your key>" --project backend/src/SalesApp.Api
+```
+
+`GET /api/ai/status` reports whether AI is available; the UI shows AI screens only when it is.
+
+**Smart order entry** (Orders → Smart entry) reads a pasted WhatsApp message or email, a PDF purchase order or a
+photo into a draft order. One Claude call with structured output returns the lines; the server then checks
+everything: product ids must exist, prices always come from the price list (a price the customer quoted is only
+shown as a difference), and the customer is matched by rules (GSTIN, then phone, then name). Nothing is saved
+until the user reviews the draft and confirms. When the user picks a different product for some wording, that
+wording is saved as an alias and offered to Claude next time.
+
+What is sent to Anthropic: the order text or file, today's date, and the product catalog (SKU, name, unit,
+category, description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other
+customer data.
+
+**Cost.** The instructions and catalog are a cached prompt prefix, so repeat calls within 5 minutes pay about 5%
+for that part. With the default model (Claude Opus 5.5 at medium effort) a typical WhatsApp order costs
+roughly ₹2–4; photos and PDFs a little more. Every call is logged in the `AiUsageLogs` table with tokens,
+cache use, estimated cost and outcome. Each user has a daily budget (`Ai:DailyBudgetUsdPerUser`, default
+$2 per rolling 24 hours) and a per-minute request limit (`Ai:RequestsPerMinutePerUser`, default 10). The
+estimates use the price list in `Ai:Pricing`; Anthropic's console has the actual bill.
 
 ## Project structure
 
@@ -115,6 +145,7 @@ backend/
   src/SalesApp.Api/              Controllers, auth, error handling, OpenAPI
   src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET)
   src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data
+  src/SalesApp.AI/               Claude gateway (budget, caching, usage log) and the AI features
                                  Sql/*.sql: reporting views (rpt, rpt_mgr) and the AI read-only users, applied after migrations
   tests/SalesApp.Tests/          Unit tests
   tests/SalesApp.IntegrationTests/  API tests against a throwaway LocalDB database

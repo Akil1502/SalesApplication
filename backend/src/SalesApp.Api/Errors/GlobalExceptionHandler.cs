@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using SalesApp.AI;
 using SalesApp.Core.Common;
 
 namespace SalesApp.Api.Errors;
@@ -29,6 +30,11 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             NotFoundException e => (StatusCodes.Status404NotFound, new ApiError(e.Message, traceId)),
             ForbiddenException e => (StatusCodes.Status403Forbidden, new ApiError(e.Message, traceId)),
             ConflictException e => (StatusCodes.Status409Conflict, new ApiError(e.Message, traceId)),
+            // AI: the messages are written for users ("Claude is busy right now..."), so they're passed through.
+            AiUnavailableException e => (StatusCodes.Status503ServiceUnavailable, new ApiError(e.Message, traceId)),
+            AiBudgetExceededException e => (StatusCodes.Status429TooManyRequests, new ApiError(e.Message, traceId)),
+            AiRefusedException e => (StatusCodes.Status422UnprocessableEntity, new ApiError(e.Message, traceId)),
+            AiServiceException e => (e.StatusCode, new ApiError(e.Message, traceId)),
             DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, new ApiError(
                 "This record was changed by someone else. Reload it and try again.", traceId)),
             // Services check uniqueness and references first; these catch the rare race between check and save.

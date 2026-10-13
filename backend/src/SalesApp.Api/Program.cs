@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using SalesApp.AI;
 using SalesApp.Api.Errors;
 using SalesApp.Api.OpenApi;
 using SalesApp.Api.Security;
@@ -21,6 +22,8 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddAi(builder.Configuration);
+builder.Services.AddAiRateLimit(builder.Configuration);
 
 builder.Services
     .AddControllers(options =>
@@ -143,6 +146,7 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();

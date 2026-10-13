@@ -4,6 +4,174 @@
  */
 
 export interface paths {
+    "/api/ai/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AiStatusDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/smart-entry/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reads a draft order with Claude. Nothing is saved. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description When the user already knows who the order is from. */
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        Text?: string;
+                        File?: components["schemas"]["IFormFile"];
+                        /** Format: int32 */
+                        CustomerId?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrderExtractionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/orders/smart-entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Saves the reviewed order as a draft and learns product aliases from the user's corrections. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SmartOrderConfirmRequest"];
+                    "text/json": components["schemas"]["SmartOrderConfirmRequest"];
+                    "application/*+json": components["schemas"]["SmartOrderConfirmRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OrderDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -2432,6 +2600,35 @@ export interface components {
         AdjustmentMode: "Change" | "SetCount";
         /** @enum {unknown} */
         AdjustmentReason: "OpeningBalance" | "StockCount" | "Damaged" | "Lost" | "Found" | "Other" | null;
+        /** @description Whether the AI features can be used. The UI hides AI screens when bool AiStatusDto.Enabled is false. */
+        AiStatusDto: {
+            enabled: boolean;
+            reason: null | string;
+            orderEntry: boolean;
+        };
+        AiUsageDto: {
+            model: string;
+            /** Format: int32 */
+            inputTokens: number;
+            /** Format: int32 */
+            outputTokens: number;
+            /** Format: int32 */
+            cacheReadTokens: number;
+            /** Format: int32 */
+            cacheWriteTokens: number;
+            /** Format: double */
+            costUsd: number;
+            /** Format: double */
+            costInr: number;
+            /** Format: int32 */
+            durationMs: number;
+        };
+        /** @description A product the user picked for wording the AI got wrong or couldn't match. Saved as an alias. */
+        AliasCorrection: {
+            sourceText: string;
+            /** Format: int32 */
+            productId?: number;
+        };
         /**
          * @description The one error shape every endpoint returns. string ApiError.TraceId matches the server log
          *     entry, so a user can quote it when reporting a problem. IReadOnlyDictionary&lt;string, string[]&gt;? ApiError.Errors is only present
@@ -2507,6 +2704,23 @@ export interface components {
             fullName: string;
             roles: string[];
         };
+        CustomerCandidateDto: {
+            /** Format: int32 */
+            id: number;
+            code: string;
+            name: string;
+            city: string;
+            /** Format: double */
+            score: number;
+        };
+        /** @description What the order said about who sent it. Empty strings mean "not stated". */
+        CustomerCluesDto: {
+            name: null | string;
+            gstin: null | string;
+            phone: null | string;
+            city: null | string;
+            contactPerson: null | string;
+        };
         /** @description A customer with full details. ShippingAddress is null when goods ship to the billing address. */
         CustomerDto: {
             /** Format: int32 */
@@ -2548,6 +2762,12 @@ export interface components {
             assignedRepName: null | string;
             isActive: boolean;
         };
+        /**
+         * @description How the customer was identified, strongest first. Not nullable on purpose: a nullable enum makes the OpenAPI
+         *     generator mark the enum itself as nullable everywhere it's used.
+         * @enum {unknown}
+         */
+        CustomerMatchSource: "None" | "Selected" | "Gstin" | "Phone" | "Name";
         CustomerSaveRequest: {
             /** @description Optional on create (generated when blank); ignored on update because codes are permanent. */
             code?: null | string;
@@ -2579,6 +2799,14 @@ export interface components {
             isActive?: boolean;
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
+        };
+        CustomerSuggestionDto: {
+            /** Format: int32 */
+            customerId: null | number;
+            customerName: null | string;
+            matchedBy: components["schemas"]["CustomerMatchSource"];
+            clues: components["schemas"]["CustomerCluesDto"];
+            candidates: components["schemas"]["CustomerCandidateDto"][];
         };
         /** @description Everything the home dashboard shows. Sales values are taxable value (excluding GST). */
         DashboardDto: {
@@ -2618,6 +2846,40 @@ export interface components {
             tag?: components["schemas"]["StringSegment"];
             isWeak?: boolean;
         };
+        /**
+         * @description One product line read from the order. Prices come from the catalog, never from the message; a price the customer
+         *     stated is shown alongside with its difference from list price, for the sales person to judge.
+         */
+        ExtractedLineDto: {
+            sourceText: string;
+            product: null | components["schemas"]["ExtractedProductDto"];
+            /** Format: double */
+            quantity: null | number;
+            statedUnit: null | string;
+            /** Format: double */
+            statedPrice: null | number;
+            /** Format: double */
+            priceVariance: null | number;
+            confidence: components["schemas"]["ExtractionConfidence"];
+            matchedBy: components["schemas"]["ProductMatchSource"];
+            note: null | string;
+        };
+        /** @description The catalog product a line was matched to, with what the review screen shows about it. */
+        ExtractedProductDto: {
+            /** Format: int32 */
+            id: number;
+            sku: string;
+            name: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            listPrice: number;
+            /** Format: double */
+            quantityOnHand: number;
+            /** Format: double */
+            gstRate: number;
+        };
+        /** @enum {unknown} */
+        ExtractionConfidence: "High" | "Medium" | "Low";
         FileContentResult: {
             /** Format: byte */
             fileContents?: string;
@@ -2663,6 +2925,8 @@ export interface components {
             /** Format: double */
             igstAmount: number;
         };
+        /** Format: binary */
+        IFormFile: string;
         InvoiceAddressDto: {
             line1: string;
             line2: null | string;
@@ -2905,6 +3169,19 @@ export interface components {
             /** Format: date-time */
             updatedAtUtc: string;
             rowVersion: string;
+        };
+        /** @description A draft read from a customer's message or file. Nothing has been saved; the user reviews it first. */
+        OrderExtractionDto: {
+            source: components["schemas"]["OrderSource"];
+            looksLikeOrder: boolean;
+            customer: components["schemas"]["CustomerSuggestionDto"];
+            customerReference: null | string;
+            /** Format: date */
+            requestedDeliveryDate: null | string;
+            notes: null | string;
+            lines: components["schemas"]["ExtractedLineDto"][];
+            unmatched: string[];
+            usage: components["schemas"]["AiUsageDto"];
         };
         OrderLineDto: {
             /** Format: int32 */
@@ -3179,6 +3456,11 @@ export interface components {
             reorderLevel: number;
             isActive: boolean;
         };
+        /**
+         * @description How a line's product was found.
+         * @enum {unknown}
+         */
+        ProductMatchSource: "Ai" | "Alias" | "None";
         ProductSaveRequest: {
             sku: string;
             name: string;
@@ -3262,6 +3544,13 @@ export interface components {
          * @enum {unknown}
          */
         SalesOrderStatus: "Draft" | "Quoted" | "Confirmed" | "Invoiced" | "Cancelled";
+        /** @description The reviewed order, plus the corrections to learn from. */
+        SmartOrderConfirmRequest: {
+            order: components["schemas"]["OrderSaveRequest"];
+            /** @description AiText, AiPdf or AiImage: what the order was read from. */
+            source?: components["schemas"]["OrderSource"];
+            corrections?: components["schemas"]["AliasCorrection"][];
+        };
         StateDto: {
             code: string;
             name: string;

@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
+import { useAiStatus } from '@/features/ai/api'
 import { useAuth } from '@/features/auth/auth-context'
 import { findNavItem, navigation } from './navigation'
 import { UserMenu } from './UserMenu'
@@ -22,8 +23,14 @@ export function AppSidebar() {
   const { pathname } = useLocation()
   const activePath = findNavItem(pathname)?.to
 
+  const ai = useAiStatus()
+  const aiEnabled = ai.data?.enabled ?? false
+
   const groups = navigation
-    .map((group) => ({ ...group, items: group.items.filter((item) => !item.roles || hasRole(...item.roles)) }))
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => (!item.roles || hasRole(...item.roles)) && (!item.ai || aiEnabled)),
+    }))
     .filter((group) => group.items.length > 0)
 
   return (

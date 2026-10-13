@@ -7,6 +7,7 @@ import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAiStatus } from '@/features/ai/api'
 import { formatBusinessDate, formatINR } from '@/lib/format'
 import { useOrders, type OrderListItem, type OrderStatus } from './api'
 import { OrderStatusBadge } from './badges'
@@ -57,6 +58,7 @@ export function OrdersPage() {
   const status = params.filters.status as OrderStatus | undefined
 
   const orders = useOrders({ q: params.q || undefined, page: params.page, pageSize: params.pageSize, status })
+  const ai = useAiStatus()
 
   return (
     <>
@@ -64,12 +66,22 @@ export function OrdersPage() {
         title="Orders & quotations"
         description="Draft → quoted → confirmed → invoiced. Confirmed orders are ready to invoice."
         actions={
-          <Button asChild>
-            <Link to="/orders/new">
-              <Plus />
-              New order
-            </Link>
-          </Button>
+          <>
+            {ai.data?.orderEntry && (
+              <Button asChild variant="outline">
+                <Link to="/orders/smart-entry">
+                  <Sparkles />
+                  Smart entry
+                </Link>
+              </Button>
+            )}
+            <Button asChild>
+              <Link to="/orders/new">
+                <Plus />
+                New order
+              </Link>
+            </Button>
+          </>
         }
       />
 

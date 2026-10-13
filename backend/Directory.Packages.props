@@ -18,6 +18,10 @@
   <ItemGroup Label="Reporting">
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
   </ItemGroup>
+  <ItemGroup Label="AI">
+    <!-- Official Anthropic SDK for the Claude API. -->
+    <PackageVersion Include="Anthropic" Version="12.51.0" />
+  </ItemGroup>
   <ItemGroup Label="Testing">
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />

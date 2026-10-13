@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SalesApp.AI/SalesApp.AI.csproj" />
     <Project Path="src/SalesApp.Api/SalesApp.Api.csproj" />
     <Project Path="src/SalesApp.Core/SalesApp.Core.csproj" />
     <Project Path="src/SalesApp.Infrastructure/SalesApp.Infrastructure.csproj" />

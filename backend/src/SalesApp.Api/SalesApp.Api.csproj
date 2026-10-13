@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SalesApp.Core\SalesApp.Core.csproj" />
     <ProjectReference Include="..\SalesApp.Infrastructure\SalesApp.Infrastructure.csproj" />
+    <ProjectReference Include="..\SalesApp.AI\SalesApp.AI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

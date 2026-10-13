@@ -26,6 +26,8 @@ export interface NavItem {
   roles?: string[]
   /** Build phase that delivers the screen; shown as a "coming" placeholder until then. */
   phase?: string
+  /** An AI feature: hidden while AI is switched off or has no API key. */
+  ai?: boolean
 }
 
 export interface NavGroup {
@@ -46,7 +48,7 @@ export const navigation: NavGroup[] = [
     label: 'Sales',
     items: [
       { title: 'Orders & quotations', to: '/orders', icon: ShoppingCart },
-      { title: 'Smart order entry', to: '/orders/smart-entry', icon: Sparkles, phase: 'P5' },
+      { title: 'Smart order entry', to: '/orders/smart-entry', icon: Sparkles, ai: true },
       { title: 'Invoices', to: '/invoices', icon: ReceiptIndianRupee },
       { title: 'Payments', to: '/payments', icon: Wallet },
     ],

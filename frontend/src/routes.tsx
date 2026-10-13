@@ -23,6 +23,7 @@ const featureRoutes: RouteObject[] = [
   { path: '/products/:id', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
   { path: '/orders', lazy: () => import('@/features/sales/OrdersPage').then((m) => ({ Component: m.OrdersPage })) },
   { path: '/orders/new', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) },
+  { path: '/orders/smart-entry', lazy: () => import('@/features/sales/smart-entry/SmartOrderPage').then((m) => ({ Component: m.SmartOrderPage })) },
   { path: '/orders/:id', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) },
   { path: '/invoices', lazy: () => import('@/features/sales/InvoicesPage').then((m) => ({ Component: m.InvoicesPage })) },
   { path: '/invoices/:id', lazy: () => import('@/features/sales/InvoiceDetailPage').then((m) => ({ Component: m.InvoiceDetailPage })) },
