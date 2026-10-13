@@ -22,6 +22,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StockLevel> StockLevels => Set<StockLevel>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<StockReceipt> StockReceipts => Set<StockReceipt>();
+    public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
+    public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceLine> InvoiceLines => Set<InvoiceLine>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<DocumentSequence> DocumentSequences => Set<DocumentSequence>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

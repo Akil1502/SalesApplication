@@ -21,6 +21,12 @@ const featureRoutes: RouteObject[] = [
   { path: '/customers/:id', lazy: () => import('@/features/customers/CustomerFormPage').then((m) => ({ Component: m.CustomerFormPage })) },
   { path: '/products', lazy: () => import('@/features/products/ProductsPage').then((m) => ({ Component: m.ProductsPage })) },
   { path: '/products/:id', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
+  { path: '/orders', lazy: () => import('@/features/sales/OrdersPage').then((m) => ({ Component: m.OrdersPage })) },
+  { path: '/orders/new', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) },
+  { path: '/orders/:id', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) },
+  { path: '/invoices', lazy: () => import('@/features/sales/InvoicesPage').then((m) => ({ Component: m.InvoicesPage })) },
+  { path: '/invoices/:id', lazy: () => import('@/features/sales/InvoiceDetailPage').then((m) => ({ Component: m.InvoiceDetailPage })) },
+  { path: '/payments', lazy: () => import('@/features/sales/PaymentsPage').then((m) => ({ Component: m.PaymentsPage })) },
   { path: '/stock', lazy: () => import('@/features/inventory/StockPage').then((m) => ({ Component: m.StockPage })) },
   { path: '/stock/receipts/:id', lazy: () => import('@/features/inventory/ReceiptDetailPage').then((m) => ({ Component: m.ReceiptDetailPage })) },
   {
@@ -64,6 +70,9 @@ export const routes: RouteObject[] = [
         element: <AppLayout />,
         children: [{ index: true, element: <DashboardPage /> }, ...featureRoutes, ...placeholderRoutes],
       },
+      // Printable documents render without the sidebar.
+      { path: '/invoices/:id/print', lazy: () => import('@/features/sales/print/InvoicePrintPage').then((m) => ({ Component: m.InvoicePrintPage })) },
+      { path: '/orders/:id/print', lazy: () => import('@/features/sales/print/QuotationPrintPage').then((m) => ({ Component: m.QuotationPrintPage })) },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

@@ -31,7 +31,8 @@ import { useStates } from '@/lib/lookups'
 type CompanySettings = Schemas['CompanySettingsDto']
 
 // The inputs only *display* upper case (CSS), so normalise the value before checking it.
-const prefix = z.string().trim().toUpperCase().regex(/^[A-Z]{1,5}$/, { error: 'Use 1 to 5 letters.' })
+// At most 4 letters: GST caps invoice numbers at 16 characters (PREF/26-27/00001).
+const prefix = z.string().trim().toUpperCase().regex(/^[A-Z]{1,4}$/, { error: 'Use 1 to 4 letters.' })
 
 const schema = z
   .object({
@@ -216,8 +217,8 @@ export function CompanySettingsPage() {
         </CardHeader>
         <CardContent>
           <FieldGroup className="grid gap-4 sm:grid-cols-2">
-            <FormInput control={control} name="invoicePrefix" label="Invoice prefix" className="font-mono uppercase" maxLength={5} />
-            <FormInput control={control} name="quotationPrefix" label="Quotation prefix" className="font-mono uppercase" maxLength={5} />
+            <FormInput control={control} name="invoicePrefix" label="Invoice prefix" className="font-mono uppercase" maxLength={4} />
+            <FormInput control={control} name="quotationPrefix" label="Quotation prefix" className="font-mono uppercase" maxLength={4} />
             <FormTextarea control={control} name="invoiceTerms" label="Terms printed on invoices" rows={4} className="sm:col-span-2" />
           </FieldGroup>
         </CardContent>

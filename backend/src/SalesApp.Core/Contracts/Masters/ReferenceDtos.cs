@@ -102,11 +102,11 @@ public sealed record CompanySettingsSaveRequest
     [MaxLength(100)]
     public string? BankBranch { get; init; }
 
-    /// <summary>Kept to 5 characters so "PREFIX/25-26/00001" stays within GST's 16-character invoice number limit.</summary>
-    [Required, RegularExpression("^[A-Z]{1,5}$", ErrorMessage = "Use 1 to 5 capital letters.")]
+    /// <summary>At most 4 letters so "PREF/26-27/00001" stays within GST's 16-character invoice number limit.</summary>
+    [Required, RegularExpression("^[A-Z]{1,4}$", ErrorMessage = "Use 1 to 4 capital letters.")]
     public string InvoicePrefix { get; init; } = "INV";
 
-    [Required, RegularExpression("^[A-Z]{1,5}$", ErrorMessage = "Use 1 to 5 capital letters.")]
+    [Required, RegularExpression("^[A-Z]{1,4}$", ErrorMessage = "Use 1 to 4 capital letters.")]
     public string QuotationPrefix { get; init; } = "QT";
 
     [MaxLength(2000)]

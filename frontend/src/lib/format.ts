@@ -19,6 +19,13 @@ export function formatINR(amount: number | null | undefined, decimals = 2): stri
   return formatter.format(amount)
 }
 
+const amountFormatter = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+/** Money without the ₹ sign, for table columns on printed documents: 1234567.5 -> "12,34,567.50". */
+export function formatAmount(amount: number): string {
+  return amountFormatter.format(amount)
+}
+
 const quantityFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 3 })
 
 /** Quantities keep up to three decimals (kg to the gram), with Indian digit grouping. */

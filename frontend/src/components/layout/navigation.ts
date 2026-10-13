@@ -45,10 +45,10 @@ export const navigation: NavGroup[] = [
   {
     label: 'Sales',
     items: [
-      { title: 'Orders & quotations', to: '/orders', icon: ShoppingCart, phase: 'P3' },
+      { title: 'Orders & quotations', to: '/orders', icon: ShoppingCart },
       { title: 'Smart order entry', to: '/orders/smart-entry', icon: Sparkles, phase: 'P5' },
-      { title: 'Invoices', to: '/invoices', icon: ReceiptIndianRupee, phase: 'P3' },
-      { title: 'Payments', to: '/payments', icon: Wallet, phase: 'P3' },
+      { title: 'Invoices', to: '/invoices', icon: ReceiptIndianRupee },
+      { title: 'Payments', to: '/payments', icon: Wallet },
     ],
   },
   {

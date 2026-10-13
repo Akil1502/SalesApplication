@@ -8,7 +8,7 @@ const roadmap = [
   { phase: 'P0', title: 'Foundation: sign-in, roles, app shell', done: true },
   { phase: 'P1', title: 'Customers, products, users, company settings', done: true },
   { phase: 'P2', title: 'Inventory: stock ledger and low-stock alerts', done: true },
-  { phase: 'P3', title: 'Orders, GST invoices and payments', done: false },
+  { phase: 'P3', title: 'Orders, GST invoices and payments', done: true },
   { phase: 'P4', title: 'Demo data, dashboard and reports', done: false },
   { phase: 'P5', title: 'AI smart order entry', done: false },
   { phase: 'P6', title: 'AI: ask your sales data', done: false },
