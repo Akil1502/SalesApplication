@@ -6,7 +6,7 @@ import { useAuth } from '@/features/auth/auth-context'
 // Until the real dashboard lands in P4, the home page shows where the rebuild stands.
 const roadmap = [
   { phase: 'P0', title: 'Foundation: sign-in, roles, app shell', done: true },
-  { phase: 'P1', title: 'Customers, products, users, company settings', done: false },
+  { phase: 'P1', title: 'Customers, products, users, company settings', done: true },
   { phase: 'P2', title: 'Inventory: stock ledger and low-stock alerts', done: false },
   { phase: 'P3', title: 'Orders, GST invoices and payments', done: false },
   { phase: 'P4', title: 'Demo data, dashboard and reports', done: false },
@@ -32,7 +32,7 @@ export function DashboardPage() {
         <h2 className="text-2xl font-semibold tracking-tight">
           {greeting()}, {user?.fullName}
         </h2>
-        <p className="text-muted-foreground">Sales figures and KPIs appear here once orders and invoices exist.</p>
+        <p className="text-muted-foreground">Sales figures and KPIs appear here once orders and invoices exist (phase P4).</p>
       </div>
 
       <Card className="max-w-2xl">

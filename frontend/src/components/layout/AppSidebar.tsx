@@ -14,12 +14,13 @@ import {
   SidebarRail,
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/features/auth/auth-context'
-import { navigation } from './navigation'
+import { findNavItem, navigation } from './navigation'
 import { UserMenu } from './UserMenu'
 
 export function AppSidebar() {
   const { hasRole } = useAuth()
   const { pathname } = useLocation()
+  const activePath = findNavItem(pathname)?.to
 
   const groups = navigation
     .map((group) => ({ ...group, items: group.items.filter((item) => !item.roles || hasRole(...item.roles)) }))
@@ -52,7 +53,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {group.items.map((item) => (
                 <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton asChild isActive={pathname === item.to} tooltip={item.title}>
+                  <SidebarMenuButton asChild isActive={activePath === item.to} tooltip={item.title}>
                     <NavLink to={item.to} end>
                       <item.icon />
                       <span>{item.title}</span>

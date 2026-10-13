@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Entities;
+using SalesApp.Infrastructure.Data.Configurations;
 
 namespace SalesApp.Infrastructure.Data;
 
@@ -12,6 +13,13 @@ namespace SalesApp.Infrastructure.Data;
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options)
 {
+    public DbSet<State> States => Set<State>();
+    public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<HsnCode> HsnCodes => Set<HsnCode>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Customer> Customers => Set<Customer>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -19,8 +27,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<AppUser>(user =>
         {
             user.Property(u => u.FullName).HasMaxLength(120).IsRequired();
-            user.Property(u => u.CreatedAtUtc).HasColumnType("datetime2(0)");
         });
+
+        builder.HasSequence<int>(CustomerConfiguration.CodeSequence).StartsAt(1).IncrementsBy(1);
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
@@ -30,5 +39,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         // Money is decimal(18,2) unless a property says otherwise (quantities use decimal(18,3)).
         // Setting it globally means no decimal column silently falls back to EF's default precision.
         configurationBuilder.Properties<decimal>().HavePrecision(18, 2);
+
+        // Timestamps are UTC to the second; sub-second precision adds nothing for audit columns.
+        configurationBuilder.Properties<DateTime>().HaveColumnType("datetime2(0)");
     }
 }

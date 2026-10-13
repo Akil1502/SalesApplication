@@ -2,15 +2,11 @@ import { Outlet, useLocation } from 'react-router'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { AppSidebar } from './AppSidebar'
-import { navigation } from './navigation'
+import { findNavItem } from './navigation'
 
 function usePageTitle(): string {
   const { pathname } = useLocation()
-  for (const group of navigation) {
-    const item = group.items.find((i) => i.to === pathname)
-    if (item) return item.title
-  }
-  return 'SalesApp'
+  return findNavItem(pathname)?.title ?? 'SalesApp'
 }
 
 /** Signed-in shell: collapsible sidebar, top bar with the page title, and the routed page. */

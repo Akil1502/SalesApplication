@@ -100,10 +100,1150 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CategoryDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategorySaveRequest"];
+                    "text/json": components["schemas"]["CategorySaveRequest"];
+                    "application/*+json": components["schemas"]["CategorySaveRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CategoryDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CategorySaveRequest"];
+                    "text/json": components["schemas"]["CategorySaveRequest"];
+                    "application/*+json": components["schemas"]["CategorySaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CategoryDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Deletes an unused category. Categories with products return 409; deactivate those instead. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hsn-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HsnCodeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["HsnCodeSaveRequest"];
+                    "text/json": components["schemas"]["HsnCodeSaveRequest"];
+                    "application/*+json": components["schemas"]["HsnCodeSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HsnCodeDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hsn-codes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["HsnCodeSaveRequest"];
+                    "text/json": components["schemas"]["HsnCodeSaveRequest"];
+                    "application/*+json": components["schemas"]["HsnCodeSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HsnCodeDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Deletes an unused HSN code. Codes used by products return 409; deactivate those instead. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search customers by name, code, trade name, GSTIN, phone or city. */
+        get: {
+            parameters: {
+                query?: {
+                    assignedRepId?: string;
+                    stateCode?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfCustomerListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CustomerSaveRequest"];
+                    "text/json": components["schemas"]["CustomerSaveRequest"];
+                    "application/*+json": components["schemas"]["CustomerSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CustomerDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/customers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CustomerDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CustomerSaveRequest"];
+                    "text/json": components["schemas"]["CustomerSaveRequest"];
+                    "application/*+json": components["schemas"]["CustomerSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CustomerDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lookups/states": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** States and union territories with their GST state codes, sorted by name. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StateDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lookups/sales-reps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active sales reps and managers, for assigning customers. Managers and admins only. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserLookupDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search products by SKU, name or HSN code. */
+        get: {
+            parameters: {
+                query?: {
+                    categoryId?: number;
+                    /** @description Only products at or below their reorder level. */
+                    lowStockOnly?: boolean;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfProductListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ProductSaveRequest"];
+                    "text/json": components["schemas"]["ProductSaveRequest"];
+                    "application/*+json": components["schemas"]["ProductSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ProductSaveRequest"];
+                    "text/json": components["schemas"]["ProductSaveRequest"];
+                    "application/*+json": components["schemas"]["ProductSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/company": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CompanySettingsDto"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CompanySettingsSaveRequest"];
+                    "text/json": components["schemas"]["CompanySettingsSaveRequest"];
+                    "application/*+json": components["schemas"]["CompanySettingsSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CompanySettingsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    role?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfUserDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserCreateRequest"];
+                    "text/json": components["schemas"]["UserCreateRequest"];
+                    "application/*+json": components["schemas"]["UserCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UserUpdateRequest"];
+                    "text/json": components["schemas"]["UserUpdateRequest"];
+                    "application/*+json": components["schemas"]["UserUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sets a new password chosen by the admin and clears any lockout. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResetPasswordRequest"];
+                    "text/json": components["schemas"]["ResetPasswordRequest"];
+                    "application/*+json": components["schemas"]["ResetPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddressDto: {
+            line1: string;
+            line2: null | string;
+            city: string;
+            stateCode: string;
+            stateName: string;
+            pincode: string;
+        };
+        AddressInput: {
+            line1: string;
+            line2?: null | string;
+            city: string;
+            stateCode: string;
+            pincode: string;
+        };
         /**
          * @description The one error shape every endpoint returns. string ApiError.TraceId matches the server log
          *     entry, so a user can quote it when reporting a problem. IReadOnlyDictionary&lt;string, string[]&gt;? ApiError.Errors is only present
@@ -116,12 +1256,162 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        CategoryDto: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            description: null | string;
+            isActive: boolean;
+            /** Format: int32 */
+            productCount: number;
+        };
+        CategorySaveRequest: {
+            name: string;
+            description?: null | string;
+            isActive?: boolean;
+        };
+        CompanySettingsDto: {
+            legalName: string;
+            tradeName: null | string;
+            gstin: string;
+            stateCode: string;
+            stateName: string;
+            addressLine1: string;
+            addressLine2: null | string;
+            city: string;
+            pincode: string;
+            phone: null | string;
+            email: null | string;
+            bankName: null | string;
+            bankAccountNumber: null | string;
+            bankIfsc: null | string;
+            bankBranch: null | string;
+            invoicePrefix: string;
+            quotationPrefix: string;
+            invoiceTerms: null | string;
+            rowVersion: string;
+        };
+        CompanySettingsSaveRequest: {
+            legalName: string;
+            tradeName?: null | string;
+            gstin: string;
+            stateCode: string;
+            addressLine1: string;
+            addressLine2?: null | string;
+            city: string;
+            pincode: string;
+            phone?: null | string;
+            email?: null | string;
+            bankName?: null | string;
+            bankAccountNumber?: null | string;
+            bankIfsc?: null | string;
+            bankBranch?: null | string;
+            /** @description Kept to 5 characters so "PREFIX/25-26/00001" stays within GST's 16-character invoice number limit. */
+            invoicePrefix: string;
+            quotationPrefix: string;
+            invoiceTerms?: null | string;
+            rowVersion: string;
+        };
         CurrentUserDto: {
             /** Format: uuid */
             id: string;
             email: string;
             fullName: string;
             roles: string[];
+        };
+        /** @description A customer with full details. ShippingAddress is null when goods ship to the billing address. */
+        CustomerDto: {
+            /** Format: int32 */
+            id: number;
+            code: string;
+            name: string;
+            tradeName: null | string;
+            gstin: null | string;
+            pan: null | string;
+            contactPerson: null | string;
+            phone: null | string;
+            email: null | string;
+            billingAddress: components["schemas"]["AddressDto"];
+            shippingAddress: null | components["schemas"]["AddressDto"];
+            /** Format: double */
+            creditLimit: null | number;
+            /** Format: int32 */
+            paymentTermsDays: number;
+            /** Format: uuid */
+            assignedRepId: null | string;
+            assignedRepName: null | string;
+            notes: null | string;
+            isActive: boolean;
+            /** Format: date-time */
+            createdAtUtc: string;
+            /** Format: date-time */
+            updatedAtUtc: string;
+            rowVersion: string;
+        };
+        CustomerListItemDto: {
+            /** Format: int32 */
+            id: number;
+            code: string;
+            name: string;
+            gstin: null | string;
+            city: string;
+            stateName: string;
+            phone: null | string;
+            assignedRepName: null | string;
+            isActive: boolean;
+        };
+        CustomerSaveRequest: {
+            /** @description Optional on create (generated when blank); ignored on update because codes are permanent. */
+            code?: null | string;
+            name: string;
+            tradeName?: null | string;
+            gstin?: null | string;
+            contactPerson?: null | string;
+            phone?: null | string;
+            email?: null | string;
+            billingAddress: components["schemas"]["AddressInput"];
+            shippingSameAsBilling?: boolean;
+            shippingAddress?: null | components["schemas"]["AddressInput"];
+            /**
+             * Format: double
+             * @description Managers and admins only; ignored for sales reps.
+             */
+            creditLimit?: null | number;
+            /**
+             * Format: int32
+             * @description Managers and admins only; ignored for sales reps.
+             */
+            paymentTermsDays?: number;
+            /**
+             * Format: uuid
+             * @description Managers and admins only; a sales rep's new customers are assigned to themselves.
+             */
+            assignedRepId?: null | string;
+            notes?: null | string;
+            isActive?: boolean;
+            /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
+            rowVersion?: null | string;
+        };
+        HsnCodeDto: {
+            /** Format: int32 */
+            id: number;
+            code: string;
+            description: string;
+            /** Format: double */
+            gstRate: number;
+            isActive: boolean;
+            /** Format: int32 */
+            productCount: number;
+        };
+        HsnCodeSaveRequest: {
+            code: string;
+            description: string;
+            /**
+             * Format: double
+             * @description Total GST %, 0 to 40 (the highest slab after the 2025 rationalisation).
+             */
+            gstRate?: number;
+            isActive?: boolean;
         };
         LoginRequest: {
             email: string;
@@ -132,6 +1422,154 @@ export interface components {
             /** Format: date-time */
             expiresAtUtc: string;
             user: components["schemas"]["CurrentUserDto"];
+        };
+        PagedResultOfCustomerListItemDto: {
+            items: components["schemas"]["CustomerListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfProductListItemDto: {
+            items: components["schemas"]["ProductListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfUserDto: {
+            items: components["schemas"]["UserDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        /** @description A product with full details. CostPrice is null for sales reps: cost and margin are manager-only. */
+        ProductDto: {
+            /** Format: int32 */
+            id: number;
+            sku: string;
+            name: string;
+            description: null | string;
+            /** Format: int32 */
+            categoryId: number;
+            categoryName: string;
+            /** Format: int32 */
+            hsnCodeId: number;
+            hsnCode: string;
+            /** Format: double */
+            gstRate: number;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            listPrice: number;
+            /** Format: double */
+            costPrice: null | number;
+            /** Format: double */
+            reorderLevel: number;
+            /** Format: double */
+            reorderQuantity: number;
+            /** Format: int32 */
+            leadTimeDays: number;
+            /** Format: double */
+            quantityOnHand: number;
+            isActive: boolean;
+            /** Format: date-time */
+            createdAtUtc: string;
+            /** Format: date-time */
+            updatedAtUtc: string;
+            rowVersion: string;
+        };
+        ProductListItemDto: {
+            /** Format: int32 */
+            id: number;
+            sku: string;
+            name: string;
+            categoryName: string;
+            hsnCode: string;
+            /** Format: double */
+            gstRate: number;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            listPrice: number;
+            /** Format: double */
+            quantityOnHand: number;
+            /** Format: double */
+            reorderLevel: number;
+            isActive: boolean;
+        };
+        ProductSaveRequest: {
+            sku: string;
+            name: string;
+            description?: null | string;
+            /** Format: int32 */
+            categoryId?: number;
+            /** Format: int32 */
+            hsnCodeId?: number;
+            unit?: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            listPrice?: number;
+            /** Format: double */
+            costPrice?: null | number;
+            /** Format: double */
+            reorderLevel?: number;
+            /** Format: double */
+            reorderQuantity?: number;
+            /** Format: int32 */
+            leadTimeDays?: number;
+            isActive?: boolean;
+            /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
+            rowVersion?: null | string;
+        };
+        /** @enum {unknown} */
+        ProductUnit: "Kg" | "Metre" | "Piece" | "Cone" | "Bale" | "Box" | "Roll" | "Set";
+        ResetPasswordRequest: {
+            newPassword: string;
+        };
+        StateDto: {
+            code: string;
+            name: string;
+            usesUtgst: boolean;
+        };
+        UserCreateRequest: {
+            email: string;
+            fullName: string;
+            role: string;
+            /** @description Initial password the admin shares with the user. Minimum 8 characters with upper, lower and a digit. */
+            password: string;
+        };
+        UserDto: {
+            /** Format: uuid */
+            id: string;
+            email: string;
+            fullName: string;
+            role: string;
+            isActive: boolean;
+            isLockedOut: boolean;
+            /** Format: date-time */
+            createdAtUtc: string;
+        };
+        UserLookupDto: {
+            /** Format: uuid */
+            id: string;
+            fullName: string;
+            email: string;
+        };
+        UserUpdateRequest: {
+            fullName: string;
+            role: string;
+            isActive?: boolean;
         };
     };
     responses: never;

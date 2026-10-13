@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
 
@@ -30,6 +31,11 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             ConflictException e => (StatusCodes.Status409Conflict, new ApiError(e.Message, traceId)),
             DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, new ApiError(
                 "This record was changed by someone else. Reload it and try again.", traceId)),
+            // Services check uniqueness and references first; these catch the rare race between check and save.
+            DbUpdateException { InnerException: SqlException { Number: 2601 or 2627 } } => (StatusCodes.Status409Conflict, new ApiError(
+                "Another record with the same value was saved at the same moment. Check your entry and try again.", traceId)),
+            DbUpdateException { InnerException: SqlException { Number: 547 } } => (StatusCodes.Status409Conflict, new ApiError(
+                "This record is linked to other data, so the change isn't allowed.", traceId)),
             _ => (StatusCodes.Status500InternalServerError, new ApiError(
                 "Something went wrong on our side. Please try again, and quote the trace id if it keeps happening.", traceId)),
         };

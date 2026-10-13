@@ -11,7 +11,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | Phase | Scope | State |
 |---|---|---|
 | P0 | Foundation: solution layout, sign-in (JWT + roles), React app shell, tests | ✅ Done |
-| P1 | Customers, products, HSN/GST rates, users, company settings | Planned |
+| P1 | Customers, products, HSN/GST rates, users, company settings | ✅ Done |
 | P2 | Inventory: stock ledger, receipts, adjustments, low-stock list | Planned |
 | P3 | Orders and quotations, GST invoicing (CGST/SGST/IGST), payments | Planned |
 | P4 | Demo data generator, dashboard, reports, Excel export | Planned |
@@ -93,7 +93,7 @@ backend/
   tests/SalesApp.Tests/          Unit tests
   tests/SalesApp.IntegrationTests/  API tests against a throwaway LocalDB database
 frontend/
-  src/features/                  Feature folders (auth, ...)
+  src/features/                  Feature folders (auth, customers, products, catalog, users, settings)
   src/components/                App shell and shadcn/ui components
   src/lib/api/                   Typed API client generated from OpenAPI
 scripts/setup-dev.ps1            One-time developer setup
@@ -104,4 +104,13 @@ scripts/setup-dev.ps1            One-time developer setup
 - **One error shape** for every API failure: `{ message, traceId, errors? }`. `errors` is keyed by camelCase field name, so forms can show messages next to the right input.
 - **UTC timestamps** everywhere (`*Utc` columns, `TimeProvider` for testability).
 - **`CancellationToken`** passed through every async layer.
-- **Money is `decimal(18,2)`**; quantities will be `decimal(18,3)`.
+- **Money is `decimal(18,2)`**; quantities are `decimal(18,3)` (kg to the gram, metres to the millimetre).
+- **Optimistic concurrency**: editable records carry a `rowVersion`; saving a stale copy returns 409 and the UI offers a reload.
+- **List endpoints** share `q`, `page`, `pageSize` (max 100), `sort` (`name` or `-name`) and `includeInactive`; list state lives in the page URL.
+
+## Reference data
+
+- **States**: every GST state code, seeded by migration (union territories without a legislature are flagged for UTGST).
+- **Demo company**: *Demo Textiles Private Limited*, GSTIN `33ABCDE1234F1Z7` (built from the standard example PAN). Replace it in **Company settings**.
+- **Starter HSN codes and GST rates are illustrative.** Confirm current rates with your tax advisor and edit them in **Categories & HSN**. Invoices copy the rate when they're issued, so later changes don't alter past invoices.
+- **GSTINs are validated** for format and the GSTN check character, both in the browser and on the server, and must match the billing state.

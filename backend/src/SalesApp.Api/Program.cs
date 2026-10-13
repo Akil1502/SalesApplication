@@ -9,6 +9,7 @@ using Scalar.AspNetCore;
 using SalesApp.Api.Errors;
 using SalesApp.Api.OpenApi;
 using SalesApp.Api.Security;
+using SalesApp.Core.Security;
 using SalesApp.Infrastructure;
 using SalesApp.Infrastructure.Data;
 
@@ -16,6 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ---- Core services ---------------------------------------------------------
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services
@@ -29,6 +32,9 @@ builder.Services
     {
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        // Numbers must be JSON numbers. The web default also accepts "12" strings, which makes the
+        // OpenAPI document (and the generated TypeScript) type every number as number | string.
+        options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict;
         // Malformed JSON gets a generic message instead of serializer text with internal type names.
         options.AllowInputFormatterExceptionMessages = false;
     })
@@ -40,7 +46,18 @@ builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+// The OpenAPI generator reads these (minimal-API) JSON options rather than MVC's, so mirror the
+// enum-as-string setting here; otherwise the document would describe enums as integers.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+});
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+    options.AddOperationTransformer<CamelCaseQueryParametersTransformer>();
+});
 
 builder.Services
     .AddHealthChecks()

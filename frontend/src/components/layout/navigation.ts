@@ -10,6 +10,7 @@ import {
   Settings,
   ShoppingCart,
   Sparkles,
+  Tags,
   Users,
   UserCog,
   Wallet,
@@ -32,7 +33,10 @@ export interface NavGroup {
   items: NavItem[]
 }
 
-/** Single source of truth for the sidebar and the placeholder routes. */
+const managers = [Roles.Admin, Roles.SalesManager]
+const admins = [Roles.Admin]
+
+/** Single source of truth for the sidebar, page titles and placeholder routes. */
 export const navigation: NavGroup[] = [
   {
     label: 'Overview',
@@ -50,8 +54,9 @@ export const navigation: NavGroup[] = [
   {
     label: 'Masters',
     items: [
-      { title: 'Customers', to: '/customers', icon: Users, phase: 'P1' },
-      { title: 'Products', to: '/products', icon: Package, phase: 'P1' },
+      { title: 'Customers', to: '/customers', icon: Users },
+      { title: 'Products', to: '/products', icon: Package },
+      { title: 'Categories & HSN', to: '/catalog', icon: Tags, roles: managers },
     ],
   },
   {
@@ -63,21 +68,26 @@ export const navigation: NavGroup[] = [
     items: [
       { title: 'Reports', to: '/reports', icon: ChartColumn, phase: 'P4' },
       { title: 'Ask your data', to: '/ask', icon: MessageSquareText, phase: 'P6' },
-      {
-        title: 'AI insights',
-        to: '/insights',
-        icon: Lightbulb,
-        roles: [Roles.Admin, Roles.SalesManager],
-        phase: 'P8',
-      },
+      { title: 'AI insights', to: '/insights', icon: Lightbulb, roles: managers, phase: 'P8' },
     ],
   },
   {
     label: 'Administration',
     items: [
-      { title: 'Users', to: '/admin/users', icon: UserCog, roles: [Roles.Admin], phase: 'P1' },
-      { title: 'Company settings', to: '/admin/settings', icon: Settings, roles: [Roles.Admin], phase: 'P1' },
-      { title: 'AI usage', to: '/admin/ai-usage', icon: FileText, roles: [Roles.Admin], phase: 'P9' },
+      { title: 'Users', to: '/admin/users', icon: UserCog, roles: admins },
+      { title: 'Company settings', to: '/admin/settings', icon: Settings, roles: admins },
+      { title: 'AI usage', to: '/admin/ai-usage', icon: FileText, roles: admins, phase: 'P9' },
     ],
   },
 ]
+
+/** The nav item whose path best matches the current location, e.g. /customers/42 -> Customers. */
+export function findNavItem(pathname: string): NavItem | undefined {
+  const items = navigation.flatMap((group) => group.items)
+  return (
+    items.find((item) => item.to === pathname) ??
+    items
+      .filter((item) => item.to !== '/' && pathname.startsWith(`${item.to}/`))
+      .sort((a, b) => b.to.length - a.to.length)[0]
+  )
+}

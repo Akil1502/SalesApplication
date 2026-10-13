@@ -26,6 +26,19 @@ export default defineConfig({
     // Production build is served by the ASP.NET Core API (one IIS site).
     outDir: '../backend/src/SalesApp.Api/wwwroot',
     emptyOutDir: true,
+    rolldownOptions: {
+      output: {
+        // Framework code changes rarely, so give it its own long-cached chunks instead of
+        // re-downloading it inside the app bundle after every release.
+        codeSplitting: {
+          groups: [
+            { name: 'vendor-react', test: /node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/, priority: 30 },
+            { name: 'vendor-ui', test: /node_modules[\\/](radix-ui|@radix-ui|lucide-react|sonner|cn|class-variance-authority)[\\/]/, priority: 20 },
+            { name: 'vendor-data', test: /node_modules[\\/](@tanstack|zod|react-hook-form|@hookform|openapi-fetch)[\\/]/, priority: 10 },
+          ],
+        },
+      },
+    },
   },
   test: {
     environment: 'jsdom',
