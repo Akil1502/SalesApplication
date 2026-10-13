@@ -1,0 +1,23 @@
+<Project>
+  <!-- Central package management: every version is pinned here, projects reference packages without versions. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup Label="ASP.NET Core">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />
+  </ItemGroup>
+  <ItemGroup Label="Data and identity">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Identity.Stores" Version="10.0.12" />
+  </ItemGroup>
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+  </ItemGroup>
+</Project>

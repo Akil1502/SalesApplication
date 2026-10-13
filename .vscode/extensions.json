@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "oxc.oxc-vscode",
+    "bradlc.vscode-tailwindcss",
+    "humao.rest-client"
+  ]
+}

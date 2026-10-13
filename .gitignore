@@ -1,0 +1,56 @@
+# ---- .NET ----
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+.vs/
+TestResults/
+*.trx
+*.coverage
+coverage*.xml
+artifacts/
+publish/
+
+# Local-only configuration (secrets live in dotnet user-secrets, never here)
+appsettings.*.local.json
+appsettings.Local.json
+*.local.json
+
+# SQL Server data files
+*.mdf
+*.ldf
+*.ndf
+
+# Runtime uploads (AI order entry); nothing user-supplied is committed
+uploads/
+
+# The React production build is emitted into the API's wwwroot; it's a build artifact
+backend/src/SalesApp.Api/wwwroot/
+
+# ---- Node / Vite ----
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---- Editors / OS ----
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+# Keep shared VS Code settings, ignore personal ones
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ---- Env files ----
+.env
+.env.*
+!.env.example

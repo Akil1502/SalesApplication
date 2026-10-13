@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SalesApp.Api/SalesApp.Api.csproj" />
+    <Project Path="src/SalesApp.Core/SalesApp.Core.csproj" />
+    <Project Path="src/SalesApp.Infrastructure/SalesApp.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SalesApp.IntegrationTests/SalesApp.IntegrationTests.csproj" />
+    <Project Path="tests/SalesApp.Tests/SalesApp.Tests.csproj" />
+  </Folder>
+</Solution>
