@@ -138,6 +138,19 @@ cache use, estimated cost and outcome. Each user has a daily budget (`Ai:DailyBu
 $2 per rolling 24 hours) and a per-minute request limit (`Ai:RequestsPerMinutePerUser`, default 10). The
 estimates use the price list in `Ai:Pricing`; Anthropic's console has the actual bill.
 
+## Troubleshooting
+
+**`Cannot create file '...\SalesAppDb.mdf' because it already exists`** when the API starts: LocalDB has
+lost track of the database although its files are still there, so the API tries to create it again. Re-attach
+the existing files (nothing is lost), then start the API again:
+
+```powershell
+sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "CREATE DATABASE [SalesAppDb] ON (FILENAME='$env:USERPROFILE\SalesAppDb.mdf'), (FILENAME='$env:USERPROFILE\SalesAppDb_log.ldf') FOR ATTACH"
+```
+
+**Port 5080 or 5173 already in use**: another copy of the API or the Vite dev server is still running. Close
+that terminal, or stop the process listening on the port.
+
 ## Project structure
 
 ```
