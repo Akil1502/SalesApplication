@@ -1,15 +1,11 @@
-using System.Diagnostics;
 using System.Text.Json;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SalesApp.AI.Claude;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Ai;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
-using SalesApp.Infrastructure.Data;
 
 namespace SalesApp.AI.AskData;
 
@@ -40,18 +36,14 @@ public interface IAskDataService
 /// </summary>
 public sealed class AskDataService(
     IClaudeGateway claude,
-    IReadOnlySqlExecutor executor,
-    AppDbContext db,
+    IGuardedQueryRunner queries,
     ICurrentUser currentUser,
     IBusinessClock clock,
     IMemoryCache cache,
-    TimeProvider time,
     IOptionsMonitor<AiOptions> aiOptions,
-    IOptionsMonitor<AskDataOptions> options,
-    ILogger<AskDataService> logger) : IAskDataService
+    IOptionsMonitor<AskDataOptions> options) : IAskDataService
 {
     public const string Feature = "AskData";
-    private static readonly JsonSerializerOptions ResultJson = new(JsonSerializerDefaults.Web);
 
     public StoredResult? GetResult(Guid resultId) =>
         cache.TryGetValue(CacheKey(resultId), out StoredResult? stored) && stored!.UserId == currentUser.UserId ? stored : null;
@@ -66,8 +58,6 @@ public sealed class AskDataService(
 
         var runId = Guid.NewGuid();
         var manager = currentUser.IsManagerOrAdmin;
-        string[] schemas = manager ? ["rpt", "rpt_mgr"] : ["rpt"];
-        var runAs = manager ? ReadOnlySqlExecutor.ManagerReader : ReadOnlySqlExecutor.Reader;
         var maxQueries = Math.Clamp(options.CurrentValue.MaxQueries, 1, 10);
 
         var system = AskDataPrompt.System(manager, maxQueries);
@@ -126,7 +116,7 @@ public sealed class AskDataService(
                 }
 
                 queriesRun++;
-                toolResults.Add(await RunQueryAsync(toolUse, runId, question, schemas, runAs, results, onStep, cancellationToken));
+                toolResults.Add(await RunQueryAsync(toolUse, runId, question, results, onStep, cancellationToken));
             }
 
             messages.Add(new ClaudeMessage(false, toolResults));
@@ -136,7 +126,7 @@ public sealed class AskDataService(
     }
 
     private async Task<ClaudeToolResultBlock> RunQueryAsync(
-        ClaudeToolUseBlock toolUse, Guid runId, string question, string[] schemas, string runAs,
+        ClaudeToolUseBlock toolUse, Guid runId, string question,
         Dictionary<string, (string Sql, string Purpose, QueryResult Result)> results,
         Func<AskStepDto, Task> onStep, CancellationToken cancellationToken)
     {
@@ -144,50 +134,25 @@ public sealed class AskDataService(
         var purpose = Text(toolUse.Input, "purpose") is { Length: > 0 } p ? p : "Running a query";
         await onStep(new AskStepDto(AskStepKind.Query, purpose, sql));
 
-        var check = SqlGuard.Check(sql, schemas);
-        if (!check.Allowed)
+        var outcome = await queries.RunAsync(runId, question, sql, cancellationToken);
+        if (outcome.Outcome == AiQueryOutcome.Rejected)
         {
-            await LogQueryAsync(runId, question, sql, runAs, AiQueryOutcome.Rejected, check.Problem, 0, 0);
-            await onStep(new AskStepDto(AskStepKind.Rejected, $"Query refused: {check.Problem}", sql));
-            return new ClaudeToolResultBlock(toolUse.Id, $"Refused by the SQL checker: {check.Problem}", IsError: true);
+            await onStep(new AskStepDto(AskStepKind.Rejected, $"Query refused: {outcome.Problem}", sql));
+            return new ClaudeToolResultBlock(toolUse.Id, $"Refused by the SQL checker: {outcome.Problem}", IsError: true);
         }
 
-        var started = Stopwatch.GetTimestamp();
-        try
+        if (outcome.Result is not { } result)
         {
-            var result = await executor.RunAsync(sql, runAs, cancellationToken);
-            var resultId = $"r{results.Count + 1}";
-            results[resultId] = (sql, purpose, result);
-            await LogQueryAsync(runId, question, sql, runAs, AiQueryOutcome.Succeeded, null, result.Rows.Count, result.DurationMs);
-            await onStep(new AskStepDto(AskStepKind.Rows,
-                result.Truncated ? $"More than {ReadOnlySqlExecutor.MaxRows} rows; showing the first {ReadOnlySqlExecutor.MaxRows}" : $"{result.Rows.Count} rows",
-                sql, result.Rows.Count));
+            await onStep(new AskStepDto(AskStepKind.Failed, $"Query failed: {outcome.Problem}", sql));
+            return new ClaudeToolResultBlock(toolUse.Id, $"The database returned an error: {outcome.Problem}", IsError: true);
+        }
 
-            var payload = new
-            {
-                resultId,
-                columns = result.Columns.Select(c => c.Name),
-                rowCount = result.Rows.Count,
-                truncated = result.Truncated,
-                rowsShown = Math.Min(result.Rows.Count, AskDataPrompt.RowsShownToClaude),
-                rows = result.Rows.Take(AskDataPrompt.RowsShownToClaude),
-            };
-            return new ClaudeToolResultBlock(toolUse.Id, JsonSerializer.Serialize(payload, ResultJson));
-        }
-        catch (Exception exception) when (exception is SqlException or TimeoutException or InvalidOperationException)
-        {
-            var problem = exception switch
-            {
-                SqlException { Number: -2 } => $"The query took longer than {ReadOnlySqlExecutor.TimeoutSeconds} seconds. Make it simpler or more selective.",
-                SqlException { Number: 229 or 230 or 262 or 297 or 916 } => "Permission denied: only the reporting views can be read.",
-                SqlException sql2 => sql2.Message,
-                _ => exception.Message,
-            };
-            logger.LogInformation("Ask-your-data query failed: {Problem}", problem);
-            await LogQueryAsync(runId, question, sql, runAs, AiQueryOutcome.Failed, problem, 0, (int)Stopwatch.GetElapsedTime(started).TotalMilliseconds);
-            await onStep(new AskStepDto(AskStepKind.Failed, $"Query failed: {problem}", sql));
-            return new ClaudeToolResultBlock(toolUse.Id, $"The database returned an error: {problem}", IsError: true);
-        }
+        var resultId = $"r{results.Count + 1}";
+        results[resultId] = (sql, purpose, result);
+        await onStep(new AskStepDto(AskStepKind.Rows,
+            result.Truncated ? $"More than {ReadOnlySqlExecutor.MaxRows} rows; showing the first {ReadOnlySqlExecutor.MaxRows}" : $"{result.Rows.Count} rows",
+            sql, result.Rows.Count));
+        return new ClaudeToolResultBlock(toolUse.Id, QueryResultJson.ForClaude(resultId, result));
     }
 
     private AskAnswerDto Finish(
@@ -227,25 +192,6 @@ public sealed class AskDataService(
         return chartType == AskChartType.None || xColumn is null || !numeric || xColumn == yColumn
             ? new AskChartDto(AskChartType.None, null, null)
             : new AskChartDto(chartType, xColumn.Name, yColumn!.Name);
-    }
-
-    private async Task LogQueryAsync(Guid runId, string question, string sql, string runAs, AiQueryOutcome outcome, string? error, int rows, int ms)
-    {
-        db.AiQueryLogs.Add(new AiQueryLog
-        {
-            RunId = runId,
-            UserId = currentUser.UserId,
-            Question = question.Length > 1000 ? question[..1000] : question,
-            Sql = sql,
-            RunAs = runAs,
-            Outcome = outcome,
-            Error = error is { Length: > 1000 } ? error[..1000] : error,
-            RowCount = rows,
-            DurationMs = ms,
-            CreatedAtUtc = time.GetUtcNow().UtcDateTime,
-        });
-        // Not the request's token: an attempt that was made is logged even if the user stops waiting.
-        await db.SaveChangesAsync(CancellationToken.None);
     }
 
     private static string Text(IReadOnlyDictionary<string, JsonElement> input, string name) =>

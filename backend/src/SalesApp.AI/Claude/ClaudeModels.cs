@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SalesApp.AI.Claude;
 
@@ -41,6 +42,16 @@ public sealed record ClaudeResponse(string Text, ClaudeUsage Usage, string? Mess
 /// <summary>A tool Claude may call: its name, what it's for, and a JSON schema for its input.</summary>
 public sealed record ClaudeTool(string Name, string Description, IReadOnlyDictionary<string, JsonElement> Properties, IReadOnlyList<string> Required);
 
+/// <summary>
+/// A content block of a conversation message. The type names match the API's, and the JSON form is what the
+/// assistant stores, so a saved conversation replays exactly what Claude saw.
+/// </summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(ClaudeTextBlock), "text")]
+[JsonDerivedType(typeof(ClaudeThinkingBlock), "thinking")]
+[JsonDerivedType(typeof(ClaudeRedactedThinkingBlock), "redacted_thinking")]
+[JsonDerivedType(typeof(ClaudeToolUseBlock), "tool_use")]
+[JsonDerivedType(typeof(ClaudeToolResultBlock), "tool_result")]
 public abstract record ClaudeBlock;
 
 public sealed record ClaudeTextBlock(string Text) : ClaudeBlock;
@@ -67,3 +78,28 @@ public sealed record ClaudeConversation(
     IReadOnlyList<ClaudeMessage> Messages);
 
 public sealed record ClaudeTurn(IReadOnlyList<ClaudeBlock> Blocks, string StopReason, ClaudeUsage Usage, string? MessageId);
+
+/// <summary>Stores and reloads message content. Round-trips every block unchanged, thinking signatures included.</summary>
+public static class ClaudeBlockJson
+{
+    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+
+    public static string Serialize(IReadOnlyList<ClaudeBlock> blocks) => JsonSerializer.Serialize(blocks, Options);
+
+    public static IReadOnlyList<ClaudeBlock> Deserialize(string json) =>
+        JsonSerializer.Deserialize<List<ClaudeBlock>>(json, Options) ?? [];
+}
+
+// ---- Streaming -------------------------------------------------------------------------------
+
+/// <summary>Something worth showing while a reply streams.</summary>
+public abstract record ClaudeStreamEvent;
+
+/// <summary>More of Claude's reply text.</summary>
+public sealed record ClaudeTextDelta(string Text) : ClaudeStreamEvent;
+
+/// <summary>Claude started reasoning (the reasoning itself isn't returned).</summary>
+public sealed record ClaudeThinkingStarted : ClaudeStreamEvent;
+
+/// <summary>Claude started writing a tool call; its input follows and is complete when the turn ends.</summary>
+public sealed record ClaudeToolCallStarted(string Id, string Name) : ClaudeStreamEvent;

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SalesApp.AI.AskData;
+using SalesApp.AI.Assistant;
 using SalesApp.AI.Claude;
 using SalesApp.AI.OrderEntry;
 
@@ -27,7 +28,13 @@ public static class DependencyInjection
 
         services.Configure<AskDataOptions>(configuration.GetSection(AskDataOptions.SectionName));
         services.AddSingleton<IReadOnlySqlExecutor, ReadOnlySqlExecutor>();
+        services.AddScoped<IGuardedQueryRunner, GuardedQueryRunner>();
         services.AddScoped<IAskDataService, AskDataService>();
+
+        services.Configure<AssistantOptions>(configuration.GetSection(AssistantOptions.SectionName));
+        services.AddScoped<AssistantTools>();
+        services.AddScoped<AssistantDrafts>();
+        services.AddScoped<IAssistantService, AssistantService>();
 
         return services;
     }

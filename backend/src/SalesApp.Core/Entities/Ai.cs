@@ -107,3 +107,110 @@ public sealed class AiQueryLog
     public int DurationMs { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }
+
+/// <summary>
+/// A chat with the assistant. The system prompt is stored with it and reused for every turn, because Claude's
+/// saved reasoning is only valid while the start of the conversation (system prompt, tools, earlier messages)
+/// stays byte-for-byte the same.
+/// </summary>
+public sealed class AiConversation
+{
+    public Guid Id { get; set; }
+
+    public Guid UserId { get; set; }
+    public AppUser? User { get; set; }
+
+    public required string Title { get; set; }
+
+    /// <summary>The system prompt as first sent; later turns send exactly this text.</summary>
+    public required string SystemPrompt { get; set; }
+
+    /// <summary>Version of the tool set the conversation started with. A different version changes the prefix.</summary>
+    public int ToolsVersion { get; set; }
+
+    /// <summary>Tokens in the conversation at the last call (input + cache read + cache write); limits how long it can grow.</summary>
+    public int ContextTokens { get; set; }
+
+    public decimal CostUsd { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+    public DateTime UpdatedAtUtc { get; set; }
+
+    public List<AiMessage> Messages { get; set; } = [];
+}
+
+public enum AiMessageRole
+{
+    User,
+    Assistant,
+}
+
+/// <summary>Whether an assistant message is Claude's whole reply or what had streamed when it stopped.</summary>
+public enum AiMessageStatus
+{
+    Complete,
+    Stopped,
+    Failed,
+}
+
+/// <summary>
+/// One message of a conversation, exactly as sent to or received from Claude (content blocks as JSON, thinking
+/// signatures included). Append-only: a database trigger rejects updates, so the history replayed to Claude is
+/// always what it saw before.
+/// </summary>
+public sealed class AiMessage
+{
+    public long Id { get; set; }
+
+    public Guid ConversationId { get; set; }
+    public AiConversation? Conversation { get; set; }
+
+    /// <summary>Position in the conversation, from 1.</summary>
+    public int Sequence { get; set; }
+
+    public AiMessageRole Role { get; set; }
+    public required string ContentJson { get; set; }
+
+    /// <summary>
+    /// What the conversation view shows for this message beyond its content (the labels of the lookups whose results
+    /// it carries), so a reloaded conversation looks like it did live. Never sent to Claude.
+    /// </summary>
+    public string? DisplayJson { get; set; }
+
+    public AiMessageStatus Status { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+}
+
+public enum AiDraftKind
+{
+    Email,
+    WhatsApp,
+}
+
+/// <summary>
+/// A message the assistant drafted for the user to send. The recipient comes from the customer record, never from
+/// the model, and the app never sends it: the user copies it or opens it in their own email or WhatsApp.
+/// </summary>
+public sealed class AiDraft
+{
+    public long Id { get; set; }
+
+    public Guid ConversationId { get; set; }
+    public AiConversation? Conversation { get; set; }
+
+    /// <summary>The tool call that created it, so the conversation view can put it in place.</summary>
+    public required string ToolUseId { get; set; }
+
+    public AiDraftKind Kind { get; set; }
+    public required string Purpose { get; set; }
+
+    public int CustomerId { get; set; }
+    public Customer? Customer { get; set; }
+
+    public string? Subject { get; set; }
+    public required string Body { get; set; }
+
+    /// <summary>Problems the checks found (an invoice number that isn't this customer's, an amount not in the data), as JSON.</summary>
+    public required string WarningsJson { get; set; }
+
+    public DateTime CreatedAtUtc { get; set; }
+}

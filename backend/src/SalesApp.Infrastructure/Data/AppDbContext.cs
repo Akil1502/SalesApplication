@@ -31,6 +31,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
     public DbSet<ProductAlias> ProductAliases => Set<ProductAlias>();
     public DbSet<AiQueryLog> AiQueryLogs => Set<AiQueryLog>();
+    public DbSet<AiConversation> AiConversations => Set<AiConversation>();
+    public DbSet<AiMessage> AiMessages => Set<AiMessage>();
+    public DbSet<AiDraft> AiDrafts => Set<AiDraft>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

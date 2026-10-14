@@ -43,7 +43,48 @@ internal sealed class FakeClaudeGateway : IClaudeGateway
         Conversations.Add(conversation with { Messages = [.. conversation.Messages] });
         var blocks = Turns.Count > 0 ? Turns.Dequeue()(conversation) : [new ClaudeTextBlock("No more scripted turns.")];
         var stop = blocks.Any(b => b is ClaudeToolUseBlock) ? "tool_use" : "end_turn";
-        return Task.FromResult(new ClaudeTurn(blocks, stop, new ClaudeUsage("claude-opus-5-5", 120, 300, 3000, 0, 0.0075m, 1500), "msg_turn"));
+        return Task.FromResult(new ClaudeTurn(blocks, stop, TurnUsage, "msg_turn"));
+    }
+
+    /// <summary>Usage reported for every turn.</summary>
+    public ClaudeUsage TurnUsage { get; set; } = new("claude-opus-5-5", 120, 300, 3000, 0, 0.0075m, 1500);
+
+    /// <summary>Runs after a streamed turn's text has gone out and before the turn completes (e.g. to wait for Stop).</summary>
+    public Func<CancellationToken, Task>? AfterStreamedText { get; set; }
+
+    /// <summary>Streams the scripted turn's text in small pieces, the way the real API does.</summary>
+    public async Task<ClaudeTurn> StreamTurnAsync(ClaudeConversation conversation, Func<ClaudeStreamEvent, Task> onEvent, CancellationToken cancellationToken)
+    {
+        Conversations.Add(conversation with { Messages = [.. conversation.Messages] });
+        var blocks = Turns.Count > 0 ? Turns.Dequeue()(conversation) : [new ClaudeTextBlock("No more scripted turns.")];
+        foreach (var block in blocks)
+        {
+            if (block is ClaudeThinkingBlock)
+            {
+                await onEvent(new ClaudeThinkingStarted());
+            }
+            else if (block is ClaudeToolUseBlock toolUse)
+            {
+                await onEvent(new ClaudeToolCallStarted(toolUse.Id, toolUse.Name));
+            }
+            else if (block is ClaudeTextBlock text)
+            {
+                foreach (var piece in text.Text.Chunk(8))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await onEvent(new ClaudeTextDelta(new string(piece)));
+                }
+            }
+        }
+
+        if (AfterStreamedText is { } hook)
+        {
+            await hook(cancellationToken);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var stop = blocks.Any(b => b is ClaudeToolUseBlock) ? "tool_use" : "end_turn";
+        return new ClaudeTurn(blocks, stop, TurnUsage, "msg_stream");
     }
 }
 

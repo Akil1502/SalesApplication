@@ -51,3 +51,50 @@ internal sealed class AiQueryLogConfiguration : IEntityTypeConfiguration<AiQuery
         builder.HasIndex(l => l.RunId);
     }
 }
+
+internal sealed class AiConversationConfiguration : IEntityTypeConfiguration<AiConversation>
+{
+    public void Configure(EntityTypeBuilder<AiConversation> builder)
+    {
+        builder.Property(c => c.Title).HasMaxLength(120);
+        builder.Property(c => c.CostUsd).HasPrecision(18, 6);
+
+        builder.HasOne(c => c.User).WithMany().HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Restrict);
+
+        // The history list shows one user's most recent conversations.
+        builder.HasIndex(c => new { c.UserId, c.UpdatedAtUtc });
+    }
+}
+
+internal sealed class AiMessageConfiguration : IEntityTypeConfiguration<AiMessage>
+{
+    public const string AppendOnlyTrigger = "TR_AiMessages_AppendOnly";
+
+    public void Configure(EntityTypeBuilder<AiMessage> builder)
+    {
+        // The trigger (Sql/003_assistant.sql) rejects updates. Declaring it makes EF write inserts without the
+        // OUTPUT clause, which SQL Server doesn't allow on tables with triggers.
+        builder.ToTable(t => t.HasTrigger(AppendOnlyTrigger));
+
+        builder.Property(m => m.Role).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
+        builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
+
+        builder.HasOne(m => m.Conversation).WithMany(c => c.Messages).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(m => new { m.ConversationId, m.Sequence }).IsUnique();
+    }
+}
+
+internal sealed class AiDraftConfiguration : IEntityTypeConfiguration<AiDraft>
+{
+    public void Configure(EntityTypeBuilder<AiDraft> builder)
+    {
+        builder.Property(d => d.ToolUseId).HasMaxLength(100).IsUnicode(false);
+        builder.Property(d => d.Kind).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
+        builder.Property(d => d.Purpose).HasMaxLength(40).IsUnicode(false);
+        builder.Property(d => d.Subject).HasMaxLength(200);
+
+        builder.HasOne(d => d.Conversation).WithMany().HasForeignKey(d => d.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(d => d.Customer).WithMany().HasForeignKey(d => d.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(d => new { d.ConversationId, d.ToolUseId }).IsUnique();
+    }
+}

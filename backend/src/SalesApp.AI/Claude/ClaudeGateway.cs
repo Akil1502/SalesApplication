@@ -19,6 +19,12 @@ public interface IClaudeGateway
 
     /// <summary>One turn of a tool-using conversation: Claude either calls tools or gives its final reply.</summary>
     Task<ClaudeTurn> SendTurnAsync(ClaudeConversation conversation, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The same turn, streamed: <paramref name="onEvent"/> sees the reply text as it's written and each tool call as
+    /// it starts. Cancelling stops the stream, so Anthropic stops generating (and billing) the reply.
+    /// </summary>
+    Task<ClaudeTurn> StreamTurnAsync(ClaudeConversation conversation, Func<ClaudeStreamEvent, Task> onEvent, CancellationToken cancellationToken);
 }
 
 /// <summary>Holds the SDK client for the app's lifetime. It's only created when an API key is configured.</summary>
@@ -49,14 +55,41 @@ public sealed class ClaudeGateway(
 
     public async Task<ClaudeResponse> SendAsync(ClaudeRequest request, CancellationToken cancellationToken)
     {
-        var (message, usageSummary) = await ExecuteAsync(request.Feature, feature => BuildParameters(request, feature), cancellationToken);
+        var (message, usageSummary) = await CreateAsync(request.Feature, feature => BuildParameters(request, feature), cancellationToken);
         var text = string.Concat(message.Content.Select(block => block.Value).OfType<TextBlock>().Select(block => block.Text));
         return new ClaudeResponse(text, usageSummary, message.ID);
     }
 
+    public async Task<ClaudeTurn> StreamTurnAsync(ClaudeConversation conversation, Func<ClaudeStreamEvent, Task> onEvent, CancellationToken cancellationToken)
+    {
+        var stream = new ClaudeStreamAccumulator();
+        var (call, usageSummary) = await ExecuteAsync(
+            conversation.Feature,
+            feature => BuildConversationParameters(conversation, feature),
+            async (client, parameters, token) =>
+            {
+                await foreach (var streamEvent in client.Messages.CreateStreaming(parameters, token).WithCancellation(token))
+                {
+                    if (stream.Add(streamEvent) is { } shown)
+                    {
+                        await onEvent(shown);
+                    }
+                }
+
+                return Result(stream);
+            },
+            () => Result(stream),
+            cancellationToken);
+
+        return new ClaudeTurn(stream.Blocks(), call.StopReason ?? "", usageSummary, call.MessageId);
+
+        static CallResult Result(ClaudeStreamAccumulator s) =>
+            new(s.InputTokens, s.OutputTokens, s.CacheReadTokens, s.CacheWriteTokens, s.StopReason, s.MessageId);
+    }
+
     public async Task<ClaudeTurn> SendTurnAsync(ClaudeConversation conversation, CancellationToken cancellationToken)
     {
-        var (message, usageSummary) = await ExecuteAsync(conversation.Feature, feature => BuildConversationParameters(conversation, feature), cancellationToken);
+        var (message, usageSummary) = await CreateAsync(conversation.Feature, feature => BuildConversationParameters(conversation, feature), cancellationToken);
         var blocks = new List<ClaudeBlock>();
         foreach (var block in message.Content)
         {
@@ -81,12 +114,38 @@ public sealed class ClaudeGateway(
         return new ClaudeTurn(blocks, message.StopReason?.Raw() ?? "", usageSummary, message.ID);
     }
 
+    /// <summary>Token counts and stop reason of one call, whether it was streamed or not.</summary>
+    private sealed record CallResult(long InputTokens, long OutputTokens, long CacheReadTokens, long CacheWriteTokens, string? StopReason, string? MessageId);
+
+    private async Task<(Message Message, ClaudeUsage Usage)> CreateAsync(
+        string featureName, Func<AiFeatureOptions, MessageCreateParams> build, CancellationToken cancellationToken)
+    {
+        Message? message = null;
+        var (_, usageSummary) = await ExecuteAsync(
+            featureName,
+            build,
+            async (client, parameters, token) =>
+            {
+                message = await client.Messages.Create(parameters, token);
+                return new CallResult(message.Usage.InputTokens, message.Usage.OutputTokens, message.Usage.CacheReadInputTokens ?? 0,
+                    message.Usage.CacheCreationInputTokens ?? 0, message.StopReason?.Raw(), message.ID);
+            },
+            partial: null,
+            cancellationToken);
+        return (message!, usageSummary);
+    }
+
     /// <summary>
     /// One API call with everything around it: availability and budget checks, the feature's settings, error
     /// translation, the stop-reason check (refusals and cut-off replies are never treated as answers) and the usage log.
+    /// <paramref name="partial"/> gives the tokens known so far when a streamed call is stopped part-way.
     /// </summary>
-    private async Task<(Message Message, ClaudeUsage Usage)> ExecuteAsync(
-        string featureName, Func<AiFeatureOptions, MessageCreateParams> build, CancellationToken cancellationToken)
+    private async Task<(CallResult Call, ClaudeUsage Usage)> ExecuteAsync(
+        string featureName,
+        Func<AiFeatureOptions, MessageCreateParams> build,
+        Func<AnthropicClient, MessageCreateParams, CancellationToken, Task<CallResult>> call,
+        Func<CallResult>? partial,
+        CancellationToken cancellationToken)
     {
         var ai = options.CurrentValue;
         if (!ai.Enabled)
@@ -111,19 +170,27 @@ public sealed class ClaudeGateway(
         };
         var started = Stopwatch.GetTimestamp();
 
-        Message message;
+        CallResult result;
         try
         {
-            message = await client.Messages.Create(build(feature), cancellationToken);
+            result = await call(client, build(feature), cancellationToken);
         }
-        catch (Exception exception) when (exception is AnthropicException or OperationCanceledException)
+        catch (Exception exception) when (exception is AnthropicException or OperationCanceledException or AiServiceException)
         {
             log.DurationMs = ElapsedMs(started);
             log.Outcome = AiOutcome.Failed;
             log.Error = Shorten(exception is OperationCanceledException ? "Cancelled" : $"{exception.GetType().Name}: {exception.Message}");
-            await usage.RecordAsync(log, cancellationToken);
+            // A stopped stream has still used the prompt tokens (and the output generated so far, which the API
+            // only reports at the end, so the estimate is a little low).
+            if (partial?.Invoke() is { } soFar)
+            {
+                Fill(log, soFar, ai.Pricing.GetValueOrDefault(feature.Model));
+            }
 
-            if (exception is OperationCanceledException)
+            // Recorded even when the request was cancelled: the tokens were used either way.
+            await usage.RecordAsync(log, CancellationToken.None);
+
+            if (exception is OperationCanceledException or AiServiceException)
             {
                 throw;
             }
@@ -132,23 +199,12 @@ public sealed class ClaudeGateway(
             throw Translate(exception);
         }
 
-        var input = (int)message.Usage.InputTokens;
-        var output = (int)message.Usage.OutputTokens;
-        var cacheRead = (int)(message.Usage.CacheReadInputTokens ?? 0);
-        var cacheWrite = (int)(message.Usage.CacheCreationInputTokens ?? 0);
-        var cost = AiCost.Estimate(ai.Pricing.GetValueOrDefault(feature.Model), input, output, cacheRead, cacheWrite);
-
+        Fill(log, result, ai.Pricing.GetValueOrDefault(feature.Model));
         log.DurationMs = ElapsedMs(started);
-        log.InputTokens = input;
-        log.OutputTokens = output;
-        log.CacheReadTokens = cacheRead;
-        log.CacheWriteTokens = cacheWrite;
-        log.CostUsd = cost;
-        log.RequestId = message.ID;
 
         // The stop reason decides whether the content can be trusted: a refusal or a cut-off reply may not match
         // the requested schema or contain half a tool call, so it's never used as if it were a normal answer.
-        var stopReason = message.StopReason?.Raw();
+        var stopReason = result.StopReason;
         log.Outcome = stopReason switch
         {
             "refusal" => AiOutcome.Refused,
@@ -172,7 +228,17 @@ public sealed class ClaudeGateway(
             throw new AiServiceException("Claude's reply was cut off at the length limit. Try a shorter input.", StatusCodesBadGateway);
         }
 
-        return (message, new ClaudeUsage(feature.Model, input, output, cacheRead, cacheWrite, cost, log.DurationMs));
+        return (result, new ClaudeUsage(feature.Model, log.InputTokens, log.OutputTokens, log.CacheReadTokens, log.CacheWriteTokens, log.CostUsd, log.DurationMs));
+    }
+
+    private static void Fill(AiUsageLog log, CallResult result, ModelPricing? pricing)
+    {
+        log.InputTokens = (int)result.InputTokens;
+        log.OutputTokens = (int)result.OutputTokens;
+        log.CacheReadTokens = (int)result.CacheReadTokens;
+        log.CacheWriteTokens = (int)result.CacheWriteTokens;
+        log.CostUsd = AiCost.Estimate(pricing, log.InputTokens, log.OutputTokens, log.CacheReadTokens, log.CacheWriteTokens);
+        log.RequestId = result.MessageId;
     }
 
     private const int StatusCodesBadGateway = 502;
