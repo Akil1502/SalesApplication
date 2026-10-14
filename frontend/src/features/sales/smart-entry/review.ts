@@ -22,19 +22,23 @@ export interface ReviewLine {
 let nextKey = 0
 const newKey = () => `line-${++nextKey}`
 
+/**
+ * The API leaves null fields out of its JSON (the generated types still say `T | null`), so every optional value is
+ * normalised to null here; otherwise `undefined !== null` would flag every line as needing a check.
+ */
 export function toReviewLine(line: ExtractedLine): ReviewLine {
   return {
     key: newKey(),
     sourceText: line.sourceText,
     suggestedProductId: line.product?.id ?? null,
-    product: line.product,
-    quantity: line.quantity === null ? '' : String(line.quantity),
-    statedUnit: line.statedUnit,
-    statedPrice: line.statedPrice,
-    priceVariance: line.priceVariance,
+    product: line.product ?? null,
+    quantity: line.quantity == null ? '' : String(line.quantity),
+    statedUnit: line.statedUnit ?? null,
+    statedPrice: line.statedPrice ?? null,
+    priceVariance: line.priceVariance ?? null,
     confidence: line.confidence,
     matchedBy: line.matchedBy,
-    note: line.note,
+    note: line.note ?? null,
   }
 }
 

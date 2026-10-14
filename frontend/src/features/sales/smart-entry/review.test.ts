@@ -25,6 +25,16 @@ describe('review lines', () => {
     expect(needsAttention(line)).toBe(false)
   })
 
+  it('treat fields the API left out as empty', () => {
+    // The server omits nulls from its JSON, so a clear line arrives without statedUnit, statedPrice or note at all.
+    const { statedUnit, statedPrice, priceVariance, note, ...sent } = extracted()
+    void [statedUnit, statedPrice, priceVariance, note]
+    const line = toReviewLine(sent as ExtractedLine)
+    expect(line.statedUnit).toBeNull()
+    expect(line.statedPrice).toBeNull()
+    expect(needsAttention(line)).toBe(false)
+  })
+
   it('flag what needs a second look', () => {
     expect(needsAttention(toReviewLine(extracted({ confidence: 'Medium' })))).toBe(true)
     expect(needsAttention(toReviewLine(extracted({ statedUnit: 'bags' })))).toBe(true)
