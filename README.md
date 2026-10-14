@@ -16,7 +16,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P3 | Orders and quotations, GST invoicing (CGST/SGST/IGST), payments | ✅ Done |
 | P4 | Demo data generator, dashboard, reports, Excel export | ✅ Done |
 | P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Done |
-| P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | Planned |
+| P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Built (live check with a real key pending) |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | Planned |
 | P8 | AI: insights, anomaly detection and demand forecasting | Planned |
 | P9 | Hardening, AI usage dashboard, deployment guide | Planned |
@@ -127,6 +127,28 @@ ids must exist, prices always come from the price list (a price the customer quo
 difference), and if the order's GSTIN, phone or name points to a different customer the review screen says so
 and offers to switch. Nothing is saved until the user reviews the draft and confirms. When the user picks a different product for some wording, that
 wording is saved as an alias and offered to Claude next time.
+
+**Ask your data** (Insights → Ask your data) answers questions such as "top 10 customers this financial year" or
+"who owes us the most" from the reporting views. Claude writes SQL and calls a `run_sql_query` tool; it answers by
+pointing at the result it wants shown, so the table, chart and Excel download are the database's own rows, never
+numbers retyped by the model. Progress streams to the browser as server-sent events, and the SQL is shown with every
+answer. The safety layers, each tested on its own:
+
+1. Claude is only told about the `rpt` reporting views (managers also see `rpt_mgr.Margins`), which leave out
+   contact details and cost prices.
+2. `SqlGuard` parses the SQL with Microsoft's T-SQL parser and accepts exactly one `SELECT` over those views, with
+   built-in functions from an allow-list. Other tables, databases, the `sys` catalog, variables, hints, `INTO`,
+   `OPENROWSET` and every non-`SELECT` statement are refused, and the reason goes back to Claude.
+3. Queries run as `ai_reader` / `ai_reader_mgr`, database users with no login that can read only the reporting views
+   (`EXECUTE AS USER ... WITH NO REVERT` on a dedicated unpooled connection). Tests prove writes, `dbo` tables,
+   `REVERT` and `EXECUTE AS LOGIN` fail at the database even when the checker is bypassed.
+4. Snapshot isolation (reads never block order entry), a 15-second timeout, a 500-row cap and at most two queries at
+   a time. Claude sees at most 50 rows.
+5. Every query attempt is logged in `AiQueryLogs` with the SQL, outcome and row count.
+
+Known limits: through SQL Server's built-in guest access the reporting users can see server metadata such as
+database names (no business data), and a database user can always change its own default schema; the checker
+refuses both kinds of statement, so the AI path can't issue them.
 
 What is sent to Anthropic: the order text or file, today's date, and the product catalog (SKU, name, unit,
 category, description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other

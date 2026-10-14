@@ -172,6 +172,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Streams `text/event-stream`: `step` events (AskStepDto) while working, then one `answer`
+         *     event (AskAnswerDto), or an `error` event with a message if it can't be answered.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AskRequest"];
+                    "text/json": components["schemas"]["AskRequest"];
+                    "application/*+json": components["schemas"]["AskRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                        "text/event-stream": unknown;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["ApiError"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["ApiError"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ask/results/{id}/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The rows of an answer as an Excel file. Results are kept for an hour after the question. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["FileContentResult"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -2605,6 +2719,7 @@ export interface components {
             enabled: boolean;
             reason: null | string;
             orderEntry: boolean;
+            askData: boolean;
         };
         AiUsageDto: {
             model: string;
@@ -2640,6 +2755,9 @@ export interface components {
             errors?: null | {
                 [key: string]: string[];
             };
+        };
+        AskRequest: {
+            question: string;
         };
         CategoryDto: {
             /** Format: int32 */

@@ -32,6 +32,7 @@ const featureRoutes: RouteObject[] = [
   { path: '/stock/receipts/:id', lazy: () => import('@/features/inventory/ReceiptDetailPage').then((m) => ({ Component: m.ReceiptDetailPage })) },
   { path: '/reports', lazy: () => import('@/features/reports/ReportsPage').then((m) => ({ Component: m.ReportsPage })) },
   { path: '/reports/:key', lazy: () => import('@/features/reports/ReportPage').then((m) => ({ Component: m.ReportPage })) },
+  { path: '/ask', lazy: () => import('@/features/ask/AskPage').then((m) => ({ Component: m.AskPage })) },
   {
     element: <RequireRole roles={managers} />,
     children: [
