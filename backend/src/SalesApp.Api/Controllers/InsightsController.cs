@@ -27,7 +27,7 @@ public sealed class InsightsController(IInsightsService insights) : ApiControlle
 
     /// <summary>Recomputes the insights now. Takes a few seconds for the figures, plus the written summary when AI is on.</summary>
     [HttpPost("refresh")]
-    [EnableRateLimiting(AiRateLimit.PolicyName)]
+    [EnableRateLimiting(RateLimits.Ai)]
     [ProducesResponseType<InsightsDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status429TooManyRequests)]
     public Task<InsightsDto> Refresh(CancellationToken cancellationToken) => insights.RunAsync(InsightTrigger.Manual, cancellationToken);

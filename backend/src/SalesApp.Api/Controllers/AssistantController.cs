@@ -52,7 +52,7 @@ public sealed class AssistantController(
     /// <c>done</c> with the cost, or <c>error</c>. Closing the connection stops the reply.
     /// </summary>
     [HttpPost("messages")]
-    [EnableRateLimiting(AiRateLimit.PolicyName)]
+    [EnableRateLimiting(RateLimits.Ai)]
     [Produces("text/event-stream")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]

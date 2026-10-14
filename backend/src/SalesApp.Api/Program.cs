@@ -28,7 +28,7 @@ builder.Services.AddScoped<HttpCurrentUser>();
 builder.Services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserOverride>().User ?? sp.GetRequiredService<HttpCurrentUser>());
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddAi(builder.Configuration);
-builder.Services.AddAiRateLimit(builder.Configuration);
+builder.Services.AddAppRateLimits(builder.Configuration);
 
 builder.Services
     .AddControllers(options =>
@@ -137,6 +137,7 @@ builder.Services.AddAuthorizationBuilder()
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseSecurityHeaders(contentSecurityPolicy: !app.Environment.IsDevelopment());
 
 if (app.Environment.IsDevelopment())
 {
@@ -149,12 +150,42 @@ else
     app.UseHttpsRedirection();
 }
 
+// The built React app (`npm run build --prefix frontend` writes it to wwwroot), served before authentication: the
+// app has to load before anyone can sign in. File names under /assets carry a content hash, so they're cached for
+// a year; index.html is never cached, so a new release is picked up straight away.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context => context.Context.Response.Headers.CacheControl =
+        context.Context.Request.Path.StartsWithSegments("/assets") ? "public, max-age=31536000, immutable" : "no-cache",
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
+
+// Any other path is a page of the React app (/customers/42, /insights, ...), so the browser gets index.html and
+// the client-side router takes over. Unknown /api paths stay a JSON 404 rather than returning a web page.
+app.MapFallback(async context =>
+{
+    var index = app.Environment.WebRootFileProvider.GetFileInfo("index.html");
+    if (context.Request.Path.StartsWithSegments("/api") || !index.Exists)
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        await context.Response.WriteAsJsonAsync(new ApiError(
+            index.Exists || context.Request.Path.StartsWithSegments("/api")
+                ? "There's nothing at this address."
+                : "The web app hasn't been built. Run: npm run build --prefix frontend",
+            Activity.Current?.Id ?? context.TraceIdentifier));
+        return;
+    }
+
+    context.Response.ContentType = "text/html; charset=utf-8";
+    context.Response.Headers.CacheControl = "no-cache";
+    await context.Response.SendFileAsync(index);
+}).AllowAnonymous();
 
 // Command-line mode: generate demo history and exit, e.g.
 //   dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset

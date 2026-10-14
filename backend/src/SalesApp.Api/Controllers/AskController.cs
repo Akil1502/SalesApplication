@@ -34,7 +34,7 @@ public sealed class AskController(
     /// event (AskAnswerDto), or an <c>error</c> event with a message if it can't be answered.
     /// </summary>
     [HttpPost]
-    [EnableRateLimiting(AiRateLimit.PolicyName)]
+    [EnableRateLimiting(RateLimits.Ai)]
     [Produces("text/event-stream")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]

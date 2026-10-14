@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SalesApp.Api.Errors;
 using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Auth;
@@ -21,6 +22,7 @@ public sealed class AuthController(
     /// <summary>Exchange email and password for an access token.</summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimits.Login)]
     [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)

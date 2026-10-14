@@ -54,7 +54,7 @@ public sealed class SmartOrdersController(IOrderExtractionService extraction, IS
     /// <summary>Reads a draft order with Claude. Nothing is saved.</summary>
     [HttpPost("extract")]
     [Consumes("multipart/form-data")]
-    [EnableRateLimiting(AiRateLimit.PolicyName)]
+    [EnableRateLimiting(RateLimits.Ai)]
     [RequestSizeLimit(MaxUploadBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadBytes)]
     [ProducesResponseType<OrderExtractionDto>(StatusCodes.Status200OK)]
