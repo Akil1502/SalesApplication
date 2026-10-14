@@ -13,4 +13,7 @@ public interface ICurrentUser
     bool IsAdmin => IsInRole(Roles.Admin);
 
     bool IsManagerOrAdmin => IsInRole(Roles.Admin) || IsInRole(Roles.SalesManager);
+
+    /// <summary>True for background work (the nightly insights run), which acts for the company, not a person.</summary>
+    bool IsSystem => false;
 }

@@ -9,8 +9,8 @@ public interface IAiUsageRecorder
 {
     Task RecordAsync(AiUsageLog entry, CancellationToken cancellationToken);
 
-    /// <summary>Estimated spend by this user over the last 24 hours, in US dollars.</summary>
-    Task<decimal> SpentInLastDayAsync(Guid userId, CancellationToken cancellationToken);
+    /// <summary>Estimated spend by this user (null: background work) over the last 24 hours, in US dollars.</summary>
+    Task<decimal> SpentInLastDayAsync(Guid? userId, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -28,7 +28,7 @@ public sealed class AiUsageRecorder(IServiceScopeFactory scopes, TimeProvider ti
         await db.SaveChangesAsync(CancellationToken.None);
     }
 
-    public async Task<decimal> SpentInLastDayAsync(Guid userId, CancellationToken cancellationToken)
+    public async Task<decimal> SpentInLastDayAsync(Guid? userId, CancellationToken cancellationToken)
     {
         var since = time.GetUtcNow().UtcDateTime.AddDays(-1);
         await using var scope = scopes.CreateAsyncScope();

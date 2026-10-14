@@ -34,6 +34,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AiConversation> AiConversations => Set<AiConversation>();
     public DbSet<AiMessage> AiMessages => Set<AiMessage>();
     public DbSet<AiDraft> AiDrafts => Set<AiDraft>();
+    public DbSet<InsightRun> InsightRuns => Set<InsightRun>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -65,6 +65,7 @@ public static class DependencyInjection
 
         services.AddScoped<Reporting.IReportService, Reporting.ReportService>();
         services.AddScoped<Reporting.IDashboardService, Reporting.DashboardService>();
+        services.AddScoped<Insights.IInsightMetricsService, Insights.InsightMetricsService>();
         services.AddScoped<DemoData.DemoDataGenerator>();
 
         // Business dates (receipts, invoices, financial years) follow India time, whatever the server's zone.

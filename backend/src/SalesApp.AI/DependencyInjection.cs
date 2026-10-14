@@ -1,9 +1,12 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SalesApp.AI.AskData;
 using SalesApp.AI.Assistant;
 using SalesApp.AI.Claude;
+using SalesApp.AI.Insights;
 using SalesApp.AI.OrderEntry;
+using SalesApp.Core.Security;
 
 namespace SalesApp.AI;
 
@@ -35,6 +38,11 @@ public static class DependencyInjection
         services.AddScoped<AssistantTools>();
         services.AddScoped<AssistantDrafts>();
         services.AddScoped<IAssistantService, AssistantService>();
+
+        services.Configure<InsightsOptions>(configuration.GetSection(InsightsOptions.SectionName));
+        services.AddScoped<IInsightsService, InsightsService>();
+        services.TryAddScoped<CurrentUserOverride>();
+        services.AddHostedService<InsightsScheduler>();
 
         return services;
     }

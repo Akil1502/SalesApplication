@@ -30,6 +30,7 @@ public sealed class DemoDataFactory : WebApplicationFactory<Program>, IAsyncLife
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Database:MigrateOnStartup", "false");
+        builder.UseSetting("Ai:Insights:NightlyEnabled", "false");
         builder.UseSetting("Jwt:SigningKey", "integration-test-signing-key-not-a-secret-0123456789");
         builder.UseSetting("Seed:AdminEmail", "admin@salesapp.test");
         builder.UseSetting("Seed:AdminPassword", "Integration-Test-Admin-1");

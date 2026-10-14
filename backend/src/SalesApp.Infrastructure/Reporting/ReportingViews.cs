@@ -92,6 +92,7 @@ public sealed class RptPayment
     public DateOnly PaymentDate { get; set; }
     public decimal Amount { get; set; }
     public string Mode { get; set; } = string.Empty;
+    public int CustomerId { get; set; }
 }
 
 internal static class ReportingViewMappings

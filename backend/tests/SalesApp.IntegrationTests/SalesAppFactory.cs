@@ -27,6 +27,7 @@ public sealed class SalesAppFactory : WebApplicationFactory<Program>, IAsyncLife
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", TestServer.ConnectionString(_databaseName));
         builder.UseSetting("Database:MigrateOnStartup", "false");
+        builder.UseSetting("Ai:Insights:NightlyEnabled", "false");
         builder.UseSetting("Jwt:SigningKey", "integration-test-signing-key-not-a-secret-0123456789");
         builder.UseSetting("Seed:AdminEmail", AdminEmail);
         builder.UseSetting("Seed:AdminPassword", AdminPassword);

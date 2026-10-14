@@ -914,6 +914,59 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.InsightRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("CostUsd")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MetricsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NarrativeJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NarrativeNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("NarrativeStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Trigger")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("RequestedByUserId");
+
+                    b.ToTable("InsightRuns");
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.Invoice", b =>
                 {
                     b.Property<int>("Id")
@@ -2011,6 +2064,9 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Mode")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -2435,6 +2491,16 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("ShippingAddress");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.InsightRun", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "RequestedBy")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("RequestedBy");
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.Invoice", b =>

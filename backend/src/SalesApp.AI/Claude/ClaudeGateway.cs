@@ -155,7 +155,9 @@ public sealed class ClaudeGateway(
 
         var client = clients.Client ?? throw new AiUnavailableException("AI features need a Claude API key. An administrator can add one (see the README).");
 
-        if (await usage.SpentInLastDayAsync(currentUser.UserId, cancellationToken) >= ai.DailyBudgetUsdPerUser)
+        // Background work (the nightly insights) is logged without a user and has its own budget.
+        Guid? userId = currentUser.IsSystem ? null : currentUser.UserId;
+        if (await usage.SpentInLastDayAsync(userId, cancellationToken) >= ai.DailyBudgetUsdPerUser)
         {
             throw new AiBudgetExceededException("You've reached your AI usage limit for the last 24 hours. Try again later, or ask an administrator to raise it.");
         }
@@ -165,7 +167,7 @@ public sealed class ClaudeGateway(
         {
             Feature = featureName,
             Model = feature.Model,
-            UserId = currentUser.UserId,
+            UserId = userId,
             CreatedAtUtc = time.GetUtcNow().UtcDateTime,
         };
         var started = Stopwatch.GetTimestamp();

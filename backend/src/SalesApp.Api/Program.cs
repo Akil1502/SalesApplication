@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -14,13 +15,17 @@ using SalesApp.Core.Security;
 using SalesApp.Infrastructure;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.DemoData;
+using SalesApp.Infrastructure.Insights;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ---- Core services ---------------------------------------------------------
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+// The signed-in user of the request, unless a background job has said it acts as the system for its scope.
+builder.Services.AddScoped<CurrentUserOverride>();
+builder.Services.AddScoped<HttpCurrentUser>();
+builder.Services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserOverride>().User ?? sp.GetRequiredService<HttpCurrentUser>());
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddAi(builder.Configuration);
 builder.Services.AddAiRateLimit(builder.Configuration);
@@ -173,6 +178,27 @@ if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
           {summary.Payments} payments, {summary.StockReceipts} goods receipts, {summary.StockMovements} stock movements,
           taxable sales Rs {summary.TaxableSales:N0}
         """);
+    return;
+}
+
+// Command-line mode: print the insight figures computed from the current data and exit. No AI, nothing saved:
+//   dotnet run --project backend/src/SalesApp.Api -- --insights-metrics
+if (args.Contains("--insights-metrics", StringComparer.OrdinalIgnoreCase))
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException("--insights-metrics only runs in the Development environment.");
+    }
+
+    using var scope = app.Services.CreateScope();
+    scope.ServiceProvider.GetRequiredService<CurrentUserOverride>().ActAs(SystemUser.Instance);
+    var computed = await scope.ServiceProvider.GetRequiredService<IInsightMetricsService>().ComputeAsync(CancellationToken.None);
+    Console.OutputEncoding = Encoding.UTF8;
+    Console.WriteLine(JsonSerializer.Serialize(computed, new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() },
+    }));
     return;
 }
 
