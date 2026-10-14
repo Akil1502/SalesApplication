@@ -70,7 +70,7 @@ export const navigation: NavGroup[] = [
     items: [
       { title: 'Reports', to: '/reports', icon: ChartColumn },
       { title: 'Ask your data', to: '/ask', icon: MessageSquareText, ai: true },
-      { title: 'AI insights', to: '/insights', icon: Lightbulb, roles: managers, phase: 'P8' },
+      { title: 'AI insights', to: '/insights', icon: Lightbulb, roles: managers },
     ],
   },
   {

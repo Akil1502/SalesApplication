@@ -1104,6 +1104,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest insights, or 204 No Content if they've never been computed. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InsightsDto"];
+                    };
+                };
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/insights/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recomputes the insights now. Takes a few seconds for the figures, plus the written summary when AI is on. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InsightsDto"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lookups/states": {
         parameters: {
             query?: never;
@@ -2948,6 +3038,37 @@ export interface components {
             productId?: number;
         };
         /**
+         * @description Something out of the ordinary. The figures are given as numbers (decimal? AnomalyDto.Amount in rupees,
+         *     decimal? AnomalyDto.Quantity in the product's unit, decimal? AnomalyDto.Typical in the same terms, decimal? AnomalyDto.Ratio,
+         *     int? AnomalyDto.Days) as well as in the sentence, so a summary quoting them can be checked.
+         */
+        AnomalyDto: {
+            kind: components["schemas"]["AnomalyKind"];
+            title: string;
+            detail: string;
+            /** Format: double */
+            score: number;
+            /** Format: date */
+            date: null | string;
+            /** Format: double */
+            amount: null | number;
+            /** Format: double */
+            quantity: null | number;
+            /** Format: double */
+            typical: null | number;
+            /** Format: double */
+            ratio: null | number;
+            /** Format: int32 */
+            days: null | number;
+            /** Format: int32 */
+            customerId: null | number;
+            /** Format: int32 */
+            productId: null | number;
+            reference: null | string;
+        };
+        /** @enum {unknown} */
+        AnomalyKind: "StoppedBuying" | "UnusualInvoice" | "DemandSpike" | "DemandDrop" | "Stockout" | "PaymentRisk";
+        /**
          * @description The one error shape every endpoint returns. string ApiError.TraceId matches the server log
          *     entry, so a user can quote it when reporting a problem. IReadOnlyDictionary&lt;string, string[]&gt;? ApiError.Errors is only present
          *     for validation failures and is keyed by camelCase field name.
@@ -3032,6 +3153,11 @@ export interface components {
             label: string;
             succeeded: null | boolean;
             detail: null | string;
+        };
+        BacktestDto: {
+            method: components["schemas"]["ForecastMethod"];
+            /** Format: double */
+            meanAbsolutePercentError: number;
         };
         CategoryDto: {
             /** Format: int32 */
@@ -3206,6 +3332,21 @@ export interface components {
             warning: null | string;
             suggested: null | components["schemas"]["CustomerCandidateDto"];
         };
+        /** @description A customer's sales this financial year to date against the same period last year. */
+        CustomerTrendDto: {
+            /** Format: int32 */
+            customerId: number;
+            name: string;
+            city: string;
+            /** Format: double */
+            thisYear: number;
+            /** Format: double */
+            lastYearSamePeriod: number;
+            /** Format: double */
+            change: number;
+            /** Format: double */
+            changePercent: null | number;
+        };
         /** @description Everything the home dashboard shows. Sales values are taxable value (excluding GST). */
         DashboardDto: {
             financialYear: string;
@@ -3288,6 +3429,34 @@ export interface components {
             entityTag?: null | components["schemas"]["EntityTagHeaderValue"];
             enableRangeProcessing?: boolean;
         };
+        /**
+         * @description Monthly sales forecast. IReadOnlyList&lt;MonthSalesDto&gt; ForecastDto.History holds full months only; the current month is forecast whole and
+         *     decimal ForecastDto.MonthToDate shows how far it has got.
+         */
+        ForecastDto: {
+            method: components["schemas"]["ForecastMethod"];
+            backtests: components["schemas"]["BacktestDto"][];
+            /** Format: int32 */
+            holdoutMonths: number;
+            history: components["schemas"]["MonthSalesDto"][];
+            next: components["schemas"]["ForecastMonthDto"][];
+            /** Format: double */
+            monthToDate: number;
+        };
+        /** @enum {unknown} */
+        ForecastMethod: "None" | "RecentAverage" | "SeasonalNaive" | "HoltWintersAdditive" | "HoltWintersMultiplicative";
+        ForecastMonthDto: {
+            /** Format: date */
+            month: string;
+            /** Format: double */
+            forecast: number;
+            /** Format: double */
+            low: number;
+            /** Format: double */
+            high: number;
+            /** Format: double */
+            sameMonthLastYear: null | number;
+        };
         HsnCodeDto: {
             /** Format: int32 */
             id: number;
@@ -3325,6 +3494,49 @@ export interface components {
         };
         /** Format: binary */
         IFormFile: string;
+        InsightCardDto: {
+            kind: components["schemas"]["InsightCardKind"];
+            title: string;
+            body: string;
+        };
+        /** @enum {unknown} */
+        InsightCardKind: "Opportunity" | "Risk" | "Action" | "Info";
+        InsightMetricsDto: {
+            /** Format: date */
+            asOf: string;
+            sales: components["schemas"]["SalesOverviewDto"];
+            receivables: components["schemas"]["ReceivablesOverviewDto"];
+            forecast: components["schemas"]["ForecastDto"];
+            topCustomers: components["schemas"]["CustomerTrendDto"][];
+            growing: components["schemas"]["CustomerTrendDto"][];
+            declining: components["schemas"]["CustomerTrendDto"][];
+            reorder: components["schemas"]["ReorderSuggestionDto"][];
+            anomalies: components["schemas"]["AnomalyDto"][];
+        };
+        InsightNarrativeDto: {
+            headline: string;
+            summary: string;
+            cards: components["schemas"]["InsightCardDto"][];
+        };
+        /**
+         * @description The latest insights: figures computed in C# from the sales data (forecast, trends, reorder suggestions,
+         *     anomalies), and Claude's written summary of them, kept only where every figure it quotes is in the metrics.
+         */
+        InsightsDto: {
+            /** Format: int64 */
+            runId: number;
+            /** Format: date-time */
+            generatedAtUtc: string;
+            trigger: components["schemas"]["InsightTrigger"];
+            metrics: components["schemas"]["InsightMetricsDto"];
+            narrative: null | components["schemas"]["InsightNarrativeDto"];
+            narrativeStatus: components["schemas"]["NarrativeStatus"];
+            narrativeNote: null | string;
+            /** Format: double */
+            costInr: number;
+        };
+        /** @enum {unknown} */
+        InsightTrigger: "Nightly" | "Manual";
         InvoiceAddressDto: {
             line1: string;
             line2: null | string;
@@ -3501,6 +3713,17 @@ export interface components {
             /** Format: int32 */
             invoices: number;
         };
+        MonthSalesDto: {
+            /** Format: date */
+            month: string;
+            /** Format: double */
+            sales: number;
+        };
+        /**
+         * @description Whether the written summary could be produced and how its figures checked out.
+         * @enum {unknown}
+         */
+        NarrativeStatus: "AiOff" | "Verified" | "Trimmed" | "Failed";
         /** @description Status changes carry the row version the user was looking at, so nobody acts on a stale screen. */
         OrderActionRequest: {
             rowVersion: string;
@@ -3904,6 +4127,41 @@ export interface components {
             /** Format: double */
             over90: number;
         };
+        ReceivablesOverviewDto: {
+            /** Format: double */
+            outstanding: number;
+            /** Format: double */
+            overdue: number;
+            /** Format: double */
+            overdueOver90Days: number;
+            /** Format: int32 */
+            overdueInvoices: number;
+            /** Format: int32 */
+            customersOverdue: number;
+        };
+        /** @description A product at or below its suggested reorder point, with the quantity to order. */
+        ReorderSuggestionDto: {
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            name: string;
+            unit: string;
+            /** Format: double */
+            onHand: number;
+            /** Format: double */
+            dailyDemand: number;
+            /** Format: double */
+            daysOfCover: number;
+            /** Format: int32 */
+            leadTimeDays: number;
+            /** Format: double */
+            reorderPoint: number;
+            /** Format: double */
+            configuredReorderLevel: number;
+            /** Format: double */
+            suggestedQuantity: number;
+            runsOutBeforeDelivery: boolean;
+        };
         ReportColumn: {
             key: string;
             header: string;
@@ -3942,6 +4200,30 @@ export interface components {
          * @enum {unknown}
          */
         SalesOrderStatus: "Draft" | "Quoted" | "Confirmed" | "Invoiced" | "Cancelled";
+        /** @description Sales excluding GST. "Same period last year" stops at the same day of the year as today. */
+        SalesOverviewDto: {
+            financialYear: string;
+            /** Format: double */
+            financialYearToDate: number;
+            /** Format: double */
+            samePeriodLastYear: number;
+            /** Format: double */
+            growthPercent: null | number;
+            /** Format: date */
+            lastFullMonth: string;
+            /** Format: double */
+            lastFullMonthSales: number;
+            /** Format: double */
+            sameMonthLastYear: number;
+            /** Format: double */
+            monthGrowthPercent: null | number;
+            /** Format: double */
+            monthToDate: number;
+            /** Format: int32 */
+            invoicesThisYear: number;
+            /** Format: int32 */
+            activeCustomersThisYear: number;
+        };
         /** @description The reviewed order, plus the corrections to learn from. */
         SmartOrderConfirmRequest: {
             order: components["schemas"]["OrderSaveRequest"];

@@ -39,6 +39,7 @@ const featureRoutes: RouteObject[] = [
       { path: '/products/new', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
       { path: '/catalog', lazy: () => import('@/features/catalog/CatalogPage').then((m) => ({ Component: m.CatalogPage })) },
       { path: '/stock/receipts/new', lazy: () => import('@/features/inventory/ReceiptFormPage').then((m) => ({ Component: m.ReceiptFormPage })) },
+      { path: '/insights', lazy: () => import('@/features/insights/InsightsPage').then((m) => ({ Component: m.InsightsPage })) },
     ],
   },
   {

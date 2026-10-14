@@ -17,7 +17,8 @@ export function AppLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      {/* min-w-0: a wide chart or table must not stop the page column shrinking, or the page scrolls sideways. */}
+      <SidebarInset className="min-w-0">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />

@@ -18,7 +18,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Done |
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Done |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | ✅ Built (live check with a real key pending) |
-| P8 | AI: insights, anomaly detection and demand forecasting | Planned |
+| P8 | AI: insights, anomaly detection and demand forecasting | ✅ Built (live check of the written summary pending) |
 | P9 | Hardening, AI usage dashboard, deployment guide | Planned |
 
 ## Tech stack
@@ -93,6 +93,7 @@ All names, GSTINs and figures are made up. The command only runs in the Developm
 | Add an EF Core migration | `dotnet ef migrations add <Name> --project backend/src/SalesApp.Infrastructure --startup-project backend/src/SalesApp.Api --output-dir Data/Migrations` |
 | Production build of the UI (output goes to the API's `wwwroot`) | `npm run build --prefix frontend` |
 | Regenerate demo data (API stopped) | `dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset` |
+| Print the insight figures for the current data (no AI, nothing saved) | `dotnet run --project backend/src/SalesApp.Api -- --insights-metrics` |
 
 ## Configuration and secrets
 
@@ -174,6 +175,29 @@ stream in as they're written; Stop ends the reply (and Anthropic's billing for i
 - **Replies are shown safely.** They are formatted text with no raw HTML. Images are never loaded (an image link is
   a known way to leak data to another server), and only links to pages inside SalesApp are clickable.
 
+**AI insights** (Insights → AI insights, managers only) puts the numbers first. Everything is computed in C# from
+the sales data, so the page works fully with AI switched off; Claude only writes the summary on top.
+
+- **Forecast.** Monthly sales for this month and the next two, with a likely range. Each method forecasts the last
+  six months from the months before them, and the one with the smallest average error (MAPE) is used, so the
+  choice can be checked. The baseline is "same month last year, adjusted for growth"; Holt-Winters (seasonal
+  exponential smoothing with a damped trend) joins once there are two full years of history before those six months,
+  because with less it overshoots. On the demo's two years the baseline is used, with an error of about 18%.
+- **Reorder suggestions.** Reorder point = expected demand over the supplier's lead time + safety stock
+  (1.65 × daily spread × √lead time, about a 95% chance of not running out). Demand counts only the days the
+  product was in stock, so a stock-out doesn't look like a lack of demand, and allows for the season ahead.
+- **Worth a look.** Regular customers who have stopped buying (far longer than their usual gap between orders);
+  invoices far larger than the customer's usual ones; products that sold far more or far less than usual for the
+  time of year; stock-outs of a week or more found in the stock ledger, with an estimate of the sales missed; and
+  customers with ₹10,000 or more over 60 days overdue.
+- **A summary you can trust.** Claude writes a headline, a short summary and a few cards from the computed figures.
+  Every figure in them is checked against those figures, allowing for normal rounding (₹1,87,17,602 written as
+  ₹1.87 crore). If any figure doesn't match, Claude gets one retry with the list of figures that didn't. Anything
+  that still doesn't match is left out, and the page says so.
+- **When it runs.** Every morning after 06:30 India time (`Ai:Insights:NightlyAt`). A server that was off at that
+  time catches up when it starts. Managers can also press **Refresh now**. Each run is saved with the exact figures
+  Claude was given (`InsightRuns`).
+
 What is sent to Anthropic:
 - Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,
   description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other customer data.
@@ -184,6 +208,8 @@ What is sent to Anthropic:
   person, credit terms, notes, invoices, orders, products and stock, plus query rows as for Ask your data.
   Customers' phone numbers and email addresses are never sent; the draft card shows them straight from the
   customer record.
+- AI insights: the computed figures only: sales totals, the forecast, customer names and cities with their sales,
+  product codes and stock, overdue amounts and the anomaly descriptions. No contact details.
 
 **Cost.** The instructions and catalog are a cached prompt prefix, so repeat calls within 5 minutes pay about 5%
 for that part. Measured with the default model (Claude Opus 5.5 at medium effort): a WhatsApp-style text order
@@ -191,7 +217,8 @@ about ₹2.3, a one-page PDF purchase order about ₹3.5, a phone photo about �
 takes 8–14 seconds. An Ask-your-data question that needs one query is about ₹3 (two Claude calls) and 5–10 seconds;
 questions that need several queries cost more, up to the limit of five queries per question. An assistant message
 is estimated at ₹2–8 depending on how many lookups it makes (each lookup round is one more Claude call; the cached
-history keeps repeat input cheap). Every call is logged in the `AiUsageLogs` table with tokens,
+history keeps repeat input cheap). The insights summary is one Claude call a day (two if the figure check needs a
+retry), estimated at ₹3–6. Background runs are logged without a user and have their own daily budget. Every call is logged in the `AiUsageLogs` table with tokens,
 cache use, estimated cost and outcome. Each user has a daily budget (`Ai:DailyBudgetUsdPerUser`, default
 $2 per rolling 24 hours) and a per-minute request limit (`Ai:RequestsPerMinutePerUser`, default 10). The
 estimates use the price list in `Ai:Pricing`; Anthropic's console has the actual bill.
