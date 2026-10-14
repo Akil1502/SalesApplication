@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
+import { authStore } from '@/features/auth/auth-store'
 import { errorMessage } from '@/lib/api/errors'
 import { askQuestion, type AskAnswer, type AskStep } from './api'
 
@@ -119,6 +120,14 @@ export const askStore = {
     }
   },
 }
+
+// Signing out must not leave one person's questions and answers on screen for the next person on this tab.
+authStore.subscribe(() => {
+  if (!authStore.getSession()) {
+    askStore.stop()
+    set([])
+  }
+})
 
 export function useAskHistory() {
   return useSyncExternalStore(askStore.subscribe, askStore.getSnapshot)

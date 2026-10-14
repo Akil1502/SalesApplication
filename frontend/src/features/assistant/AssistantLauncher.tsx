@@ -1,0 +1,43 @@
+import { Sparkles } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { Spinner } from '@/components/ui/spinner'
+import { useAiStatus } from '@/features/ai/api'
+import { useAssistant } from './assistant-store'
+
+const AssistantChat = lazy(() => import('./AssistantPanel'))
+
+/**
+ * The top-bar button and the slide-over chat panel, available on every screen. Hidden while AI is switched off.
+ * A reply keeps going if the panel is closed; a dot on the button shows it's still writing.
+ */
+export function AssistantLauncher() {
+  const status = useAiStatus()
+  const [open, setOpen] = useState(false)
+  const { status: chat } = useAssistant()
+  if (!status.data?.assistant) return null
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="relative">
+        <Sparkles /> Assistant
+        {chat === 'replying' && !open && (
+          <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-primary" role="status" aria-label="The assistant is replying" />
+        )}
+      </Button>
+      <SheetContent className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
+        <Suspense
+          fallback={
+            <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
+              <SheetTitle className="sr-only">Assistant</SheetTitle>
+              <Spinner className="size-4" /> Loading…
+            </div>
+          }
+        >
+          <AssistantChat />
+        </Suspense>
+      </SheetContent>
+    </Sheet>
+  )
+}

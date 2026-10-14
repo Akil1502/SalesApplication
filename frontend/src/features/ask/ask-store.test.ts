@@ -97,3 +97,18 @@ describe('ask store', () => {
     expect(askStore.getSnapshot()[0]).toMatchObject({ status: 'error', error: INTERRUPTED })
   })
 })
+
+describe('ask store on sign-out', () => {
+  it("clears the history, so the next person signing in on this tab doesn't see it", async () => {
+    sessionStorage.setItem('salesapp.ask.history', JSON.stringify([{ id: '1', question: 'Who owes us the most?', status: 'done', steps: [] }]))
+    const { askStore } = await freshStore()
+    const { authStore } = await import('@/features/auth/auth-store')
+    authStore.set({ token: 't', expiresAtUtc: new Date(Date.now() + 3600e3).toISOString() })
+    expect(askStore.getSnapshot()).toHaveLength(1)
+
+    authStore.clear()
+
+    expect(askStore.getSnapshot()).toEqual([])
+    expect(JSON.parse(sessionStorage.getItem('salesapp.ask.history')!)).toEqual([])
+  })
+})

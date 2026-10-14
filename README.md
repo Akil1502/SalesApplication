@@ -17,7 +17,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P4 | Demo data generator, dashboard, reports, Excel export | ✅ Done |
 | P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Done |
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Done |
-| P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | Planned |
+| P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | ✅ Built (live check with a real key pending) |
 | P8 | AI: insights, anomaly detection and demand forecasting | Planned |
 | P9 | Hardening, AI usage dashboard, deployment guide | Planned |
 
@@ -132,7 +132,8 @@ wording is saved as an alias and offered to Claude next time.
 "who owes us the most" from the reporting views. Claude writes SQL and calls a `run_sql_query` tool; it answers by
 pointing at the result it wants shown, so the table, chart and Excel download are the database's own rows, never
 numbers retyped by the model. Progress streams to the browser as server-sent events, and the SQL is shown with every
-answer. The safety layers, each tested on its own:
+answer. A question keeps running if the user moves to another screen; a notification says when the answer is ready.
+The safety layers, each tested on its own:
 
 1. Claude is only told about the `rpt` reporting views (managers also see `rpt_mgr.Margins`), which leave out
    contact details and cost prices.
@@ -150,18 +151,47 @@ Known limits: through SQL Server's built-in guest access the reporting users can
 database names (no business data), and a database user can always change its own default schema; the checker
 refuses both kinds of statement, so the AI path can't issue them.
 
+**Assistant** (the Assistant button in the top bar, on every screen) is a chat that looks things up and drafts
+messages. It has read-only tools: find customers, a customer's full picture (sales this and last year, outstanding
+and overdue, recent orders, top products), outstanding or overdue invoices, any invoice, order or quotation by
+number, product and stock search, and the same guarded SQL query as Ask your data for totals and trends. Replies
+stream in as they're written; Stop ends the reply (and Anthropic's billing for it), and closing the panel doesn't.
+
+- **Drafts, never sending.** Asked for a payment reminder, follow-up or quotation note, it writes an email or
+  WhatsApp draft that the user can edit, copy, or open in their own email or WhatsApp. SalesApp sends nothing. The
+  recipient comes from the customer record, never from the model.
+- **Drafts are checked.** Every invoice, order or quotation number in a draft must exist and belong to that
+  customer, and every exact rupee amount must appear in data the assistant looked up in the conversation; anything
+  else shows as a "Check before sending" warning on the draft.
+- **Saved conversations.** Conversations are kept per user (only their owner can open them, administrators
+  included) and reopen after a reload. Messages are stored exactly as sent to and received from Claude and are
+  append-only, enforced by a database trigger. Each conversation keeps the system prompt it started with, and
+  today's date goes into each message instead, because Claude's saved reasoning and the prompt cache both rely on
+  the start of the conversation never changing.
+- **Limits.** Up to 8 rounds of lookups per message (`Ai:Assistant:MaxToolRounds`). A conversation stops taking
+  messages at about 100,000 tokens (`Ai:Assistant:MaxContextTokens`), because every turn re-sends the history; the
+  user starts a new one.
+- **Replies are shown safely.** They are formatted text with no raw HTML. Images are never loaded (an image link is
+  a known way to leak data to another server), and only links to pages inside SalesApp are clickable.
+
 What is sent to Anthropic:
 - Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,
   description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other customer data.
 - Ask your data: the question, today's date, the view descriptions and the rows of the queries Claude runs (at most
   50 per query). Those rows can include customer names, cities and amounts, and for managers the cost prices in
   `rpt_mgr.Margins`; the views hold no phone numbers, emails, addresses or GSTINs.
+- Assistant: the conversation and the results of its lookups: customer names, codes, cities, GSTINs, contact
+  person, credit terms, notes, invoices, orders, products and stock, plus query rows as for Ask your data.
+  Customers' phone numbers and email addresses are never sent; the draft card shows them straight from the
+  customer record.
 
 **Cost.** The instructions and catalog are a cached prompt prefix, so repeat calls within 5 minutes pay about 5%
 for that part. Measured with the default model (Claude Opus 5.5 at medium effort): a WhatsApp-style text order
 about ₹2.3, a one-page PDF purchase order about ₹3.5, a phone photo about ₹2.7 when the cache is warm; each read
 takes 8–14 seconds. An Ask-your-data question that needs one query is about ₹3 (two Claude calls) and 5–10 seconds;
-questions that need several queries cost more, up to the limit of five queries per question. Every call is logged in the `AiUsageLogs` table with tokens,
+questions that need several queries cost more, up to the limit of five queries per question. An assistant message
+is estimated at ₹2–8 depending on how many lookups it makes (each lookup round is one more Claude call; the cached
+history keeps repeat input cheap). Every call is logged in the `AiUsageLogs` table with tokens,
 cache use, estimated cost and outcome. Each user has a daily budget (`Ai:DailyBudgetUsdPerUser`, default
 $2 per rolling 24 hours) and a per-minute request limit (`Ai:RequestsPerMinutePerUser`, default 10). The
 estimates use the price list in `Ai:Pricing`; Anthropic's console has the actual bill.

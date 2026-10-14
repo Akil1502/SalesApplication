@@ -286,6 +286,206 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assistant/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The current user's most recent conversations, newest first. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssistantConversationSummaryDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/conversations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A conversation as it was shown: messages, lookups and drafts. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssistantConversationDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sends a message and streams the reply as `text/event-stream`: `conversation` (when a new one starts),
+         *     `text` deltas, `tool` updates for each lookup, `draft` for each drafted message, then
+         *     `done` with the cost, or `error`. Closing the connection stops the reply.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AssistantSendRequest"];
+                    "text/json": components["schemas"]["AssistantSendRequest"];
+                    "application/*+json": components["schemas"]["AssistantSendRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                        "text/event-stream": unknown;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["ApiError"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["ApiError"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["ApiError"];
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/event-stream": components["schemas"]["ApiError"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -2714,12 +2914,15 @@ export interface components {
         AdjustmentMode: "Change" | "SetCount";
         /** @enum {unknown} */
         AdjustmentReason: "OpeningBalance" | "StockCount" | "Damaged" | "Lost" | "Found" | "Other" | null;
+        /** @enum {unknown} */
+        AiDraftKind: "Email" | "WhatsApp";
         /** @description Whether the AI features can be used. The UI hides AI screens when bool AiStatusDto.Enabled is false. */
         AiStatusDto: {
             enabled: boolean;
             reason: null | string;
             orderEntry: boolean;
             askData: boolean;
+            assistant: boolean;
         };
         AiUsageDto: {
             model: string;
@@ -2758,6 +2961,77 @@ export interface components {
         };
         AskRequest: {
             question: string;
+        };
+        /**
+         * @description A saved conversation. string? AssistantConversationDto.Notice explains when it can't be continued (it has grown too long), so the
+         *     user starts a new one.
+         */
+        AssistantConversationDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            items: components["schemas"]["AssistantItemDto"][];
+            notice: null | string;
+            /** Format: double */
+            costInr: number;
+            /** Format: date-time */
+            updatedAtUtc: string;
+        };
+        AssistantConversationSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            /** Format: date-time */
+            updatedAtUtc: string;
+        };
+        /**
+         * @description A drafted email or WhatsApp message. Email and phone come from the customer record. Warnings list invoice
+         *     numbers that aren't this customer's and amounts that weren't in the data the assistant looked up.
+         */
+        AssistantDraftDto: {
+            toolUseId: string;
+            kind: components["schemas"]["AiDraftKind"];
+            purpose: string;
+            /** Format: int32 */
+            customerId: number;
+            customerName: string;
+            contactPerson: null | string;
+            email: null | string;
+            phone: null | string;
+            subject: null | string;
+            body: string;
+            warnings: string[];
+        };
+        /** @description One entry of the conversation view. bool AssistantItemDto.Interrupted marks a reply that was stopped or failed part-way. */
+        AssistantItemDto: {
+            kind: components["schemas"]["AssistantItemKind"];
+            text: null | string;
+            tool: null | components["schemas"]["AssistantToolDto"];
+            draft: null | components["schemas"]["AssistantDraftDto"];
+            interrupted: boolean;
+        };
+        /**
+         * @description What one entry of the conversation view shows.
+         * @enum {unknown}
+         */
+        AssistantItemKind: "User" | "Assistant" | "Tool" | "Draft";
+        AssistantSendRequest: {
+            /**
+             * Format: uuid
+             * @description The conversation to continue; omitted to start a new one.
+             */
+            conversationId?: null | string;
+            message: string;
+        };
+        /** @description A lookup the assistant made. bool? AssistantToolDto.Succeeded is null while it runs. */
+        AssistantToolDto: {
+            id: string;
+            name: string;
+            label: string;
+            succeeded: null | boolean;
+            detail: null | string;
         };
         CategoryDto: {
             /** Format: int32 */
