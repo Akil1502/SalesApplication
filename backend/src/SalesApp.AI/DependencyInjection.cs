@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddSingleton<ClaudeClientProvider>();
         services.AddSingleton<IAiUsageRecorder, AiUsageRecorder>();
         services.AddScoped<IClaudeGateway, ClaudeGateway>();
+        services.AddScoped<IAiUsageReport, AiUsageReport>();
 
         services.AddScoped<CustomerMatcher>();
         services.AddScoped<IOrderExtractionService, OrderExtractionService>();

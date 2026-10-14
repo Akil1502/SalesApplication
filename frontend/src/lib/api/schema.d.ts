@@ -172,6 +172,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/ai-usage/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    days?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AiUsageSummaryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai-usage/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    feature?: string;
+                    /** @description Only calls that didn't succeed (failed, refused or cut off). */
+                    problemsOnly?: boolean;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfAiCallDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ai-usage/queries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Succeeded, Rejected or Failed; omitted for all. (A string, so the outcome enum stays non-nullable in the API schema.) */
+                    outcome?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfAiQueryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ask": {
         parameters: {
             query?: never;
@@ -3004,8 +3128,73 @@ export interface components {
         AdjustmentMode: "Change" | "SetCount";
         /** @enum {unknown} */
         AdjustmentReason: "OpeningBalance" | "StockCount" | "Damaged" | "Lost" | "Found" | "Other" | null;
+        AiCallDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            createdAtUtc: string;
+            feature: string;
+            model: string;
+            userName: string;
+            /** Format: int32 */
+            inputTokens: number;
+            /** Format: int32 */
+            outputTokens: number;
+            /** Format: int32 */
+            cacheReadTokens: number;
+            /** Format: int32 */
+            cacheWriteTokens: number;
+            /** Format: double */
+            costInr: number;
+            /** Format: int32 */
+            durationMs: number;
+            outcome: components["schemas"]["AiOutcome"];
+            error: null | string;
+        };
+        /** @description Cost per day (India time). */
+        AiDailyCostDto: {
+            /** Format: date */
+            day: string;
+            /** Format: double */
+            costInr: number;
+            /** Format: int32 */
+            calls: number;
+        };
         /** @enum {unknown} */
         AiDraftKind: "Email" | "WhatsApp";
+        AiFeatureCostDto: {
+            feature: string;
+            /** Format: int32 */
+            calls: number;
+            /** Format: double */
+            costInr: number;
+            /** Format: double */
+            averageCostInr: number;
+            /** Format: int32 */
+            averageDurationMs: number;
+            /** Format: int32 */
+            failed: number;
+        };
+        /** @enum {unknown} */
+        AiOutcome: "Success" | "Refused" | "Truncated" | "Failed";
+        AiQueryDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            createdAtUtc: string;
+            userName: string;
+            question: string;
+            sql: string;
+            runAs: string;
+            outcome: components["schemas"]["AiQueryOutcome"];
+            error: null | string;
+            /** Format: int32 */
+            rowCount: number;
+            /** Format: int32 */
+            durationMs: number;
+        };
+        /** @enum {unknown} */
+        AiQueryOutcome: "Succeeded" | "Rejected" | "Failed";
         /** @description Whether the AI features can be used. The UI hides AI screens when bool AiStatusDto.Enabled is false. */
         AiStatusDto: {
             enabled: boolean;
@@ -3030,6 +3219,52 @@ export interface components {
             costInr: number;
             /** Format: int32 */
             durationMs: number;
+        };
+        /**
+         * @description What the AI features have cost over a period, for administrators. Costs are estimates from the token counts
+         *     and the configured price list; Anthropic's console has the actual bill.
+         */
+        AiUsageSummaryDto: {
+            /** Format: int32 */
+            days: number;
+            /** Format: double */
+            costUsd: number;
+            /** Format: double */
+            costInr: number;
+            /** Format: double */
+            todayCostInr: number;
+            /** Format: int32 */
+            calls: number;
+            /** Format: int32 */
+            failed: number;
+            /** Format: int32 */
+            refused: number;
+            /** Format: int32 */
+            truncated: number;
+            /** Format: double */
+            cacheReadPercent: number;
+            /** Format: double */
+            dailyBudgetUsdPerUser: number;
+            daily: components["schemas"]["AiDailyCostDto"][];
+            byFeature: components["schemas"]["AiFeatureCostDto"][];
+            byUser: components["schemas"]["AiUserCostDto"][];
+        };
+        /**
+         * @description Spend per user; Guid? AiUserCostDto.UserId is null for background work (the morning insights).
+         *     decimal AiUserCostDto.BudgetUsedPercent is the last 24 hours against the per-user daily budget.
+         */
+        AiUserCostDto: {
+            /** Format: uuid */
+            userId: null | string;
+            name: string;
+            /** Format: int32 */
+            calls: number;
+            /** Format: double */
+            costInr: number;
+            /** Format: double */
+            last24HoursInr: number;
+            /** Format: double */
+            budgetUsedPercent: number;
         };
         /** @description A product the user picked for wording the AI got wrong or couldn't match. Saved as an alias. */
         AliasCorrection: {
@@ -3889,6 +4124,28 @@ export interface components {
          * @enum {unknown}
          */
         OrderSource: "Manual" | "AiText" | "AiPdf" | "AiImage";
+        PagedResultOfAiCallDto: {
+            items: components["schemas"]["AiCallDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfAiQueryDto: {
+            items: components["schemas"]["AiQueryDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
         PagedResultOfCustomerListItemDto: {
             items: components["schemas"]["CustomerListItemDto"][];
             /** Format: int32 */

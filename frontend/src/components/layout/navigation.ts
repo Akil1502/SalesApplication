@@ -24,8 +24,6 @@ export interface NavItem {
   icon: LucideIcon
   /** Only these roles see the item; omitted means everyone. */
   roles?: string[]
-  /** Build phase that delivers the screen; shown as a "coming" placeholder until then. */
-  phase?: string
   /** An AI feature: hidden while AI is switched off or has no API key. */
   ai?: boolean
 }
@@ -38,7 +36,7 @@ export interface NavGroup {
 const managers = [Roles.Admin, Roles.SalesManager]
 const admins = [Roles.Admin]
 
-/** Single source of truth for the sidebar, page titles and placeholder routes. */
+/** Single source of truth for the sidebar and page titles. */
 export const navigation: NavGroup[] = [
   {
     label: 'Overview',
@@ -78,7 +76,7 @@ export const navigation: NavGroup[] = [
     items: [
       { title: 'Users', to: '/admin/users', icon: UserCog, roles: admins },
       { title: 'Company settings', to: '/admin/settings', icon: Settings, roles: admins },
-      { title: 'AI usage', to: '/admin/ai-usage', icon: FileText, roles: admins, phase: 'P9' },
+      { title: 'AI usage', to: '/admin/ai-usage', icon: FileText, roles: admins },
     ],
   },
 ]
