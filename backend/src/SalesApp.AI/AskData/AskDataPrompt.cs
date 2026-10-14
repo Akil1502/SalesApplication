@@ -30,6 +30,10 @@ public static class AskDataPrompt
           question, a short summary and a chart suggestion. The user sees that query's rows as a table, so the
           summary should give the headline, not repeat the table.
         - Every figure in the summary must come from a query result. Never estimate or invent numbers.
+        - Write amounts the Indian way, as the app does: lakh and crore grouping (₹1,87,17,602.50), or rounded
+          as ₹1.87 crore or ₹14.5 lakh. Never the Western grouping (18,717,602.50) or millions.
+        - Write the summary and follow-ups in English, or in Tamil when the question is in Tamil (keep figures
+          as digits and names as stored). Query aliases stay in English.
         - If the question can't be answered from these views (the data isn't recorded), call {SubmitAnswerTool}
           with an empty resultId and say what's missing. If it's ambiguous, answer the most likely reading and say
           which reading you used.
@@ -128,7 +132,7 @@ public static class AskDataPrompt
             "Gives the final answer. Call this once, when you're done. The user sees the rows of the chosen result as a table.",
             new Dictionary<string, JsonElement>
             {
-                ["summary"] = JsonSerializer.SerializeToElement(new { type = "string", description = "One to three sentences answering the question in plain English. Only figures that appear in the query results." }),
+                ["summary"] = JsonSerializer.SerializeToElement(new { type = "string", description = "One to three sentences answering the question in plain English (Tamil if the question is in Tamil). Only figures that appear in the query results, with amounts in lakh/crore style." }),
                 ["resultId"] = JsonSerializer.SerializeToElement(new { type = "string", description = "The resultId whose rows answer the question, or \"\" if none does." }),
                 ["chartType"] = JsonSerializer.SerializeToElement(new { type = "string", @enum = ChartTypes, description = "bar to compare categories, line for a trend over time, none when a chart wouldn't help." }),
                 ["chartX"] = JsonSerializer.SerializeToElement(new { type = "string", description = "Result column for the categories or time axis, or \"\"." }),

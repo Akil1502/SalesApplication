@@ -51,7 +51,7 @@ export function AnswerChart({ answer }: { answer: AskAnswer }) {
 
   if (answer.chart.type === 'Line') {
     return (
-      <figure className="space-y-1" aria-label={`${yColumn.name} by ${xColumn.name}, line chart. Exact values are in the table.`}>
+      <figure className="space-y-1" aria-label={`${yColumn.label || yColumn.name} by ${xColumn.label || xColumn.name}, line chart. Exact values are in the table.`}>
         <LineChart data={data} responsive style={{ width: '100%', height: 260 }} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={tick} interval="preserveStartEnd" minTickGap={16} />
@@ -67,7 +67,7 @@ export function AnswerChart({ answer }: { answer: AskAnswer }) {
 
   const horizontal = data.length > 8 || data.some((d) => d.label.length > 14)
   return (
-    <figure className="space-y-1" aria-label={`${yColumn.name} by ${xColumn.name}, bar chart. Exact values are in the table.`}>
+    <figure className="space-y-1" aria-label={`${yColumn.label || yColumn.name} by ${xColumn.label || xColumn.name}, bar chart. Exact values are in the table.`}>
       {horizontal ? (
         <BarChart data={data} layout="vertical" responsive style={{ width: '100%', height: data.length * 30 + 40 }}
           margin={{ top: 4, right: 16, bottom: 0, left: 0 }} barCategoryGap="22%">

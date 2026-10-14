@@ -14,7 +14,8 @@ const asReportType: Record<AskColumnKind, ReportColumnType> = {
 
 export const isNumericColumn = (column: AskColumn) => reportIsNumeric(asReportType[column.kind])
 
-export const askColumnHeader = (column: AskColumn) => reportHeader({ key: column.name, header: column.name, type: asReportType[column.kind] })
+export const askColumnHeader = (column: AskColumn) =>
+  reportHeader({ key: column.name, header: column.label || column.name, type: asReportType[column.kind] })
 
 export function formatAskValue(value: AskValue | undefined, column: AskColumn): string {
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'

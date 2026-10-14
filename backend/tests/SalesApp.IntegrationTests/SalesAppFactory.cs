@@ -25,8 +25,7 @@ public sealed class SalesAppFactory : WebApplicationFactory<Program>, IAsyncLife
         // determined by the settings below. UseSetting (rather than ConfigureAppConfiguration)
         // makes the values visible while Program.cs is still registering services.
         builder.UseEnvironment("Testing");
-        builder.UseSetting("ConnectionStrings:Default",
-            $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;TrustServerCertificate=True");
+        builder.UseSetting("ConnectionStrings:Default", TestServer.ConnectionString(_databaseName));
         builder.UseSetting("Database:MigrateOnStartup", "false");
         builder.UseSetting("Jwt:SigningKey", "integration-test-signing-key-not-a-secret-0123456789");
         builder.UseSetting("Seed:AdminEmail", AdminEmail);

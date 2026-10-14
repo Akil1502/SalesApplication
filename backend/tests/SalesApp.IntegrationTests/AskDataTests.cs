@@ -95,6 +95,7 @@ public sealed class AskDataTests(SalesAppFactory factory)
         Assert.Equal("The customer bought goods worth 2,000.", answer.Summary);
         Assert.Equal(sql, answer.Sql);
         Assert.Equal(["Customer", "SalesValue", "Invoices"], answer.Columns.Select(c => c.Name));
+        Assert.Equal(["Customer", "Sales value", "Invoices"], answer.Columns.Select(c => c.Label));
         Assert.Equal([AskColumnKind.Text, AskColumnKind.Money, AskColumnKind.Count], answer.Columns.Select(c => c.Kind));
         var row = Assert.Single(answer.Rows);
         Assert.Equal(customer.Name, ((JsonElement)row[0]!).GetString());

@@ -21,7 +21,7 @@ public sealed class DemoDataFactory : WebApplicationFactory<Program>, IAsyncLife
 {
     private readonly string _databaseName = $"SalesApp_Demo_{Guid.NewGuid():N}";
 
-    public string ConnectionString => $"Server=(localdb)\\MSSQLLocalDB;Database={_databaseName};Trusted_Connection=True;TrustServerCertificate=True";
+    public string ConnectionString => TestServer.ConnectionString(_databaseName);
 
     public DemoDataSummary Summary { get; private set; } = null!;
 

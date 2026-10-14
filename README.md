@@ -16,7 +16,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P3 | Orders and quotations, GST invoicing (CGST/SGST/IGST), payments | ✅ Done |
 | P4 | Demo data generator, dashboard, reports, Excel export | ✅ Done |
 | P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Done |
-| P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Built (live check with a real key pending) |
+| P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Done |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | Planned |
 | P8 | AI: insights, anomaly detection and demand forecasting | Planned |
 | P9 | Hardening, AI usage dashboard, deployment guide | Planned |
@@ -150,14 +150,18 @@ Known limits: through SQL Server's built-in guest access the reporting users can
 database names (no business data), and a database user can always change its own default schema; the checker
 refuses both kinds of statement, so the AI path can't issue them.
 
-What is sent to Anthropic: the order text or file, today's date, and the product catalog (SKU, name, unit,
-category, description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other
-customer data.
+What is sent to Anthropic:
+- Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,
+  description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other customer data.
+- Ask your data: the question, today's date, the view descriptions and the rows of the queries Claude runs (at most
+  50 per query). Those rows can include customer names, cities and amounts, and for managers the cost prices in
+  `rpt_mgr.Margins`; the views hold no phone numbers, emails, addresses or GSTINs.
 
 **Cost.** The instructions and catalog are a cached prompt prefix, so repeat calls within 5 minutes pay about 5%
 for that part. Measured with the default model (Claude Opus 5.5 at medium effort): a WhatsApp-style text order
 about ₹2.3, a one-page PDF purchase order about ₹3.5, a phone photo about ₹2.7 when the cache is warm; each read
-takes 8–14 seconds. Every call is logged in the `AiUsageLogs` table with tokens,
+takes 8–14 seconds. An Ask-your-data question that needs one query is about ₹3 (two Claude calls) and 5–10 seconds;
+questions that need several queries cost more, up to the limit of five queries per question. Every call is logged in the `AiUsageLogs` table with tokens,
 cache use, estimated cost and outcome. Each user has a daily budget (`Ai:DailyBudgetUsdPerUser`, default
 $2 per rolling 24 hours) and a per-minute request limit (`Ai:RequestsPerMinutePerUser`, default 10). The
 estimates use the price list in `Ai:Pricing`; Anthropic's console has the actual bill.
@@ -174,6 +178,12 @@ sqlcmd -S "(localdb)\MSSQLLocalDB" -Q "CREATE DATABASE [SalesAppDb] ON (FILENAME
 
 **Port 5080 or 5173 already in use**: another copy of the API or the Vite dev server is still running. Close
 that terminal, or stop the process listening on the port.
+
+**Integration tests fail with `Error occurred during LocalDB instance startup: SQL Server process failed to
+start`**: LocalDB is already running, started from another Windows session (for example by the API in a
+different terminal), and this session can't see it. Stop the API and run `sqllocaldb stop MSSQLLocalDB`, or point
+the tests at the running instance's pipe name: `$env:SALESAPP_TEST_SERVER = 'np:\\.\pipe\LOCALDB#<id>\tsql\query'`.
+The pipe name is in the instance's `error.log`, under `%LOCALAPPDATA%\Microsoft\Microsoft SQL Server Local DB\Instances\MSSQLLocalDB`.
 
 ## Project structure
 

@@ -88,7 +88,7 @@ public sealed class AskController(
     {
         var stored = askData.GetResult(id) ?? throw new NotFoundException("That answer has expired. Ask the question again to download it.");
         var columns = stored.Result.Columns
-            .Select((c, i) => new ReportColumn($"c{i}", c.Name, c.Kind switch
+            .Select((c, i) => new ReportColumn($"c{i}", ColumnLabel.From(c.Name), c.Kind switch
             {
                 QueryColumnKind.Money => ReportColumnType.Money,
                 QueryColumnKind.Count => ReportColumnType.Count,

@@ -212,7 +212,7 @@ public sealed class AskDataService(
         cache.Set(CacheKey(stored), new StoredResult(currentUser.UserId, question, chosen.Sql, chosen.Result),
             new MemoryCacheEntryOptions { SlidingExpiration = TimeSpan.FromHours(1), Size = chosen.Result.Rows.Count + 1 });
 
-        var columns = chosen.Result.Columns.Select(c => new AskColumnDto(c.Name, (AskColumnKind)(int)c.Kind)).ToList();
+        var columns = chosen.Result.Columns.Select(c => new AskColumnDto(c.Name, ColumnLabel.From(c.Name), (AskColumnKind)(int)c.Kind)).ToList();
         return new AskAnswerDto(runId, question, summary, stored, chosen.Sql, chosen.Purpose, columns, chosen.Result.Rows,
             chosen.Result.Truncated, Chart(columns, chartType, chartX, chartY), followUps, queriesRun, total);
     }

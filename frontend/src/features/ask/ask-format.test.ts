@@ -3,9 +3,10 @@ import { askColumnHeader, formatAskValue, isNumericColumn, toNumber } from './as
 
 describe('answer formatting', () => {
   it('formats money like the reports, with ₹ once in the header', () => {
-    const column = { name: 'SalesValue', kind: 'Money' as const }
+    const column = { name: 'SalesValue', label: 'Sales value', kind: 'Money' as const }
     expect(formatAskValue(1234567.5, column)).toBe('12,34,567.50')
-    expect(askColumnHeader(column)).toBe('SalesValue (₹)')
+    expect(askColumnHeader(column)).toBe('Sales value (₹)')
+    expect(askColumnHeader({ name: 'SalesValue', kind: 'Money' })).toBe('SalesValue (₹)')
     expect(isNumericColumn(column)).toBe(true)
   })
 

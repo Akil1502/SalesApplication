@@ -9,7 +9,10 @@ export type AskChartType = 'None' | 'Bar' | 'Line'
 export type AskValue = string | number | boolean | null
 
 export interface AskColumn {
+  /** The SQL alias; the chart refers to columns by this. */
   name: string
+  /** The header to show ("Sales value"). Missing on answers saved before labels existed. */
+  label?: string
   kind: AskColumnKind
 }
 

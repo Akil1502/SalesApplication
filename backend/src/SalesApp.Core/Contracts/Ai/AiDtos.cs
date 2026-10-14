@@ -140,7 +140,8 @@ public enum AskColumnKind
     Boolean,
 }
 
-public sealed record AskColumnDto(string Name, AskColumnKind Kind);
+/// <summary>A result column: Name is the SQL alias (what the chart refers to), Label the header to show.</summary>
+public sealed record AskColumnDto(string Name, string Label, AskColumnKind Kind);
 
 public enum AskChartType
 {
