@@ -77,7 +77,8 @@ export function SmartOrderPage() {
   const [result, setResult] = useState<{ extraction: OrderExtraction; customer: PickedCustomer | null } | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const canRead = tab === 'text' ? text.trim().length > 0 : file !== null
+  const hasContent = tab === 'text' ? text.trim().length > 0 : file !== null
+  const canRead = hasContent && customer !== null
 
   async function chooseFile(chosen: File | undefined) {
     setFileError(null)
@@ -138,7 +139,7 @@ export function SmartOrderPage() {
         <Card className="max-w-3xl">
           <CardHeader>
             <CardTitle>The customer's order</CardTitle>
-            <CardDescription>Mixed languages and trade shorthand are fine: "30s cc", "10 bags", "2k mtrs".</CardDescription>
+            <CardDescription>English, Tamil (தமிழ்) or a mix of both, with trade shorthand like "30s cc", "10 bags", "2k mtrs".</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <Tabs value={tab} onValueChange={(next) => setTab(next as 'text' | 'file')}>
@@ -208,11 +209,13 @@ export function SmartOrderPage() {
             </Tabs>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="known-customer">Customer (optional)</Label>
+              <Label htmlFor="known-customer">Customer</Label>
               <div className="max-w-md">
                 <CustomerPicker id="known-customer" value={customer} onChange={setCustomer} disabled={extract.isPending} />
               </div>
-              <p className="text-xs text-muted-foreground">Leave empty to let the app work it out from the GSTIN, phone or name in the order.</p>
+              <p className="text-xs text-muted-foreground">
+                Who sent this order? If the order's GSTIN, phone or name points to someone else, you'll be warned before saving.
+              </p>
             </div>
 
             {extract.error && (
@@ -228,7 +231,9 @@ export function SmartOrderPage() {
             <p className="text-xs text-muted-foreground">
               {extract.isPending
                 ? 'Reading the order. This usually takes 10 to 30 seconds.'
-                : "The order is sent to Anthropic's Claude API to be read. Nothing is saved until you confirm."}
+                : hasContent && !customer
+                  ? 'Choose the customer first.'
+                  : "The order is sent to Anthropic's Claude API to be read. Nothing is saved until you confirm."}
             </p>
           </CardFooter>
         </Card>

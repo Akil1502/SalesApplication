@@ -56,7 +56,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description When the user already knows who the order is from. */
+            /** @description The customer the order is from. Required: the order's own details are only used to cross-check it. */
             requestBody: {
                 content: {
                     "multipart/form-data": {
@@ -2800,6 +2800,10 @@ export interface components {
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
         };
+        /**
+         * @description The customer for the draft. string? CustomerSuggestionDto.Warning is set when the order's own details (GSTIN, phone, name) point to
+         *     someone other than the customer the user chose; CustomerCandidateDto? CustomerSuggestionDto.Suggested is that other customer when it's known.
+         */
         CustomerSuggestionDto: {
             /** Format: int32 */
             customerId: null | number;
@@ -2807,6 +2811,8 @@ export interface components {
             matchedBy: components["schemas"]["CustomerMatchSource"];
             clues: components["schemas"]["CustomerCluesDto"];
             candidates: components["schemas"]["CustomerCandidateDto"][];
+            warning: null | string;
+            suggested: null | components["schemas"]["CustomerCandidateDto"];
         };
         /** @description Everything the home dashboard shows. Sales values are taxable value (excluding GST). */
         DashboardDto: {

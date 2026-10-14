@@ -53,9 +53,14 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         return (app, claude);
     }
 
-    private static MultipartFormDataContent Form(string? text = null, byte[]? file = null, string fileName = "order.bin")
+    private static MultipartFormDataContent Form(string? text = null, byte[]? file = null, string fileName = "order.bin", int? customerId = null)
     {
         var form = new MultipartFormDataContent();
+        if (customerId is not null)
+        {
+            form.Add(new StringContent(customerId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)), "customerId");
+        }
+
         if (text is not null)
         {
             form.Add(new StringContent(text), "text");
@@ -85,6 +90,13 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         unmatched = unmatched ?? [],
     };
 
+    /// <summary>A fresh customer to send orders for; extraction always needs one.</summary>
+    private async Task<int> NewCustomerAsync()
+    {
+        var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
+        return (await TestData.CreateCustomerAsync(manager)).Id;
+    }
+
     private async Task<int> OrderCountAsync(int customerId)
     {
         using var scope = factory.Services.CreateScope();
@@ -101,7 +113,7 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         Assert.False(status.OrderEntry);
         Assert.Contains("API key", status.Reason, StringComparison.Ordinal);
 
-        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s combed 500 kg"), Ct);
+        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s combed 500 kg", customerId: await NewCustomerAsync()), Ct);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Contains("API key", (await response.ReadAsync<ApiError>()).Message, StringComparison.Ordinal);
     }
@@ -123,14 +135,15 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
             ],
             customerName: customer.Name, reference: "PO-77", deliveryDate: "2026-10-20", notes: "Send by KPN transport", unmatched: ["2 box ??"]);
 
-        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("Hi sir, 30s cc 500kg @310, special blend 10 nos, red thread. PO-77"), Ct);
+        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("Hi sir, 30s cc 500kg @310, special blend 10 nos, red thread. PO-77", customerId: customer.Id), Ct);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var draft = await response.ReadAsync<OrderExtractionDto>();
 
         Assert.Equal(OrderSource.AiText, draft.Source);
         Assert.True(draft.LooksLikeOrder);
         Assert.Equal(customer.Id, draft.Customer.CustomerId);
-        Assert.Equal(CustomerMatchSource.Name, draft.Customer.MatchedBy);
+        Assert.Equal(CustomerMatchSource.Selected, draft.Customer.MatchedBy);
+        Assert.Null(draft.Customer.Warning); // the order's own details agree with the chosen customer
         Assert.Equal("PO-77", draft.CustomerReference);
         Assert.Equal(new DateOnly(2026, 10, 20), draft.RequestedDeliveryDate);
         Assert.Equal("Send by KPN transport", draft.Notes);
@@ -199,7 +212,7 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
 
         // Next time the same wording (any case or punctuation) maps to the product even if Claude doesn't match it.
         claude.Reply = _ => Reply([Line($"{wording.ToUpperInvariant()}!!", productId: 0, quantity: 40, confidence: "low")]);
-        var draft = await (await rep.PostAsync("/api/orders/smart-entry/extract", Form($"{wording} 40 kg"), Ct)).ReadAsync<OrderExtractionDto>();
+        var draft = await (await rep.PostAsync("/api/orders/smart-entry/extract", Form($"{wording} 40 kg", customerId: customer.Id), Ct)).ReadAsync<OrderExtractionDto>();
 
         var line = Assert.Single(draft.Lines);
         Assert.Equal(yarn.Id, line.Product?.Id);
@@ -230,22 +243,23 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
     {
         var (app, claude) = WithFakeClaude();
         var (rep, _) = await app.CreateClientAsync(Roles.SalesRep);
+        var customerId = await NewCustomerAsync();
         claude.Reply = _ => Reply([]);
 
         byte[] png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3];
-        var draft = await (await rep.PostAsync("/api/orders/smart-entry/extract", Form(file: png, fileName: "po.jpg"), Ct)).ReadAsync<OrderExtractionDto>();
+        var draft = await (await rep.PostAsync("/api/orders/smart-entry/extract", Form(file: png, fileName: "po.jpg", customerId: customerId), Ct)).ReadAsync<OrderExtractionDto>();
         Assert.Equal(OrderSource.AiImage, draft.Source);
         var request = Assert.Single(claude.Requests);
         var image = Assert.IsType<ClaudeImage>(request.Content[0]);
         Assert.Equal("image/png", image.MediaType); // from the bytes, not the .jpg name
         Assert.Contains("The attached file is the customer's order.", Assert.IsType<ClaudeText>(request.Content[1]).Text, StringComparison.Ordinal);
 
-        var word = await rep.PostAsync("/api/orders/smart-entry/extract", Form(file: Encoding.ASCII.GetBytes("PK\u0003\u0004 not a pdf"), fileName: "po.pdf"), Ct);
+        var word = await rep.PostAsync("/api/orders/smart-entry/extract", Form(file: Encoding.ASCII.GetBytes("PK\u0003\u0004 not a pdf"), fileName: "po.pdf", customerId: customerId), Ct);
         Assert.Equal(HttpStatusCode.BadRequest, word.StatusCode);
         Assert.True((await word.ReadAsync<ApiError>()).Errors!.ContainsKey("file"));
         Assert.Single(claude.Requests); // never sent
 
-        var empty = await rep.PostAsync("/api/orders/smart-entry/extract", Form(text: "   "), Ct);
+        var empty = await rep.PostAsync("/api/orders/smart-entry/extract", Form(text: "   ", customerId: customerId), Ct);
         Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
     }
 
@@ -256,7 +270,7 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         var (rep, _) = await app.CreateClientAsync(Roles.SalesRep);
         claude.Reply = _ => Reply([Line("payment done", productId: 0)], isOrder: false);
 
-        var draft = await (await rep.PostAsync("/api/orders/smart-entry/extract", Form("Sir payment done for last bill"), Ct)).ReadAsync<OrderExtractionDto>();
+        var draft = await (await rep.PostAsync("/api/orders/smart-entry/extract", Form("Sir payment done for last bill", customerId: await NewCustomerAsync()), Ct)).ReadAsync<OrderExtractionDto>();
 
         Assert.False(draft.LooksLikeOrder);
         Assert.Empty(draft.Lines);
@@ -269,7 +283,7 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         var (rep, _) = await app.CreateClientAsync(Roles.SalesRep);
         claude.Reply = _ => "{ not json";
 
-        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg"), Ct);
+        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg", customerId: await NewCustomerAsync()), Ct);
 
         Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
         Assert.Contains("couldn't be read", (await response.ReadAsync<ApiError>()).Message, StringComparison.Ordinal);
@@ -282,10 +296,11 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         var (rep, _) = await app.CreateClientAsync(Roles.SalesRep);
         claude.Reply = _ => Reply([]);
 
+        var customerId = await NewCustomerAsync();
         var statuses = new List<HttpStatusCode>();
         for (var i = 0; i < 3; i++)
         {
-            statuses.Add((await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg"), Ct)).StatusCode);
+            statuses.Add((await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg", customerId: customerId), Ct)).StatusCode);
         }
 
         Assert.Equal([HttpStatusCode.OK, HttpStatusCode.OK, HttpStatusCode.TooManyRequests], statuses);
@@ -310,9 +325,42 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         }
 
         Assert.True((await (await rep.GetAsync("/api/ai/status", Ct)).ReadAsync<AiStatusDto>()).Enabled);
-        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg"), Ct);
+        var response = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg", customerId: await NewCustomerAsync()), Ct);
 
         Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
         Assert.Contains("usage limit", (await response.ReadAsync<ApiError>()).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_customer_must_be_chosen_before_reading()
+    {
+        var (app, claude) = WithFakeClaude();
+        var (rep, _) = await app.CreateClientAsync(Roles.SalesRep);
+
+        var missing = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg"), Ct);
+        var unknown = await rep.PostAsync("/api/orders/smart-entry/extract", Form("30s 100 kg", customerId: 987654), Ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, missing.StatusCode);
+        var error = await missing.ReadAsync<ApiError>();
+        Assert.Contains("Choose the customer the order is from.", error.Errors!.Values.SelectMany(v => v));
+        Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+        Assert.Empty(claude.Requests); // nothing is sent to Claude without a customer
+    }
+
+    [Fact]
+    public async Task An_order_that_names_a_different_customer_is_flagged()
+    {
+        var (app, claude) = WithFakeClaude();
+        var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
+        var chosen = await TestData.CreateCustomerAsync(manager);
+        var named = await TestData.CreateCustomerAsync(manager);
+        var (rep, _) = await app.CreateClientAsync(Roles.SalesRep);
+        claude.Reply = _ => Reply([], customerName: named.Name);
+
+        var draft = await (await rep.PostAsync("/api/orders/smart-entry/extract", Form("order from the other buyer", customerId: chosen.Id), Ct)).ReadAsync<OrderExtractionDto>();
+
+        Assert.Equal(chosen.Id, draft.Customer.CustomerId); // the user's choice stands...
+        Assert.Equal(named.Id, draft.Customer.Suggested?.Id); // ...but the other customer is offered
+        Assert.Contains(named.Name, draft.Customer.Warning, StringComparison.Ordinal);
     }
 }

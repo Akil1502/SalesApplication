@@ -121,10 +121,11 @@ dotnet user-secrets set "Anthropic:ApiKey" "<your key>" --project backend/src/Sa
 `GET /api/ai/status` reports whether AI is available; the UI shows AI screens only when it is.
 
 **Smart order entry** (Orders → Smart entry) reads a pasted WhatsApp message or email, a PDF purchase order or a
-photo into a draft order. One Claude call with structured output returns the lines; the server then checks
-everything: product ids must exist, prices always come from the price list (a price the customer quoted is only
-shown as a difference), and the customer is matched by rules (GSTIN, then phone, then name). Nothing is saved
-until the user reviews the draft and confirms. When the user picks a different product for some wording, that
+photo into a draft order. Orders can be in English, Tamil script, Tanglish or a mix. The user chooses the customer
+first; one Claude call with structured output then returns the lines, and the server checks everything: product
+ids must exist, prices always come from the price list (a price the customer quoted is only shown as a
+difference), and if the order's GSTIN, phone or name points to a different customer the review screen says so
+and offers to switch. Nothing is saved until the user reviews the draft and confirms. When the user picks a different product for some wording, that
 wording is saved as an alias and offered to Claude next time.
 
 What is sent to Anthropic: the order text or file, today's date, and the product catalog (SKU, name, unit,

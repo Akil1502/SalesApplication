@@ -56,12 +56,51 @@ public sealed class CustomerMatcherTests
     }
 
     [Fact]
-    public void A_customer_the_user_already_chose_is_kept()
+    public void The_chosen_customer_stands_but_a_gstin_belonging_to_someone_else_is_flagged()
     {
         var result = CustomerMatcher.Match(Customers, Clues(name: "Murugan Garments", gstin: "33ABCDE1234F1Z7"), selectedCustomerId: 4);
 
         Assert.Equal(4, result.CustomerId);
         Assert.Equal(CustomerMatchSource.Selected, result.MatchedBy);
+        Assert.Equal(1, result.Suggested?.Id);
+        Assert.Equal("The order quotes GSTIN 33ABCDE1234F1Z7, which belongs to Murugan Garments Pvt Ltd, not Kaveri Distributors LLP.", result.Warning);
+    }
+
+    [Fact]
+    public void No_warning_when_the_order_agrees_with_the_chosen_customer()
+    {
+        var result = CustomerMatcher.Match(Customers, Clues(name: "Murugan Garments", phone: "98400 12345", city: "Tiruppur"), selectedCustomerId: 1);
+
+        Assert.Equal(1, result.CustomerId);
+        Assert.Null(result.Warning);
+        Assert.Null(result.Suggested);
+    }
+
+    [Fact]
+    public void An_order_naming_another_customer_is_flagged()
+    {
+        var result = CustomerMatcher.Match(Customers, Clues(name: "Kaveri Distributors", city: "Coimbatore"), selectedCustomerId: 3);
+
+        Assert.Equal(3, result.CustomerId);
+        Assert.Equal(4, result.Suggested?.Id);
+        Assert.Equal("The order looks like it's from Kaveri Distributors LLP, Coimbatore, not Sri Lakshmi Weaving Mills.", result.Warning);
+    }
+
+    [Fact]
+    public void An_unknown_gstin_that_differs_from_the_chosen_customers_is_flagged()
+    {
+        var result = CustomerMatcher.Match(Customers, Clues(gstin: "27AAPFU0939F1ZV"), selectedCustomerId: 3);
+
+        Assert.Null(result.Suggested);
+        Assert.Equal("The order quotes GSTIN 27AAPFU0939F1ZV, but Sri Lakshmi Weaving Mills's GSTIN is 29AAGCB7383J1Z4.", result.Warning);
+    }
+
+    [Fact]
+    public void A_vague_name_isnt_enough_to_contradict_the_user()
+    {
+        var result = CustomerMatcher.Match(Customers, Clues(name: "Murugan"), selectedCustomerId: 4);
+
+        Assert.Null(result.Warning);
     }
 
     [Fact]

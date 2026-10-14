@@ -64,6 +64,8 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
   const toCheck = lines.filter(needsAttention).length
   const canSave = customer !== null && lines.length > 0 && problems.every((p) => p === null)
   const clues = extraction.customer.clues
+  // Shown while the customer chosen before reading is still selected; switching (or confirming the choice) clears it.
+  const mismatch = extraction.customer.warning && customer?.id === extraction.customer.customerId && !customerTouched ? extraction.customer : null
   const clueText = [clues.name, clues.city, clues.phone, clues.gstin && `GSTIN ${clues.gstin}`, clues.contactPerson].filter(Boolean).join(' · ')
 
   const update = (key: string, change: Partial<ReviewLine>) => setLines((current) => current.map((l) => (l.key === key ? { ...l, ...change } : l)))
@@ -268,12 +270,30 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                 }}
                 invalid={showProblems && !customer}
               />
-              {customer && !customerTouched && extraction.customer.matchedBy !== 'None' && (
+              {customer && !customerTouched && !mismatch && extraction.customer.matchedBy !== 'None' && (
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
                   <CheckCircle2 className="size-3.5" aria-hidden /> {matchLabels[extraction.customer.matchedBy]}
                 </p>
               )}
               {showProblems && !customer && <p className="text-xs text-destructive">Choose the customer.</p>}
+              {mismatch && (
+                <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                  <TriangleAlert />
+                  <AlertDescription className="flex flex-col gap-2 text-inherit">
+                    <span>{mismatch.warning}</span>
+                    <span className="flex flex-wrap gap-2">
+                      {mismatch.suggested && (
+                        <Button size="sm" variant="outline" onClick={() => void pickCandidate(mismatch.suggested!.id)}>
+                          Switch to {mismatch.suggested.name}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onClick={() => setCustomerTouched(true)}>
+                        Keep {customer?.name}
+                      </Button>
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              )}
               {!customer && extraction.customer.candidates.length > 0 && (
                 <div className="flex flex-col gap-1">
                   <p className="text-xs text-muted-foreground">Did you mean:</p>

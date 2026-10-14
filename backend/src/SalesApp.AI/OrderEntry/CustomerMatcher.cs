@@ -30,37 +30,63 @@ public sealed class CustomerMatcher(AppDbContext db)
     internal static CustomerSuggestionDto Match(IReadOnlyList<CustomerRecord> customers, CustomerCluesDto clues, int? selectedCustomerId)
     {
         var candidates = RankByName(customers, clues);
+        var gstin = !string.IsNullOrWhiteSpace(clues.Gstin) && Gstin.IsValid(clues.Gstin) ? Gstin.Normalize(clues.Gstin) : null;
+        var (found, foundBy) = FindFromClues(customers, clues, gstin, candidates);
+        var selected = selectedCustomerId is { } id ? customers.FirstOrDefault(c => c.Id == id) : null;
 
-        if (selectedCustomerId is { } selectedId && customers.FirstOrDefault(c => c.Id == selectedId) is { } selected)
+        if (selected is null)
         {
-            return Suggest(selected, CustomerMatchSource.Selected, clues, candidates);
+            return found is null
+                ? new CustomerSuggestionDto(null, null, CustomerMatchSource.None, clues, candidates, null, null)
+                : new CustomerSuggestionDto(found.Id, found.Name, foundBy, clues, candidates, null, null);
         }
 
-        if (!string.IsNullOrWhiteSpace(clues.Gstin) && Gstin.IsValid(clues.Gstin))
+        // The user said who the order is from; the order's own details are a cross-check against picking the wrong one.
+        string? warning = null;
+        CustomerCandidateDto? suggested = null;
+        if (found is not null && found.Id != selected.Id)
         {
-            var gstin = Gstin.Normalize(clues.Gstin);
-            if (customers.FirstOrDefault(c => c.Gstin == gstin) is { } byGstin)
+            suggested = new CustomerCandidateDto(found.Id, found.Code, found.Name, found.City,
+                candidates.FirstOrDefault(c => c.Id == found.Id)?.Score ?? 1m);
+            warning = foundBy switch
             {
-                return Suggest(byGstin, CustomerMatchSource.Gstin, clues, candidates);
-            }
+                CustomerMatchSource.Gstin => $"The order quotes GSTIN {gstin}, which belongs to {found.Name}, not {selected.Name}.",
+                CustomerMatchSource.Phone => $"The phone number in the order belongs to {found.Name}, not {selected.Name}.",
+                _ => $"The order looks like it's from {found.Name}, {found.City}, not {selected.Name}.",
+            };
+        }
+        else if (found is null && gstin is not null && gstin != selected.Gstin)
+        {
+            warning = selected.Gstin is null
+                ? $"The order quotes GSTIN {gstin}, but no GSTIN is recorded for {selected.Name}."
+                : $"The order quotes GSTIN {gstin}, but {selected.Name}'s GSTIN is {selected.Gstin}.";
+        }
+
+        return new CustomerSuggestionDto(selected.Id, selected.Name, CustomerMatchSource.Selected, clues, candidates, warning, suggested);
+    }
+
+    /// <summary>Who the order's own details point to, strongest evidence first; null when nothing is conclusive.</summary>
+    private static (CustomerRecord? Customer, CustomerMatchSource By) FindFromClues(
+        IReadOnlyList<CustomerRecord> customers, CustomerCluesDto clues, string? gstin, List<CustomerCandidateDto> candidates)
+    {
+        if (gstin is not null && customers.FirstOrDefault(c => c.Gstin == gstin) is { } byGstin)
+        {
+            return (byGstin, CustomerMatchSource.Gstin);
         }
 
         var phone = PhoneKey(clues.Phone);
         if (phone is not null && customers.Where(c => PhoneKey(c.Phone) == phone).ToList() is [var byPhone])
         {
-            return Suggest(byPhone, CustomerMatchSource.Phone, clues, candidates);
+            return (byPhone, CustomerMatchSource.Phone);
         }
 
         if (candidates is [var best, ..] && best.Score >= AutoMatchScore && (candidates.Count == 1 || candidates[1].Score <= best.Score - 0.1m))
         {
-            return Suggest(customers.First(c => c.Id == best.Id), CustomerMatchSource.Name, clues, candidates);
+            return (customers.First(c => c.Id == best.Id), CustomerMatchSource.Name);
         }
 
-        return new CustomerSuggestionDto(null, null, CustomerMatchSource.None, clues, candidates);
+        return (null, CustomerMatchSource.None);
     }
-
-    private static CustomerSuggestionDto Suggest(CustomerRecord customer, CustomerMatchSource source, CustomerCluesDto clues, IReadOnlyList<CustomerCandidateDto> candidates) =>
-        new(customer.Id, customer.Name, source, clues, candidates);
 
     private static List<CustomerCandidateDto> RankByName(IReadOnlyList<CustomerRecord> customers, CustomerCluesDto clues)
     {

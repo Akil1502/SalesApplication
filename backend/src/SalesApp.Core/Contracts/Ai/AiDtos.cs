@@ -45,12 +45,18 @@ public sealed record CustomerCluesDto(string? Name, string? Gstin, string? Phone
 
 public sealed record CustomerCandidateDto(int Id, string Code, string Name, string City, decimal Score);
 
+/// <summary>
+/// The customer for the draft. <see cref="Warning"/> is set when the order's own details (GSTIN, phone, name) point to
+/// someone other than the customer the user chose; <see cref="Suggested"/> is that other customer when it's known.
+/// </summary>
 public sealed record CustomerSuggestionDto(
     int? CustomerId,
     string? CustomerName,
     CustomerMatchSource MatchedBy,
     CustomerCluesDto Clues,
-    IReadOnlyList<CustomerCandidateDto> Candidates);
+    IReadOnlyList<CustomerCandidateDto> Candidates,
+    string? Warning,
+    CustomerCandidateDto? Suggested);
 
 /// <summary>The catalog product a line was matched to, with what the review screen shows about it.</summary>
 public sealed record ExtractedProductDto(int Id, string Sku, string Name, ProductUnit Unit, decimal ListPrice, decimal QuantityOnHand, decimal GstRate);

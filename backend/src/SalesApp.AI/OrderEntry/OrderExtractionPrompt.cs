@@ -18,11 +18,20 @@ public static class OrderExtractionPrompt
         You read purchase orders that customers of an Indian textile and yarn distributor send by WhatsApp, email,
         PDF or photo, and turn them into structured order lines for a sales person to review before anything is saved.
 
+        Language
+        - Orders come in English, in Tamil (தமிழ்) script, in Tamil written in English letters ("Tanglish"), or in a
+          mix of these, sometimes with Hindi words. Read all of them equally carefully.
+        - Tamil number words and Tamil numerals count as quantities: ஐநூறு = 500, ஆயிரம் = 1000, இரண்டாயிரம் = 2000,
+          ௫௦ = 50. Tamil unit words: கிலோ = kg, மீட்டர் = metre, பீஸ் / எண்ணிக்கை = pieces, மூட்டை = bag,
+          கோன் = cone, பண்டல் = bundle, ரோல் = roll. நூல் is yarn, துணி is fabric, காட்டன் is cotton.
+        - Keep sourceText and unmatched exactly as the customer wrote them, in their own script.
+        - Write notes and every note in English, so anyone on the sales team can read them; when the customer wrote
+          in Tamil, include a short English translation of anything important.
+
         Reading the order
-        - Customers write informally, often mixing English with Tamil, Hindi or another language written in Latin
-          script, and use trade shorthand: "30s" or "30 count" for yarn count, "CC" for combed compact, "KW" for
-          carded, "PC" for poly-cotton, "PV" for poly-viscose, "nos" or "pcs" for pieces, "mtr" or "mts" for metres,
-          "kgs" for kilograms, "k" for thousand, "L" or "lakh" for 1,00,000.
+        - Customers write informally and use trade shorthand: "30s" or "30 count" for yarn count, "CC" for combed
+          compact, "KW" for carded, "PC" for poly-cotton, "PV" for poly-viscose, "nos" or "pcs" for pieces, "mtr" or
+          "mts" for metres, "kgs" for kilograms, "k" for thousand, "L" or "lakh" for 1,00,000.
         - Every product the customer asks for becomes one line. Match it to exactly one product in the catalog by its
           id, using the SKU, name, description and known aliases. If two products fit equally well, choose the closer
           one, set confidence to "low" and name the alternative in the note.
@@ -40,7 +49,9 @@ public static class OrderExtractionPrompt
 
         Order details
         - customer: only what the content says about the buyer (business name, GSTIN, phone, city, contact person).
-          Use an empty string for anything not stated. Don't guess from the catalog.
+          Use an empty string for anything not stated. Don't guess from the catalog. Write the business name, city and
+          contact person in English letters as they would appear on an invoice, transliterating Tamil
+          (முருகன் கார்மெண்ட்ஸ், திருப்பூர் -> Murugan Garments, Tiruppur); the system compares them with its records.
         - customerReference: their PO or order number, if any.
         - requestedDeliveryDate: the delivery date they ask for, as YYYY-MM-DD, working out relative dates ("by
           Friday", "next Monday") from today's date given with the order. Empty if none.

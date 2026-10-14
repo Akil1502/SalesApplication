@@ -11,7 +11,7 @@ using SalesApp.Infrastructure.Data;
 
 namespace SalesApp.AI.OrderEntry;
 
-/// <summary>What the user gave us: pasted text, a file, or both, and optionally the customer they already know it's from.</summary>
+/// <summary>What the user gave us: pasted text, a file, or both, and the customer the order is from.</summary>
 public sealed record OrderExtractionInput(string? Text, byte[]? File, int? CustomerId);
 
 public interface IOrderExtractionService
@@ -48,6 +48,12 @@ public sealed class OrderExtractionService(
         if (text?.Length > MaxTextLength)
         {
             throw new ValidationException("text", $"The message is too long. Paste at most {MaxTextLength:N0} characters.");
+        }
+
+        // The sales person says who the order is from; what the order itself says about the buyer is only a cross-check.
+        if (input.CustomerId is not { } customerId || !await db.Customers.AnyAsync(c => c.Id == customerId && c.IsActive, cancellationToken))
+        {
+            throw new ValidationException("customerId", "Choose the customer the order is from.");
         }
 
         var (fileContent, source) = ReadFile(input.File);

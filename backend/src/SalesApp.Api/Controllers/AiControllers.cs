@@ -36,7 +36,9 @@ public sealed class OrderExtractionForm
     public string? Text { get; init; }
     public IFormFile? File { get; init; }
 
-    /// <summary>When the user already knows who the order is from.</summary>
+    /// <summary>The customer the order is from. Required: the order's own details are only used to cross-check it.</summary>
+    // Fully qualified: Core.Common also has a ValidationException, and this file uses both namespaces.
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Choose the customer the order is from.")]
     public int? CustomerId { get; init; }
 }
 
