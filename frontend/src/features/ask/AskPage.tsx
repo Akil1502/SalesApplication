@@ -1,5 +1,5 @@
-import { CheckCircle2, Database, MessageSquareText, ShieldAlert, Sparkles, Square, TriangleAlert, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { CheckCircle2, Database, MessageSquareText, RotateCcw, ShieldAlert, Sparkles, Square, TriangleAlert, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -11,21 +11,9 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useAiStatus } from '@/features/ai/api'
 import { Roles, useAuth } from '@/features/auth/auth-context'
-import { errorMessage } from '@/lib/api/errors'
-import { askQuestion, type AskAnswer, type AskStep } from './api'
+import type { AskStep } from './api'
 import { AnswerCard } from './AnswerCard'
-
-interface Exchange {
-  id: string
-  question: string
-  status: 'running' | 'done' | 'error' | 'stopped'
-  steps: AskStep[]
-  answer?: AskAnswer
-  error?: string
-}
-
-const STORAGE_KEY = 'salesapp.ask.history'
-const KEEP = 10
+import { askStore, useAskHistory } from './ask-store'
 
 const examples = [
   'Top 10 customers by sales this financial year',
@@ -35,24 +23,6 @@ const examples = [
   'Sales by state last financial year',
 ]
 const managerExamples = ['Gross margin by product category this year']
-
-/** Answers from this browser session, so leaving the page and coming back doesn't lose them. */
-function loadHistory(): Exchange[] {
-  try {
-    const saved = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '[]') as Exchange[]
-    return saved.filter((e) => e.status !== 'running')
-  } catch {
-    return []
-  }
-}
-
-function saveHistory(history: Exchange[]) {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(history.filter((e) => e.status !== 'running').slice(0, KEEP)))
-  } catch {
-    // Storage full or blocked: the history just won't survive a reload.
-  }
-}
 
 function StepLine({ step, current }: { step: AskStep; current: boolean }) {
   const icon = {
@@ -96,39 +66,16 @@ export function AskPage() {
   const status = useAiStatus()
   const { hasRole } = useAuth()
   const [question, setQuestion] = useState('')
-  const [history, setHistory] = useState<Exchange[]>(loadHistory)
-  const abort = useRef<AbortController | null>(null)
+  // The questions live in a store outside this page: leaving the page doesn't cancel a running one.
+  const history = useAskHistory()
   const running = history.some((e) => e.status === 'running')
 
-  useEffect(() => saveHistory(history), [history])
-  useEffect(() => () => abort.current?.abort(), [])
+  useEffect(() => askStore.pageOpened(), [])
 
-  const update = (id: string, change: (e: Exchange) => Exchange) => setHistory((all) => all.map((e) => (e.id === id ? change(e) : e)))
-
-  async function ask(text: string) {
-    const trimmed = text.trim()
-    if (!trimmed || running) return
-    const id = crypto.randomUUID()
-    const controller = new AbortController()
-    abort.current = controller
+  function ask(text: string) {
+    if (!text.trim() || running) return
     setQuestion('')
-    setHistory((all) => [{ id, question: trimmed, status: 'running' as const, steps: [] }, ...all].slice(0, KEEP))
-
-    try {
-      await askQuestion(
-        trimmed,
-        {
-          onStep: (step) => update(id, (e) => ({ ...e, steps: [...e.steps, step] })),
-          onAnswer: (answer) => update(id, (e) => ({ ...e, status: 'done', answer })),
-          onError: (message) => update(id, (e) => ({ ...e, status: 'error', error: message })),
-        },
-        controller.signal,
-      )
-      // A stream that ends without an answer or error (connection dropped) shouldn't spin forever.
-      update(id, (e) => (e.status === 'running' ? { ...e, status: 'error', error: 'The answer was cut off. Try asking again.' } : e))
-    } catch (error) {
-      update(id, (e) => (controller.signal.aborted ? { ...e, status: 'stopped' } : { ...e, status: 'error', error: errorMessage(error) }))
-    }
+    void askStore.ask(text)
   }
 
   if (status.isPending) return <Skeleton className="h-96 w-full rounded-xl" />
@@ -150,7 +97,7 @@ export function AskPage() {
                 className="flex flex-col gap-3 sm:flex-row sm:items-end"
                 onSubmit={(e) => {
                   e.preventDefault()
-                  void ask(question)
+                  ask(question)
                 }}
               >
                 <Textarea
@@ -162,7 +109,7 @@ export function AskPage() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
-                      void ask(question)
+                      ask(question)
                     }
                   }}
                   placeholder="e.g. Which customers bought less this year than last year?"
@@ -170,7 +117,7 @@ export function AskPage() {
                   className="min-h-16 flex-1"
                 />
                 {running ? (
-                  <Button type="button" variant="outline" onClick={() => abort.current?.abort()}>
+                  <Button type="button" variant="outline" onClick={() => askStore.stop()}>
                     <Square /> Stop
                   </Button>
                 ) : (
@@ -182,7 +129,7 @@ export function AskPage() {
               {history.length === 0 && (
                 <div className="flex flex-wrap gap-2">
                   {[...examples, ...(hasRole(Roles.Admin, Roles.SalesManager) ? managerExamples : [])].map((example) => (
-                    <Button key={example} size="sm" variant="outline" className="h-auto py-1 whitespace-normal" onClick={() => void ask(example)}>
+                    <Button key={example} size="sm" variant="outline" className="h-auto py-1 whitespace-normal" onClick={() => ask(example)}>
                       {example}
                     </Button>
                   ))}
@@ -201,7 +148,7 @@ export function AskPage() {
                     size="icon"
                     className="-mt-1 shrink-0"
                     aria-label="Remove this answer"
-                    onClick={() => setHistory((all) => all.filter((e) => e.id !== exchange.id))}
+                    onClick={() => askStore.remove(exchange.id)}
                   >
                     <X />
                   </Button>
@@ -216,11 +163,16 @@ export function AskPage() {
                     ))}
                   </ul>
                 )}
-                {exchange.status === 'done' && exchange.answer && <AnswerCard answer={exchange.answer} onFollowUp={(q) => void ask(q)} />}
+                {exchange.status === 'done' && exchange.answer && <AnswerCard answer={exchange.answer} onFollowUp={ask} />}
                 {exchange.status === 'error' && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{exchange.error}</AlertDescription>
-                  </Alert>
+                  <div className="flex flex-col items-start gap-3">
+                    <Alert variant="destructive">
+                      <AlertDescription>{exchange.error}</AlertDescription>
+                    </Alert>
+                    <Button size="sm" variant="outline" disabled={running} onClick={() => ask(exchange.question)}>
+                      <RotateCcw /> Ask again
+                    </Button>
+                  </div>
                 )}
                 {exchange.status === 'stopped' && <p className="text-sm text-muted-foreground">Stopped.</p>}
               </CardContent>
