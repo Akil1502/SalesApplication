@@ -16,6 +16,9 @@ public interface IClaudeGateway
     bool IsAvailable { get; }
 
     Task<ClaudeResponse> SendAsync(ClaudeRequest request, CancellationToken cancellationToken);
+
+    /// <summary>One turn of a tool-using conversation: Claude either calls tools or gives its final reply.</summary>
+    Task<ClaudeTurn> SendTurnAsync(ClaudeConversation conversation, CancellationToken cancellationToken);
 }
 
 /// <summary>Holds the SDK client for the app's lifetime. It's only created when an API key is configured.</summary>
@@ -46,6 +49,45 @@ public sealed class ClaudeGateway(
 
     public async Task<ClaudeResponse> SendAsync(ClaudeRequest request, CancellationToken cancellationToken)
     {
+        var (message, usageSummary) = await ExecuteAsync(request.Feature, feature => BuildParameters(request, feature), cancellationToken);
+        var text = string.Concat(message.Content.Select(block => block.Value).OfType<TextBlock>().Select(block => block.Text));
+        return new ClaudeResponse(text, usageSummary, message.ID);
+    }
+
+    public async Task<ClaudeTurn> SendTurnAsync(ClaudeConversation conversation, CancellationToken cancellationToken)
+    {
+        var (message, usageSummary) = await ExecuteAsync(conversation.Feature, feature => BuildConversationParameters(conversation, feature), cancellationToken);
+        var blocks = new List<ClaudeBlock>();
+        foreach (var block in message.Content)
+        {
+            if (block.TryPickText(out var text))
+            {
+                blocks.Add(new ClaudeTextBlock(text.Text));
+            }
+            else if (block.TryPickThinking(out var thinking))
+            {
+                blocks.Add(new ClaudeThinkingBlock(thinking.Thinking, thinking.Signature));
+            }
+            else if (block.TryPickRedactedThinking(out var redacted))
+            {
+                blocks.Add(new ClaudeRedactedThinkingBlock(redacted.Data));
+            }
+            else if (block.TryPickToolUse(out var toolUse))
+            {
+                blocks.Add(new ClaudeToolUseBlock(toolUse.ID, toolUse.Name, toolUse.Input));
+            }
+        }
+
+        return new ClaudeTurn(blocks, message.StopReason?.Raw() ?? "", usageSummary, message.ID);
+    }
+
+    /// <summary>
+    /// One API call with everything around it: availability and budget checks, the feature's settings, error
+    /// translation, the stop-reason check (refusals and cut-off replies are never treated as answers) and the usage log.
+    /// </summary>
+    private async Task<(Message Message, ClaudeUsage Usage)> ExecuteAsync(
+        string featureName, Func<AiFeatureOptions, MessageCreateParams> build, CancellationToken cancellationToken)
+    {
         var ai = options.CurrentValue;
         if (!ai.Enabled)
         {
@@ -59,10 +101,10 @@ public sealed class ClaudeGateway(
             throw new AiBudgetExceededException("You've reached your AI usage limit for the last 24 hours. Try again later, or ask an administrator to raise it.");
         }
 
-        var feature = ai.For(request.Feature);
+        var feature = ai.For(featureName);
         var log = new AiUsageLog
         {
-            Feature = request.Feature,
+            Feature = featureName,
             Model = feature.Model,
             UserId = currentUser.UserId,
             CreatedAtUtc = time.GetUtcNow().UtcDateTime,
@@ -72,7 +114,7 @@ public sealed class ClaudeGateway(
         Message message;
         try
         {
-            message = await client.Messages.Create(BuildParameters(request, feature), cancellationToken);
+            message = await client.Messages.Create(build(feature), cancellationToken);
         }
         catch (Exception exception) when (exception is AnthropicException or OperationCanceledException)
         {
@@ -86,7 +128,7 @@ public sealed class ClaudeGateway(
                 throw;
             }
 
-            logger.LogWarning(exception, "Claude call for {Feature} failed", request.Feature);
+            logger.LogWarning(exception, "Claude call for {Feature} failed", featureName);
             throw Translate(exception);
         }
 
@@ -105,7 +147,7 @@ public sealed class ClaudeGateway(
         log.RequestId = message.ID;
 
         // The stop reason decides whether the content can be trusted: a refusal or a cut-off reply may not match
-        // the requested schema, so it's never parsed as if it were a normal answer.
+        // the requested schema or contain half a tool call, so it's never used as if it were a normal answer.
         var stopReason = message.StopReason?.Raw();
         log.Outcome = stopReason switch
         {
@@ -130,8 +172,7 @@ public sealed class ClaudeGateway(
             throw new AiServiceException("Claude's reply was cut off at the length limit. Try a shorter input.", StatusCodesBadGateway);
         }
 
-        var text = string.Concat(message.Content.Select(block => block.Value).OfType<TextBlock>().Select(block => block.Text));
-        return new ClaudeResponse(text, new ClaudeUsage(feature.Model, input, output, cacheRead, cacheWrite, cost, log.DurationMs), message.ID);
+        return (message, new ClaudeUsage(feature.Model, input, output, cacheRead, cacheWrite, cost, log.DurationMs));
     }
 
     private const int StatusCodesBadGateway = 502;
@@ -177,6 +218,55 @@ public sealed class ClaudeGateway(
             },
         };
     }
+
+    /// <summary>
+    /// A multi-turn request with tools. Tools render first and the system blocks after them, so the breakpoint on the
+    /// last cached system block covers both; top-level automatic caching then extends the cache along the
+    /// conversation as tool results are added, so each turn re-reads the previous turns from cache.
+    /// </summary>
+    internal static MessageCreateParams BuildConversationParameters(ClaudeConversation conversation, AiFeatureOptions feature)
+    {
+        var system = conversation.System
+            .Select(block => new TextBlockParam { Text = block.Text, CacheControl = block.CacheAfter ? new CacheControlEphemeral() : null })
+            .ToList();
+
+        var tools = conversation.Tools
+            .Select(tool => (ToolUnion)new Tool
+            {
+                Name = tool.Name,
+                Description = tool.Description,
+                InputSchema = new() { Properties = tool.Properties.ToDictionary(), Required = [.. tool.Required] },
+            })
+            .ToList();
+
+        var messages = conversation.Messages.Select(message => new MessageParam
+        {
+            Role = message.FromAssistant ? Role.Assistant : Role.User,
+            Content = message.Blocks.Select(ToParam).ToList(),
+        }).ToList();
+
+        return new MessageCreateParams
+        {
+            Model = feature.Model,
+            MaxTokens = feature.MaxTokens,
+            System = system,
+            Tools = tools,
+            Messages = messages,
+            CacheControl = new CacheControlEphemeral(),
+            OutputConfig = new OutputConfig { Effort = ParseEffort(feature.Effort) },
+        };
+    }
+
+    /// <summary>Echoes a block back in a later request. Thinking signatures must be passed back unchanged.</summary>
+    private static ContentBlockParam ToParam(ClaudeBlock block) => block switch
+    {
+        ClaudeTextBlock text => new TextBlockParam { Text = text.Text },
+        ClaudeThinkingBlock thinking => new ThinkingBlockParam { Thinking = thinking.Thinking, Signature = thinking.Signature },
+        ClaudeRedactedThinkingBlock redacted => new RedactedThinkingBlockParam { Data = redacted.Data },
+        ClaudeToolUseBlock toolUse => new ToolUseBlockParam { ID = toolUse.Id, Name = toolUse.Name, Input = toolUse.Input.ToDictionary() },
+        ClaudeToolResultBlock result => new ToolResultBlockParam { ToolUseID = result.ToolUseId, Content = result.Content, IsError = result.IsError },
+        _ => throw new ArgumentOutOfRangeException(nameof(block), block.GetType().Name, "Unknown content block."),
+    };
 
     private static Effort ParseEffort(string value) => value.ToUpperInvariant() switch
     {

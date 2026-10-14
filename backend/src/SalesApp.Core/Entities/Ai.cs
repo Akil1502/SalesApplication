@@ -69,3 +69,41 @@ public sealed class ProductAlias
     public AppUser? CreatedBy { get; set; }
     public DateTime CreatedAtUtc { get; set; }
 }
+
+public enum AiQueryOutcome
+{
+    Succeeded,
+
+    /// <summary>The SQL checker refused the query before it reached the database.</summary>
+    Rejected,
+
+    /// <summary>The database refused or failed the query (permission, syntax, timeout).</summary>
+    Failed,
+}
+
+/// <summary>
+/// One SQL query the AI tried while answering a question: what it ran, whether the checker or the database refused
+/// it, and how many rows came back. Kept for auditing the "ask your data" feature.
+/// </summary>
+public sealed class AiQueryLog
+{
+    public long Id { get; set; }
+
+    /// <summary>Groups the queries made while answering one question.</summary>
+    public Guid RunId { get; set; }
+
+    public Guid UserId { get; set; }
+    public AppUser? User { get; set; }
+
+    public required string Question { get; set; }
+    public required string Sql { get; set; }
+
+    /// <summary>The database user the query ran as: ai_reader, or ai_reader_mgr for managers.</summary>
+    public required string RunAs { get; set; }
+
+    public AiQueryOutcome Outcome { get; set; }
+    public string? Error { get; set; }
+    public int RowCount { get; set; }
+    public int DurationMs { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+}

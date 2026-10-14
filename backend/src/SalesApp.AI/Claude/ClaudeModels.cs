@@ -35,3 +35,35 @@ public sealed record ClaudeUsage(
     int DurationMs);
 
 public sealed record ClaudeResponse(string Text, ClaudeUsage Usage, string? MessageId);
+
+// ---- Tool-using conversations ----------------------------------------------------------------
+
+/// <summary>A tool Claude may call: its name, what it's for, and a JSON schema for its input.</summary>
+public sealed record ClaudeTool(string Name, string Description, IReadOnlyDictionary<string, JsonElement> Properties, IReadOnlyList<string> Required);
+
+public abstract record ClaudeBlock;
+
+public sealed record ClaudeTextBlock(string Text) : ClaudeBlock;
+
+/// <summary>Claude's reasoning. Must be sent back unchanged (signature included) in the next turn.</summary>
+public sealed record ClaudeThinkingBlock(string Thinking, string Signature) : ClaudeBlock;
+
+public sealed record ClaudeRedactedThinkingBlock(string Data) : ClaudeBlock;
+
+public sealed record ClaudeToolUseBlock(string Id, string Name, IReadOnlyDictionary<string, JsonElement> Input) : ClaudeBlock;
+
+public sealed record ClaudeToolResultBlock(string ToolUseId, string Content, bool IsError = false) : ClaudeBlock;
+
+public sealed record ClaudeMessage(bool FromAssistant, IReadOnlyList<ClaudeBlock> Blocks);
+
+/// <summary>
+/// A conversation so far. System blocks and tools must stay identical between turns (they're the cached prefix);
+/// each turn appends Claude's reply and the tool results to <see cref="Messages"/>.
+/// </summary>
+public sealed record ClaudeConversation(
+    string Feature,
+    IReadOnlyList<ClaudeSystemBlock> System,
+    IReadOnlyList<ClaudeTool> Tools,
+    IReadOnlyList<ClaudeMessage> Messages);
+
+public sealed record ClaudeTurn(IReadOnlyList<ClaudeBlock> Blocks, string StopReason, ClaudeUsage Usage, string? MessageId);

@@ -32,6 +32,19 @@ internal sealed class FakeClaudeGateway : IClaudeGateway
         var text = reply as string ?? JsonSerializer.Serialize(reply, JsonSerializerOptions.Web);
         return Task.FromResult(new ClaudeResponse(text, new ClaudeUsage("claude-opus-5-5", 150, 400, 2100, 0, 0.0092m, 1800), "msg_test"));
     }
+
+    /// <summary>Scripted replies for tool-using conversations, one per turn, in order.</summary>
+    public Queue<Func<ClaudeConversation, IReadOnlyList<ClaudeBlock>>> Turns { get; } = new();
+    public List<ClaudeConversation> Conversations { get; } = [];
+
+    public Task<ClaudeTurn> SendTurnAsync(ClaudeConversation conversation, CancellationToken cancellationToken)
+    {
+        // Copy the messages: the caller keeps appending to the same list after this turn.
+        Conversations.Add(conversation with { Messages = [.. conversation.Messages] });
+        var blocks = Turns.Count > 0 ? Turns.Dequeue()(conversation) : [new ClaudeTextBlock("No more scripted turns.")];
+        var stop = blocks.Any(b => b is ClaudeToolUseBlock) ? "tool_use" : "end_turn";
+        return Task.FromResult(new ClaudeTurn(blocks, stop, new ClaudeUsage("claude-opus-5-5", 120, 300, 3000, 0, 0.0075m, 1500), "msg_turn"));
+    }
 }
 
 public sealed class SmartOrderEntryTests(SalesAppFactory factory)

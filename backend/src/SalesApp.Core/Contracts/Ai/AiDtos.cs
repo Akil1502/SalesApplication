@@ -5,7 +5,7 @@ using SalesApp.Core.Entities;
 namespace SalesApp.Core.Contracts.Ai;
 
 /// <summary>Whether the AI features can be used. The UI hides AI screens when <see cref="Enabled"/> is false.</summary>
-public sealed record AiStatusDto(bool Enabled, string? Reason, bool OrderEntry);
+public sealed record AiStatusDto(bool Enabled, string? Reason, bool OrderEntry, bool AskData);
 
 public enum ExtractionConfidence
 {
@@ -120,3 +120,64 @@ public sealed record SmartOrderConfirmRequest
     [MaxLength(200)]
     public List<AliasCorrection> Corrections { get; init; } = [];
 }
+
+// ---- Ask your data ----------------------------------------------------------------------------
+
+public sealed record AskRequest
+{
+    [Required(ErrorMessage = "Type a question."), MaxLength(500, ErrorMessage = "Keep the question under 500 characters.")]
+    public string Question { get; init; } = string.Empty;
+}
+
+/// <summary>How to format a result column. The database only knows types, so money is recognised by column name.</summary>
+public enum AskColumnKind
+{
+    Text,
+    Money,
+    Count,
+    Number,
+    Date,
+    Boolean,
+}
+
+public sealed record AskColumnDto(string Name, AskColumnKind Kind);
+
+public enum AskChartType
+{
+    None,
+    Bar,
+    Line,
+}
+
+public sealed record AskChartDto(AskChartType Type, string? X, string? Y);
+
+/// <summary>Progress while a question is being answered, streamed to the browser.</summary>
+public enum AskStepKind
+{
+    Thinking,
+    Query,
+    Rows,
+    Rejected,
+    Failed,
+}
+
+public sealed record AskStepDto(AskStepKind Kind, string Message, string? Sql = null, int? RowCount = null);
+
+/// <summary>
+/// The answer to a data question. The table, chart and Excel download all come from the rows of the query Claude
+/// pointed to, as the database returned them; Claude's own text is only the summary.
+/// </summary>
+public sealed record AskAnswerDto(
+    Guid RunId,
+    string Question,
+    string Summary,
+    Guid? ResultId,
+    string? Sql,
+    string? Purpose,
+    IReadOnlyList<AskColumnDto> Columns,
+    IReadOnlyList<object?[]> Rows,
+    bool Truncated,
+    AskChartDto Chart,
+    IReadOnlyList<string> FollowUps,
+    int QueriesRun,
+    AiUsageDto Usage);

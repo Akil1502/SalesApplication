@@ -35,3 +35,19 @@ internal sealed class ProductAliasConfiguration : IEntityTypeConfiguration<Produ
         builder.HasOne(a => a.CreatedBy).WithMany().HasForeignKey(a => a.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class AiQueryLogConfiguration : IEntityTypeConfiguration<AiQueryLog>
+{
+    public void Configure(EntityTypeBuilder<AiQueryLog> builder)
+    {
+        builder.Property(l => l.Question).HasMaxLength(1000);
+        builder.Property(l => l.RunAs).HasMaxLength(30).IsUnicode(false);
+        builder.Property(l => l.Outcome).HasConversion<string>().HasMaxLength(20).IsUnicode(false);
+        builder.Property(l => l.Error).HasMaxLength(1000);
+
+        builder.HasOne(l => l.User).WithMany().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(l => l.CreatedAtUtc);
+        builder.HasIndex(l => l.RunId);
+    }
+}

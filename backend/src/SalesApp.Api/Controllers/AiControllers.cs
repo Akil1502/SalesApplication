@@ -22,11 +22,11 @@ public sealed class AiController(IClaudeGateway claude, IOptionsMonitor<AiOption
     {
         if (claude.IsAvailable)
         {
-            return new AiStatusDto(true, null, OrderEntry: true);
+            return new AiStatusDto(true, null, OrderEntry: true, AskData: true);
         }
 
         var reason = options.CurrentValue.Enabled ? "No Claude API key is configured." : "AI features are switched off.";
-        return new AiStatusDto(false, reason, OrderEntry: false);
+        return new AiStatusDto(false, reason, OrderEntry: false, AskData: false);
     }
 }
 

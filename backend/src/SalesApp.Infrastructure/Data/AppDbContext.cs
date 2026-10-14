@@ -30,6 +30,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<DocumentSequence> DocumentSequences => Set<DocumentSequence>();
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
     public DbSet<ProductAlias> ProductAliases => Set<ProductAlias>();
+    public DbSet<AiQueryLog> AiQueryLogs => Set<AiQueryLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SalesApp.AI.AskData;
 using SalesApp.AI.Claude;
 using SalesApp.AI.OrderEntry;
 
@@ -23,6 +24,10 @@ public static class DependencyInjection
         services.AddScoped<CustomerMatcher>();
         services.AddScoped<IOrderExtractionService, OrderExtractionService>();
         services.AddScoped<ISmartOrderService, SmartOrderService>();
+
+        services.Configure<AskDataOptions>(configuration.GetSection(AskDataOptions.SectionName));
+        services.AddSingleton<IReadOnlySqlExecutor, ReadOnlySqlExecutor>();
+        services.AddScoped<IAskDataService, AskDataService>();
 
         return services;
     }
