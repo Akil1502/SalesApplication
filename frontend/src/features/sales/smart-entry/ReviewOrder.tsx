@@ -112,8 +112,9 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
         </Alert>
       )}
 
-      <div className="grid items-start gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      {/* Side by side only on very wide screens; on laptops the lines table needs the full width. */}
+      <div className="grid items-start gap-4 2xl:grid-cols-3">
+        <Card className="2xl:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="size-4 text-muted-foreground" aria-hidden /> Lines read from the order
@@ -132,7 +133,7 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
-                      <TableHead className="w-[32%]">In the order</TableHead>
+                      <TableHead className="min-w-52">In the order</TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead className="w-36">Quantity</TableHead>
                       <TableHead className="text-right">Price</TableHead>

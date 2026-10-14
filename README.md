@@ -15,7 +15,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P2 | Inventory: stock ledger, receipts, adjustments, low-stock list | ✅ Done |
 | P3 | Orders and quotations, GST invoicing (CGST/SGST/IGST), payments | ✅ Done |
 | P4 | Demo data generator, dashboard, reports, Excel export | ✅ Done |
-| P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Built (live check with a real key pending) |
+| P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Done |
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | Planned |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | Planned |
 | P8 | AI: insights, anomaly detection and demand forecasting | Planned |
@@ -133,8 +133,9 @@ category, description, learned aliases). Not sent: cost prices, stock levels, th
 customer data.
 
 **Cost.** The instructions and catalog are a cached prompt prefix, so repeat calls within 5 minutes pay about 5%
-for that part. With the default model (Claude Opus 5.5 at medium effort) a typical WhatsApp order costs
-roughly ₹2–4; photos and PDFs a little more. Every call is logged in the `AiUsageLogs` table with tokens,
+for that part. Measured with the default model (Claude Opus 5.5 at medium effort): a WhatsApp-style text order
+about ₹2.3, a one-page PDF purchase order about ₹3.5, a phone photo about ₹2.7 when the cache is warm; each read
+takes 8–14 seconds. Every call is logged in the `AiUsageLogs` table with tokens,
 cache use, estimated cost and outcome. Each user has a daily budget (`Ai:DailyBudgetUsdPerUser`, default
 $2 per rolling 24 hours) and a per-minute request limit (`Ai:RequestsPerMinutePerUser`, default 10). The
 estimates use the price list in `Ai:Pricing`; Anthropic's console has the actual bill.
