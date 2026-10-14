@@ -54,3 +54,6 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Reports from live AI eval runs (they can contain business figures)
+backend/tests/SalesApp.Evals/results/

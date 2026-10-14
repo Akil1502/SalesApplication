@@ -43,7 +43,7 @@ try {
         Write-Host 'Generated a random Jwt:SigningKey in user-secrets.'
     }
     if (-not ($secrets | Select-String '^Anthropic:ApiKey')) {
-        Write-Host 'Anthropic:ApiKey is not set yet. AI features stay switched off until you add it (needed from phase P5):' -ForegroundColor Yellow
+        Write-Host 'Anthropic:ApiKey is not set yet. The app works without it; the AI features stay hidden until you add it:' -ForegroundColor Yellow
         Write-Host "  dotnet user-secrets set `"Anthropic:ApiKey`" `"<your key>`" --project backend/src/SalesApp.Api" -ForegroundColor Yellow
     }
 

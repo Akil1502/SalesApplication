@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Live evaluations of the AI features against the real Claude API. They cost money, so they skip unless
+    SALESAPP_RUN_EVALS=yes is set; see the README. The graders' own tests always run, at no cost.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SalesApp.Api\SalesApp.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Samples\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

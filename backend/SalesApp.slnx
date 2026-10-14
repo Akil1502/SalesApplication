@@ -6,6 +6,7 @@
     <Project Path="src/SalesApp.Infrastructure/SalesApp.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/SalesApp.Evals/SalesApp.Evals.csproj" />
     <Project Path="tests/SalesApp.IntegrationTests/SalesApp.IntegrationTests.csproj" />
     <Project Path="tests/SalesApp.Tests/SalesApp.Tests.csproj" />
   </Folder>

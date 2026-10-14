@@ -19,7 +19,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Done |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | ✅ Built (live check with a real key pending) |
 | P8 | AI: insights, anomaly detection and demand forecasting | ✅ Done |
-| P9 | Hardening, AI usage dashboard, deployment guide | Planned |
+| P9 | Hardening, AI usage dashboard, deployment guide, live evals | ✅ Built (the live eval run is yours to approve) |
 
 ## Tech stack
 
@@ -61,8 +61,7 @@ API reference (development only): <http://localhost:5080/scalar>
 
 ### Demo data
 
-A fresh database is empty. To see the dashboard, reports and (later) the AI features with something to
-work on, generate two years of synthetic trading history for a Tamil Nadu textile and yarn distributor:
+A fresh database is empty. To see the dashboard, reports and the AI features with something to work on, generate two years of synthetic trading history for a Tamil Nadu textile and yarn distributor:
 
 ```powershell
 # Stop the API first. --reset replaces existing customers, products, orders, invoices and stock;
@@ -86,14 +85,31 @@ All names, GSTINs and figures are made up. The command only runs in the Developm
 
 | Task | Command |
 |---|---|
-| Backend tests | `dotnet test --solution backend/SalesApp.slnx` |
+| Backend tests | `dotnet test --solution backend/SalesApp.slnx` (the live AI evals skip unless enabled) |
+| Live AI evals: calls Claude, about ₹110, stops at $3 | `$env:SALESAPP_RUN_EVALS = 'yes'; dotnet test --project backend/tests/SalesApp.Evals` |
 | Frontend tests | `npm test --prefix frontend` |
 | Frontend lint / typecheck | `npm run lint --prefix frontend` · `npm run typecheck --prefix frontend` |
 | Regenerate TypeScript API types (API must be running) | `npm run gen:api --prefix frontend` |
 | Add an EF Core migration | `dotnet ef migrations add <Name> --project backend/src/SalesApp.Infrastructure --startup-project backend/src/SalesApp.Api --output-dir Data/Migrations` |
 | Production build of the UI (output goes to the API's `wwwroot`) | `npm run build --prefix frontend` |
+| Publish for IIS (after the UI build) | `dotnet publish backend/src/SalesApp.Api -c Release -o publish`, then see [docs/DEPLOYMENT-IIS.md](docs/DEPLOYMENT-IIS.md) |
 | Regenerate demo data (API stopped) | `dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset` |
 | Print the insight figures for the current data (no AI, nothing saved) | `dotnet run --project backend/src/SalesApp.Api -- --insights-metrics` |
+
+## Deployment
+
+One IIS site serves the API and the web app: the UI build goes into the API's `wwwroot`, and any path that isn't
+an API call returns the web app. [docs/DEPLOYMENT-IIS.md](docs/DEPLOYMENT-IIS.md) walks through building, the
+database, the IIS site, secrets as application-pool environment variables, the first start and updates.
+
+Security in short:
+- **Secrets** come from user-secrets (development) or environment variables, never from committed files.
+- **Sign-in:** JWT bearer tokens (8 hours), roles (Admin, SalesManager, SalesRep) enforced by the API, account
+  lockout, and a per-address limit on sign-in attempts (`Security:LoginAttemptsPerMinute`, default 10).
+- **Browser:** security headers on every response, and outside development a content security policy that allows
+  only this site's own scripts, styles and API.
+- **AI:** see [AI features](#ai-features). In short: read-only database users and a SQL checker for AI-written
+  queries, recipients never chosen by the model, no images or outside links in replies, and per-user daily budgets.
 
 ## Configuration and secrets
 
@@ -198,6 +214,23 @@ the sales data, so the page works fully with AI switched off; Claude only writes
   time catches up when it starts. Managers can also press **Refresh now**. Each run is saved with the exact figures
   Claude was given (`InsightRuns`).
 
+**AI usage** (Administration → AI usage, administrators only) shows what the AI costs: spend per day, per feature
+and per person (with each person's last 24 hours against their daily budget, and the morning insights as
+"background"), the share of input read from the prompt cache, every call to Claude with its outcome, and every SQL
+query the AI wrote with what the checker or the database said about it. Conversations stay private.
+
+**Evaluations.** `backend/tests/SalesApp.Evals` measures the AI features against Claude itself, on a throwaway
+database with the standard demo data:
+- 25 Ask-your-data questions, each graded against a reference query by the values in the answer, not the SQL text.
+- 12 orders to read: an English email, WhatsApp messages in English shorthand, Tanglish, Hinglish and Tamil script,
+  tonnes and boxes, a quoted price, an unknown product, a message that isn't an order, a prompt injection, the PDF
+  purchase order and the photographed Tamil order.
+
+They cost money (about ₹110 for both suites), so they only run when you set `SALESAPP_RUN_EVALS=yes`, and the run
+stops if it reaches $3. Each suite writes a report to `backend/tests/SalesApp.Evals/results/` (not committed): pass
+or fail per case, why, and what it cost. The graders, and a check that every reference query still runs, are
+ordinary tests that run every time at no cost.
+
 What is sent to Anthropic:
 - Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,
   description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other customer data.
@@ -241,7 +274,12 @@ that terminal, or stop the process listening on the port.
 start`**: LocalDB is already running, started from another Windows session (for example by the API in a
 different terminal), and this session can't see it. Stop the API and run `sqllocaldb stop MSSQLLocalDB`, or point
 the tests at the running instance's pipe name: `$env:SALESAPP_TEST_SERVER = 'np:\\.\pipe\LOCALDB#<id>\tsql\query'`.
-The pipe name is in the instance's `error.log`, under `%LOCALAPPDATA%\Microsoft\Microsoft SQL Server Local DB\Instances\MSSQLLocalDB`.
+List the open LocalDB pipes with `[System.IO.Directory]::GetFiles('\\.\pipe\') -match 'LOCALDB'`.
+
+**`running scripts is disabled on this system`** when running `setup-dev.ps1` or `npm`: Windows PowerShell's
+execution policy blocks scripts. Run the setup once with
+`powershell -ExecutionPolicy Bypass -File scripts/setup-dev.ps1`, and use `npm.cmd` instead of `npm` (for example
+`npm.cmd run dev --prefix frontend`), or run the commands from a Command Prompt.
 
 ## Project structure
 
@@ -249,16 +287,19 @@ The pipe name is in the instance's `error.log`, under `%LOCALAPPDATA%\Microsoft\
 backend/
   src/SalesApp.Api/              Controllers, auth, error handling, OpenAPI
   src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET)
-  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data
+  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data, insight metrics
+                                 Sql/*.sql: reporting views (rpt, rpt_mgr), the AI read-only users and the assistant's
+                                 append-only rule, applied after migrations
   src/SalesApp.AI/               Claude gateway (budget, caching, usage log) and the AI features
-                                 Sql/*.sql: reporting views (rpt, rpt_mgr) and the AI read-only users, applied after migrations
   tests/SalesApp.Tests/          Unit tests
   tests/SalesApp.IntegrationTests/  API tests against a throwaway LocalDB database
+  tests/SalesApp.Evals/          Live AI evaluations (opt-in, cost money) and their graders
 frontend/
   src/features/                  Feature folders (auth, customers, products, inventory, sales, dashboard, reports, ...)
   src/components/                App shell and shadcn/ui components
   src/lib/api/                   Typed API client generated from OpenAPI
 scripts/setup-dev.ps1            One-time developer setup
+docs/DEPLOYMENT-IIS.md           Publishing to IIS
 ```
 
 ## Conventions
