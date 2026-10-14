@@ -18,7 +18,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P5 | AI: smart order entry from email/WhatsApp text, PDF or photo | ✅ Done |
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Done |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | ✅ Built (live check with a real key pending) |
-| P8 | AI: insights, anomaly detection and demand forecasting | ✅ Built (live check of the written summary pending) |
+| P8 | AI: insights, anomaly detection and demand forecasting | ✅ Done |
 | P9 | Hardening, AI usage dashboard, deployment guide | Planned |
 
 ## Tech stack
@@ -218,7 +218,8 @@ takes 8–14 seconds. An Ask-your-data question that needs one query is about �
 questions that need several queries cost more, up to the limit of five queries per question. An assistant message
 is estimated at ₹2–8 depending on how many lookups it makes (each lookup round is one more Claude call; the cached
 history keeps repeat input cheap). The insights summary is one Claude call a day (two if the figure check needs a
-retry), estimated at ₹3–6. Background runs are logged without a user and have their own daily budget. Every call is logged in the `AiUsageLogs` table with tokens,
+retry): measured at about ₹6.6 for the morning run and ₹3.5 for a refresh within five minutes of it (the figures are
+then read from the cache), about 20 seconds each; both first runs passed the figure check with no retry. Background runs are logged without a user and have their own daily budget. Every call is logged in the `AiUsageLogs` table with tokens,
 cache use, estimated cost and outcome. Each user has a daily budget (`Ai:DailyBudgetUsdPerUser`, default
 $2 per rolling 24 hours) and a per-minute request limit (`Ai:RequestsPerMinutePerUser`, default 10). The
 estimates use the price list in `Ai:Pricing`; Anthropic's console has the actual bill.
