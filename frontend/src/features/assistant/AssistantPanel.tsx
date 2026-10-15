@@ -1,5 +1,6 @@
-import { CheckCircle2, Database, FileText, History, Package, Plus, Search, Send, Sparkles, Square, Trash2, TriangleAlert, Users } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ChartColumn, CheckCircle2, Database, FileText, History, Package, Plus, Search, Send, Sparkles, Square, Trash2, TriangleAlert, Users } from 'lucide-react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -16,20 +17,41 @@ import { SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import type { AskHandoff } from '@/features/ask/api'
 import { errorMessage } from '@/lib/api/errors'
 import { formatDate, formatINR } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useConversations, type AssistantItem, type AssistantTool } from './api'
 import { assistantStore, useAssistant } from './assistant-store'
+import { dataQuestionTurns } from './data-questions'
 import { DraftCard } from './DraftCard'
 import { MessageMarkdown } from './MessageMarkdown'
 
+// Tasks about a customer or a document; questions about figures are Ask your data's job.
 const suggestions = [
-  'Who owes us the most, and how overdue is it?',
-  'How is Murugan Garments doing this year?',
   'Draft a payment reminder for our most overdue customer',
-  'Which products are low on stock?',
+  'Write a follow-up for our oldest open quotation',
+  'How is Murugan Garments doing this year?',
+  'What did Thangam Silks order last time?',
 ]
+
+/** Opens Ask your data with the question filled in, for a table, chart and Excel export of the same figures. */
+function AskDataLink({ question }: { question: string }) {
+  const navigate = useNavigate()
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-auto self-start py-1.5 text-left whitespace-normal"
+      onClick={() => void navigate('/ask', { state: { question } satisfies AskHandoff })}
+    >
+      <ChartColumn />
+      <span>
+        Open in Ask your data <span className="text-muted-foreground">for a table, chart and Excel export</span>
+      </span>
+    </Button>
+  )
+}
 
 const toolIcons: Record<string, ReactNode> = {
   search_customers: <Users className="size-3.5" />,
@@ -126,11 +148,13 @@ export default function AssistantChat() {
   const { conversationId, title, items, status, error, notice, costInr, lastCostInr } = useAssistant()
   const [message, setMessage] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const navigate = useNavigate()
   const scroller = useRef<HTMLDivElement>(null)
   const stickToBottom = useRef(true)
   const replying = status === 'replying'
   const last = items.at(-1)
   const thinking = replying && last?.kind !== 'Assistant'
+  const dataTurns = dataQuestionTurns(items, replying)
 
   useEffect(() => {
     void assistantStore.resume()
@@ -166,7 +190,7 @@ export default function AssistantChat() {
         <div className="min-w-0 flex-1">
           <SheetTitle className="truncate text-sm">{title ?? 'Assistant'}</SheetTitle>
           <SheetDescription className="sr-only">
-            Ask about customers, orders, invoices, payments and stock, or have a message drafted for a customer.
+            Look up customers, orders, invoices and payments, or have a message drafted for a customer.
           </SheetDescription>
         </div>
         <HistoryMenu />
@@ -208,8 +232,15 @@ export default function AssistantChat() {
         {items.length === 0 && status === 'idle' && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
-              Ask about customers, orders, invoices, payments and stock, in English or Tamil. I can also draft payment reminders and
-              follow-ups; you review and send them yourself.
+              Look up a customer, order, invoice or payment, in English or Tamil, and have payment reminders, follow-ups and quotation
+              notes drafted; you review and send them yourself.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              For figures as a table or chart, such as monthly sales or top customers, use{' '}
+              <Button variant="link" className="h-auto p-0 text-sm" onClick={() => void navigate('/ask')}>
+                Ask your data
+              </Button>
+              .
             </p>
             <div className="flex flex-col items-start gap-2">
               {suggestions.map((suggestion) => (
@@ -222,7 +253,10 @@ export default function AssistantChat() {
         )}
 
         {items.map((item, i) => (
-          <Item key={item.tool?.id ?? item.draft?.toolUseId ?? `${item.kind}-${i}`} item={item} replying={replying} />
+          <Fragment key={item.tool?.id ?? item.draft?.toolUseId ?? `${item.kind}-${i}`}>
+            <Item item={item} replying={replying} />
+            {dataTurns.has(i) && <AskDataLink question={dataTurns.get(i) ?? ''} />}
+          </Fragment>
         ))}
 
         {thinking && (

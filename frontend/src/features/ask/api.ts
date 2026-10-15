@@ -45,6 +45,11 @@ export interface AskHandlers {
   onError: (message: string) => void
 }
 
+/** Router state that opens Ask your data with a question filled in (from the assistant), not yet asked. */
+export interface AskHandoff {
+  question: string
+}
+
 /** Asks a question and reports progress as it streams. Abort the signal to stop (and stop paying for) the answer. */
 export async function askQuestion(question: string, handlers: AskHandlers, signal?: AbortSignal): Promise<void> {
   await postEventStream(

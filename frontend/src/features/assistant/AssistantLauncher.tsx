@@ -1,5 +1,6 @@
 import { Sparkles } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
+import { useLocation } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Spinner } from '@/components/ui/spinner'
@@ -10,17 +11,21 @@ const AssistantChat = lazy(() => import('./AssistantPanel'))
 
 /**
  * The top-bar button and the slide-over chat panel, available on every screen. Hidden while AI is switched off.
- * A reply keeps going if the panel is closed; a dot on the button shows it's still writing.
+ * A reply keeps going if the panel is closed; a dot on the button shows it's still writing. Following a link from
+ * the panel (to a page, or to Ask your data) closes it, so the page isn't left hidden behind it.
  */
 export function AssistantLauncher() {
   const status = useAiStatus()
-  const [open, setOpen] = useState(false)
+  const location = useLocation()
+  // Open only on the navigation it was opened at: any navigation closes the panel.
+  const [openAt, setOpenAt] = useState<string | null>(null)
+  const open = openAt === location.key
   const { status: chat } = useAssistant()
   if (!status.data?.assistant) return null
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="relative">
+    <Sheet open={open} onOpenChange={(next) => setOpenAt(next ? location.key : null)}>
+      <Button variant="outline" size="sm" onClick={() => setOpenAt(location.key)} className="relative">
         <Sparkles /> Assistant
         {chat === 'replying' && !open && (
           <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-primary" role="status" aria-label="The assistant is replying" />

@@ -174,6 +174,11 @@ and overdue, recent orders, top products), outstanding or overdue invoices, any 
 number, product and stock search, and the same guarded SQL query as Ask your data for totals and trends. Replies
 stream in as they're written; Stop ends the reply (and Anthropic's billing for it), and closing the panel doesn't.
 
+The two overlap on purpose but do different jobs. Ask your data is for figures: its table and chart come straight
+from the database rows and export to Excel. The assistant is for tasks about a customer or a document, and it
+writes figures into its replies itself. When an assistant reply only looked up figures, it offers "Open in Ask your
+data", which fills the same question in there (without asking it, since asking costs money).
+
 - **Drafts, never sending.** Asked for a payment reminder, follow-up or quotation note, it writes an email or
   WhatsApp draft that the user can edit, copy, or open in their own email or WhatsApp. SalesApp sends nothing. The
   recipient comes from the customer record, never from the model.

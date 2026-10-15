@@ -1,6 +1,6 @@
 import { CheckCircle2, Database, MessageSquareText, RotateCcw, ShieldAlert, Sparkles, Square, TriangleAlert, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useAiStatus } from '@/features/ai/api'
 import { Roles, useAuth } from '@/features/auth/auth-context'
-import type { AskStep } from './api'
+import type { AskHandoff, AskStep } from './api'
 import { AnswerCard } from './AnswerCard'
 import { askStore, useAskHistory } from './ask-store'
 
@@ -69,8 +69,21 @@ export function AskPage() {
   // The questions live in a store outside this page: leaving the page doesn't cancel a running one.
   const history = useAskHistory()
   const running = history.some((e) => e.status === 'running')
+  const input = useRef<HTMLTextAreaElement>(null)
+
+  // A question handed over from the assistant is filled in, not asked: asking costs money, so the user clicks Ask.
+  const location = useLocation()
+  const [handedOver, setHandedOver] = useState<string | null>(null)
+  const handoff = (location.state as AskHandoff | null)?.question
+  if (handoff && handedOver !== location.key) {
+    setHandedOver(location.key)
+    setQuestion(handoff)
+  }
 
   useEffect(() => askStore.pageOpened(), [])
+  useEffect(() => {
+    if (handedOver) input.current?.focus()
+  }, [handedOver])
 
   function ask(text: string) {
     if (!text.trim() || running) return
@@ -101,6 +114,7 @@ export function AskPage() {
                 }}
               >
                 <Textarea
+                  ref={input}
                   aria-label="Your question"
                   rows={2}
                   maxLength={500}
