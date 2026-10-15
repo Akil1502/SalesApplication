@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Sales;
 using SalesApp.Core.Security;
@@ -9,6 +9,7 @@ using SalesApp.Infrastructure.Services;
 namespace SalesApp.Api.Controllers;
 
 /// <summary>Quotations and sales orders. Every role can create, quote, confirm and cancel them.</summary>
+[RequirePermission(Permissions.OrdersView)]
 public sealed class OrdersController(IOrderService orders) : ApiControllerBase
 {
     [HttpGet]
@@ -23,6 +24,7 @@ public sealed class OrdersController(IOrderService orders) : ApiControllerBase
 
     /// <summary>Creates a draft order. Prices default to the products' list prices.</summary>
     [HttpPost]
+    [RequirePermission(Permissions.OrdersEdit)]
     [ProducesResponseType<OrderDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<OrderDto>> Create(OrderSaveRequest request, CancellationToken cancellationToken)
@@ -33,6 +35,7 @@ public sealed class OrdersController(IOrderService orders) : ApiControllerBase
 
     /// <summary>Edits a draft or quoted order.</summary>
     [HttpPut("{id:int}")]
+    [RequirePermission(Permissions.OrdersEdit)]
     [ProducesResponseType<OrderDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status409Conflict)]
@@ -41,6 +44,7 @@ public sealed class OrdersController(IOrderService orders) : ApiControllerBase
 
     /// <summary>Draft → Quoted. Assigns a quotation number.</summary>
     [HttpPost("{id:int}/quote")]
+    [RequirePermission(Permissions.OrdersEdit)]
     [ProducesResponseType<OrderDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status409Conflict)]
     public Task<OrderDto> Quote(int id, OrderActionRequest request, CancellationToken cancellationToken) =>
@@ -48,6 +52,7 @@ public sealed class OrdersController(IOrderService orders) : ApiControllerBase
 
     /// <summary>Draft/Quoted → Confirmed, after checking the customer's credit limit.</summary>
     [HttpPost("{id:int}/confirm")]
+    [RequirePermission(Permissions.OrdersEdit)]
     [ProducesResponseType<OrderDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status409Conflict)]
@@ -55,6 +60,7 @@ public sealed class OrdersController(IOrderService orders) : ApiControllerBase
         orders.ConfirmAsync(id, request, cancellationToken);
 
     [HttpPost("{id:int}/cancel")]
+    [RequirePermission(Permissions.OrdersEdit)]
     [ProducesResponseType<OrderDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status409Conflict)]
     public Task<OrderDto> Cancel(int id, OrderCancelRequest request, CancellationToken cancellationToken) =>
@@ -62,6 +68,7 @@ public sealed class OrdersController(IOrderService orders) : ApiControllerBase
 }
 
 /// <summary>Tax invoices. Everyone can view them; managers and admins issue and cancel them.</summary>
+[RequirePermission(Permissions.InvoicesView)]
 public sealed class InvoicesController(IInvoiceService invoices) : ApiControllerBase
 {
     [HttpGet]
@@ -81,7 +88,7 @@ public sealed class InvoicesController(IInvoiceService invoices) : ApiController
 
     /// <summary>Issues an invoice for a confirmed order and takes its goods out of stock.</summary>
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.InvoicesEdit)]
     [ProducesResponseType<InvoiceDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]
@@ -94,7 +101,7 @@ public sealed class InvoicesController(IInvoiceService invoices) : ApiController
 
     /// <summary>Cancels an unpaid invoice: it stays in the register, its goods return to stock and the order reopens.</summary>
     [HttpPost("{id:int}/cancel")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.InvoicesEdit)]
     [ProducesResponseType<InvoiceDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]
     [ProducesResponseType<ApiError>(StatusCodes.Status409Conflict)]
@@ -103,6 +110,7 @@ public sealed class InvoicesController(IInvoiceService invoices) : ApiController
 }
 
 /// <summary>Customer payments. Everyone can view them; managers and admins record them.</summary>
+[RequirePermission(Permissions.PaymentsView)]
 public sealed class PaymentsController(IPaymentService payments) : ApiControllerBase
 {
     [HttpGet]
@@ -111,7 +119,7 @@ public sealed class PaymentsController(IPaymentService payments) : ApiController
         payments.ListAsync(request, cancellationToken);
 
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.PaymentsEdit)]
     [ProducesResponseType<PaymentDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]

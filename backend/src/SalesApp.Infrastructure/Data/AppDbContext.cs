@@ -11,7 +11,7 @@ namespace SalesApp.Infrastructure.Data;
 /// AspNet* names so any Identity tooling or documentation applies unchanged.
 /// </summary>
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
-    : IdentityDbContext<AppUser, IdentityRole<Guid>, Guid>(options)
+    : IdentityDbContext<AppUser, AppRole, Guid>(options)
 {
     public DbSet<State> States => Set<State>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
@@ -35,6 +35,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<AiMessage> AiMessages => Set<AiMessage>();
     public DbSet<AiDraft> AiDrafts => Set<AiDraft>();
     public DbSet<InsightRun> InsightRuns => Set<InsightRun>();
+    public DbSet<RoleGrant> RoleGrants => Set<RoleGrant>();
+    public DbSet<UserPermissionChange> UserPermissionChanges => Set<UserPermissionChange>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

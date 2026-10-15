@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Masters;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Services;
@@ -15,7 +15,7 @@ public sealed class SettingsController(ICompanySettingsService settings) : ApiCo
     public Task<CompanySettingsDto> GetCompany(CancellationToken cancellationToken) => settings.GetAsync(cancellationToken);
 
     [HttpPut("company")]
-    [Authorize(Roles = Roles.Admin)]
+    [RequirePermission(Permissions.SettingsEdit)]
     [ProducesResponseType<CompanySettingsDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]

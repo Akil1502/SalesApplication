@@ -10,6 +10,7 @@ using SalesApp.Api.Errors;
 using SalesApp.Api.Security;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Ai;
+using SalesApp.Core.Security;
 
 namespace SalesApp.Api.Controllers;
 
@@ -18,6 +19,7 @@ namespace SalesApp.Api.Controllers;
 /// can read them. Replies stream as server-sent events.
 /// </summary>
 [Route("api/assistant")]
+[RequirePermission(Permissions.AssistantUse)]
 public sealed class AssistantController(
     IAssistantService assistant,
     IClaudeGateway claude,

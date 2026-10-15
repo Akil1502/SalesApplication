@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SalesApp.Core.Common;
 using SalesApp.Core.Entities;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Security;
 using SalesApp.Infrastructure.Services;
 
 namespace SalesApp.Infrastructure;
@@ -40,7 +41,7 @@ public static class DependencyInjection
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
-            .AddRoles<IdentityRole<Guid>>()
+            .AddRoles<AppRole>()
             .AddEntityFrameworkStores<AppDbContext>();
 
         services.Configure<SeedOptions>(configuration.GetSection(SeedOptions.SectionName));
@@ -53,6 +54,9 @@ public static class DependencyInjection
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<IRoleAdminService, RoleAdminService>();
+        services.AddSingleton<PermissionVersion>();
+        services.AddScoped<IPermissionService, PermissionService>();
 
         services.Configure<InventoryOptions>(configuration.GetSection(InventoryOptions.SectionName));
         services.AddScoped<IStockLedger, StockLedger>();

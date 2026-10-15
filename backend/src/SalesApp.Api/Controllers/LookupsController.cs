@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Masters;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Services;
@@ -17,7 +17,7 @@ public sealed class LookupsController(ILookupService lookups) : ApiControllerBas
 
     /// <summary>Active sales reps and managers, for assigning customers. Managers and admins only.</summary>
     [HttpGet("sales-reps")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.CreditTermsEdit)]
     [ProducesResponseType<IReadOnlyList<UserLookupDto>>(StatusCodes.Status200OK)]
     public Task<IReadOnlyList<UserLookupDto>> SalesReps(CancellationToken cancellationToken) =>
         lookups.GetSalesRepsAsync(cancellationToken);

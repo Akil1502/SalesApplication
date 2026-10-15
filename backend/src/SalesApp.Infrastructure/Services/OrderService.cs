@@ -368,7 +368,7 @@ public sealed class OrderService(
             .SumAsync(o => (decimal?)o.GrandTotal, cancellationToken) ?? 0m;
         var exposure = outstanding + otherOrders + order.GrandTotal;
 
-        if (exposure <= limit || (overrideRequested && currentUser.IsManagerOrAdmin))
+        if (exposure <= limit || (overrideRequested && currentUser.Has(Permissions.CreditLimitOverride)))
         {
             return;
         }
@@ -376,8 +376,8 @@ public sealed class OrderService(
         var what = $"This order takes {customer.Name} to ₹{AmountInWords.IndianGrouping(exposure)} against a credit limit of " +
                    $"₹{AmountInWords.IndianGrouping(limit)} (unpaid invoices ₹{AmountInWords.IndianGrouping(outstanding)}, " +
                    $"other confirmed orders ₹{AmountInWords.IndianGrouping(otherOrders)}).";
-        throw new ValidationException("creditLimit", currentUser.IsManagerOrAdmin
+        throw new ValidationException("creditLimit", currentUser.Has(Permissions.CreditLimitOverride)
             ? $"{what} Confirm with override to go ahead."
-            : $"{what} Ask a manager to approve it.");
+            : $"{what} Ask someone who can override credit limits to approve it.");
     }
 }

@@ -220,7 +220,9 @@ public sealed class AssistantService(
                 }
                 else if (call.Name == AssistantPrompt.CreateDraft)
                 {
-                    (outcome, draft) = await drafts.CreateAsync(conversation.Id, call, ToolResults(history), CancellationToken.None);
+                    (outcome, draft) = tools.Refusal(call.Name) is { } refused
+                        ? (refused, null)
+                        : await drafts.CreateAsync(conversation.Id, call, ToolResults(history), CancellationToken.None);
                 }
                 else
                 {
@@ -268,7 +270,7 @@ public sealed class AssistantService(
     {
         var company = await db.CompanySettings.AsNoTracking().Select(s => s.TradeName ?? s.LegalName).FirstOrDefaultAsync(cancellationToken) ?? "the company";
         var userName = await db.Users.AsNoTracking().Where(u => u.Id == currentUser.UserId).Select(u => u.FullName).FirstOrDefaultAsync(cancellationToken) ?? "the user";
-        var role = currentUser.IsInRole(Roles.Admin) ? "administrator" : currentUser.IsInRole(Roles.SalesManager) ? "sales manager" : "sales rep";
+        var role = currentUser.RoleName;
         var now = time.GetUtcNow().UtcDateTime;
         var title = string.Join(' ', firstMessage.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
@@ -277,7 +279,7 @@ public sealed class AssistantService(
             Id = Guid.NewGuid(),
             UserId = currentUser.UserId,
             Title = title.Length > 80 ? title[..77] + "…" : title,
-            SystemPrompt = AssistantPrompt.System(company, userName, role, currentUser.IsManagerOrAdmin),
+            SystemPrompt = AssistantPrompt.System(company, userName, role, currentUser.Has(Permissions.CostPricesView)),
             ToolsVersion = AssistantPrompt.ToolsVersion,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,

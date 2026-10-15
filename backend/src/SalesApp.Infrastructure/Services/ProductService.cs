@@ -103,7 +103,11 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
         return await GetAsync(id, cancellationToken);
     }
 
-    private static void Apply(Product product, ProductSaveRequest request)
+    /// <summary>
+    /// Copies the form onto the product. Cost price only changes for users who may see it, so saving from a form
+    /// without it (which shows no cost) never wipes it.
+    /// </summary>
+    private void Apply(Product product, ProductSaveRequest request)
     {
         product.Name = request.Name.Trim();
         product.Description = Text.NullIfBlank(request.Description);
@@ -111,7 +115,11 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
         product.HsnCodeId = request.HsnCodeId;
         product.Unit = request.Unit;
         product.ListPrice = request.ListPrice;
-        product.CostPrice = request.CostPrice;
+        if (currentUser.Has(Permissions.CostPricesView))
+        {
+            product.CostPrice = request.CostPrice;
+        }
+
         product.ReorderLevel = request.ReorderLevel;
         product.ReorderQuantity = request.ReorderQuantity;
         product.LeadTimeDays = request.LeadTimeDays;
@@ -157,7 +165,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
         p.CategoryId, p.Category!.Name,
         p.HsnCodeId, p.HsnCode!.Code, p.HsnCode.GstRate,
         p.Unit, p.ListPrice,
-        currentUser.IsManagerOrAdmin ? p.CostPrice : null,
+        currentUser.Has(Permissions.CostPricesView) ? p.CostPrice : null,
         p.ReorderLevel, p.ReorderQuantity, p.LeadTimeDays, p.Stock?.QuantityOnHand ?? 0m,
         p.IsActive, p.CreatedAtUtc, p.UpdatedAtUtc, RowVersions.ToToken(p.RowVersion));
 }

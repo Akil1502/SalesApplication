@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SalesApp.AI.Insights;
@@ -15,7 +14,7 @@ namespace SalesApp.Api.Controllers;
 /// written summary whose figures have been checked against them. Recomputed nightly and on request.
 /// </summary>
 [Route("api/insights")]
-[Authorize(Roles = Roles.AdminOrManager)]
+[RequirePermission(Permissions.InsightsView)]
 public sealed class InsightsController(IInsightsService insights) : ApiControllerBase
 {
     /// <summary>The latest insights, or 204 No Content if they've never been computed.</summary>

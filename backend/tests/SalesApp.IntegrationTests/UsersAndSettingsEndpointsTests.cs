@@ -84,7 +84,8 @@ public sealed class UsersAndSettingsEndpointsTests(SalesAppFactory factory)
             new UserUpdateRequest { FullName = "Promoted Rep", Role = Roles.SalesManager, IsActive = true }, Ct)).EnsureSuccessStatusCode();
 
         var me = await (await rep.GetAsync("/api/auth/me", Ct)).ReadAsync<CurrentUserDto>();
-        Assert.Equal([Roles.SalesManager], me.Roles);
+        Assert.Equal(Roles.SalesManager, me.Role);
+        Assert.Contains(Permissions.CostPricesView, me.Permissions);
         Assert.Equal("Promoted Rep", me.FullName);
     }
 

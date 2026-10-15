@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Users;
 using SalesApp.Core.Security;
@@ -8,8 +8,8 @@ using SalesApp.Infrastructure.Services;
 
 namespace SalesApp.Api.Controllers;
 
-/// <summary>User management. Admins only.</summary>
-[Authorize(Roles = Roles.Admin)]
+/// <summary>Users. Seeing them needs Users &amp; roles: View; changing them needs Add &amp; change.</summary>
+[RequirePermission(Permissions.UsersView)]
 public sealed class UsersController(IUserAdminService users) : ApiControllerBase
 {
     [HttpGet]
@@ -24,6 +24,7 @@ public sealed class UsersController(IUserAdminService users) : ApiControllerBase
     public Task<UserDto> Get(Guid id, CancellationToken cancellationToken) => users.GetAsync(id, cancellationToken);
 
     [HttpPost]
+    [RequirePermission(Permissions.UsersEdit)]
     [ProducesResponseType<UserDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UserDto>> Create(UserCreateRequest request, CancellationToken cancellationToken)
@@ -33,6 +34,7 @@ public sealed class UsersController(IUserAdminService users) : ApiControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.UsersEdit)]
     [ProducesResponseType<UserDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
@@ -42,6 +44,7 @@ public sealed class UsersController(IUserAdminService users) : ApiControllerBase
 
     /// <summary>Sets a new password chosen by the admin and clears any lockout.</summary>
     [HttpPost("{id:guid}/reset-password")]
+    [RequirePermission(Permissions.UsersEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]

@@ -58,7 +58,7 @@ public sealed class InventoryService(
             summary?.Count ?? 0,
             summary?.Low ?? 0,
             summary?.Out ?? 0,
-            currentUser.IsManagerOrAdmin ? Math.Round(summary?.Value ?? 0m, 2) : null);
+            currentUser.Has(Permissions.CostPricesView) ? Math.Round(summary?.Value ?? 0m, 2) : null);
     }
 
     public async Task<PagedResult<StockLevelDto>> ListLevelsAsync(StockLevelListRequest request, CancellationToken cancellationToken)
@@ -88,7 +88,7 @@ public sealed class InventoryService(
             query = query.Where(p => p.Sku.Contains(q) || p.Name.Contains(q));
         }
 
-        var showValue = currentUser.IsManagerOrAdmin;
+        var showValue = currentUser.Has(Permissions.CostPricesView);
         var page = await LevelSorts.Apply(query, request.Sort, "name")
             .ThenBy(p => p.Id)
             .Select(p => new
@@ -138,7 +138,7 @@ public sealed class InventoryService(
                                      (m.ReferenceNumber != null && m.ReferenceNumber.Contains(q)));
         }
 
-        var showCost = currentUser.IsManagerOrAdmin;
+        var showCost = currentUser.Has(Permissions.CostPricesView);
 
         // The ledger always reads newest first; ties broken by posting order.
         return await query
@@ -163,7 +163,7 @@ public sealed class InventoryService(
                                      (r.SupplierReference != null && r.SupplierReference.Contains(q)));
         }
 
-        var showCost = currentUser.IsManagerOrAdmin;
+        var showCost = currentUser.Has(Permissions.CostPricesView);
         return await query
             .OrderByDescending(r => r.ReceiptDate)
             .ThenByDescending(r => r.Id)
@@ -188,7 +188,7 @@ public sealed class InventoryService(
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException($"Receipt {id} was not found.");
 
-        var showCost = currentUser.IsManagerOrAdmin;
+        var showCost = currentUser.Has(Permissions.CostPricesView);
         var lines = await db.StockMovements
             .AsNoTracking()
             .Where(m => m.ReferenceType == StockReferenceTypes.Receipt && m.ReferenceId == id)

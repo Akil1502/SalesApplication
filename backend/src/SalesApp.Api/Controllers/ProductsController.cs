@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Masters;
 using SalesApp.Core.Security;
@@ -13,17 +13,19 @@ public sealed class ProductsController(IProductService products) : ApiController
 {
     /// <summary>Search products by SKU, name or HSN code.</summary>
     [HttpGet]
+    [RequirePermission(Permissions.ProductsView, Permissions.OrdersEdit, Permissions.StockEdit)]
     [ProducesResponseType<PagedResult<ProductListItemDto>>(StatusCodes.Status200OK)]
     public Task<PagedResult<ProductListItemDto>> List([FromQuery] ProductListRequest request, CancellationToken cancellationToken) =>
         products.ListAsync(request, cancellationToken);
 
     [HttpGet("{id:int}")]
+    [RequirePermission(Permissions.ProductsView, Permissions.OrdersEdit, Permissions.StockEdit)]
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
     public Task<ProductDto> Get(int id, CancellationToken cancellationToken) => products.GetAsync(id, cancellationToken);
 
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.ProductsEdit)]
     [ProducesResponseType<ProductDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]
@@ -34,7 +36,7 @@ public sealed class ProductsController(IProductService products) : ApiController
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.ProductsEdit)]
     [ProducesResponseType<ProductDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]

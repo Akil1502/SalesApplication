@@ -24,7 +24,7 @@ public static class TestClients
     /// <summary>Creates a brand-new user in <paramref name="role"/> and returns a client carrying their token.</summary>
     public static async Task<(HttpClient Client, Guid UserId)> CreateClientAsync(this WebApplicationFactory<Program> factory, string role)
     {
-        var email = $"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@salesapp.test";
+        var email = $"{new string([.. role.ToLowerInvariant().Where(char.IsLetterOrDigit)])}-{Guid.NewGuid():N}@salesapp.test";
         Guid userId;
         using (var scope = factory.Services.CreateScope())
         {
@@ -32,11 +32,27 @@ public static class TestClients
             var user = new AppUser { UserName = email, Email = email, FullName = $"Test {role}", CreatedAtUtc = DateTime.UtcNow };
             var created = await users.CreateAsync(user, DefaultPassword);
             Assert.True(created.Succeeded, string.Join("; ", created.Errors.Select(e => e.Description)));
-            await users.AddToRoleAsync(user, role);
+            var added = await users.AddToRoleAsync(user, role);
+            Assert.True(added.Succeeded, string.Join("; ", added.Errors.Select(e => e.Description)));
             userId = user.Id;
         }
 
         return (await factory.SignInAsync(email, DefaultPassword), userId);
+    }
+
+    /// <summary>Creates a new role holding exactly <paramref name="permissions"/>, and a user in it; returns their client.</summary>
+    public static async Task<(HttpClient Client, Guid UserId)> CreateClientWithPermissionsAsync(this WebApplicationFactory<Program> factory, params string[] permissions)
+    {
+        var name = $"Test role {Guid.NewGuid():N}";
+        using (var scope = factory.Services.CreateScope())
+        {
+            var roles = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
+            var role = new AppRole(name) { Permissions = [.. permissions.Select(p => new RoleGrant { Permission = p })] };
+            var created = await roles.CreateAsync(role);
+            Assert.True(created.Succeeded, string.Join("; ", created.Errors.Select(e => e.Description)));
+        }
+
+        return await factory.CreateClientAsync(name);
     }
 
     public static async Task<HttpClient> SignInAsync(this WebApplicationFactory<Program> factory, string email, string password)

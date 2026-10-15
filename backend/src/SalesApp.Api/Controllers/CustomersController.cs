@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Masters;
+using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Services;
 
 namespace SalesApp.Api.Controllers;
@@ -14,16 +16,19 @@ public sealed class CustomersController(ICustomerService customers) : ApiControl
 {
     /// <summary>Search customers by name, code, trade name, GSTIN, phone or city.</summary>
     [HttpGet]
+    [RequirePermission(Permissions.CustomersView, Permissions.OrdersEdit)]
     [ProducesResponseType<PagedResult<CustomerListItemDto>>(StatusCodes.Status200OK)]
     public Task<PagedResult<CustomerListItemDto>> List([FromQuery] CustomerListRequest request, CancellationToken cancellationToken) =>
         customers.ListAsync(request, cancellationToken);
 
     [HttpGet("{id:int}")]
+    [RequirePermission(Permissions.CustomersView, Permissions.OrdersEdit)]
     [ProducesResponseType<CustomerDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
     public Task<CustomerDto> Get(int id, CancellationToken cancellationToken) => customers.GetAsync(id, cancellationToken);
 
     [HttpPost]
+    [RequirePermission(Permissions.CustomersEdit)]
     [ProducesResponseType<CustomerDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CustomerDto>> Create(CustomerSaveRequest request, CancellationToken cancellationToken)
@@ -33,6 +38,7 @@ public sealed class CustomersController(ICustomerService customers) : ApiControl
     }
 
     [HttpPut("{id:int}")]
+    [RequirePermission(Permissions.CustomersEdit)]
     [ProducesResponseType<CustomerDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]

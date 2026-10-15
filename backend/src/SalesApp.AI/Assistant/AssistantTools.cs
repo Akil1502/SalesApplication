@@ -4,6 +4,7 @@ using SalesApp.AI.AskData;
 using SalesApp.AI.OrderEntry;
 using SalesApp.Core.Common;
 using SalesApp.Core.Entities;
+using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Data;
 
 namespace SalesApp.AI.Assistant;
@@ -14,15 +15,39 @@ public sealed record ToolOutcome(string Content, bool IsError, string Label, str
 /// <summary>
 /// The assistant's read-only lookups. Each returns compact JSON for Claude (amounts as numbers, dates as
 /// yyyy-MM-dd) and never includes customers' phone numbers or emails. Errors are written for Claude to act on.
-/// Sales reps see the same records they can see in the app; cost prices are never returned.
+/// Each lookup needs the permission for what it reads (customers, invoices, orders, products, or Ask your data for
+/// SQL), the same as the screens; without it the tool answers with an error Claude passes on. The tools stay in the
+/// request either way, because removing one would change the conversation's cached prefix. Cost prices are never
+/// returned.
 /// </summary>
-public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries, IBusinessClock clock)
+public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries, IBusinessClock clock, ICurrentUser currentUser)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly InvoiceStatus[] Open = [InvoiceStatus.Unpaid, InvoiceStatus.PartiallyPaid];
 
+    /// <summary>The permission each lookup needs, and what to call the data when it's missing.</summary>
+    private static readonly Dictionary<string, (string Permission, string What)> Needs = new()
+    {
+        [AssistantPrompt.SearchCustomers] = (Permissions.CustomersView, "customers"),
+        [AssistantPrompt.GetCustomer] = (Permissions.CustomersView, "customers"),
+        [AssistantPrompt.ListInvoices] = (Permissions.InvoicesView, "invoices"),
+        [AssistantPrompt.SearchProducts] = (Permissions.ProductsView, "products"),
+        [AssistantPrompt.QuerySalesData] = (Permissions.AskDataUse, "sales data (Ask your data)"),
+        [AssistantPrompt.CreateDraft] = (Permissions.CustomersView, "customers' contact details"),
+    };
+
+    /// <summary>The refusal for a lookup the user isn't allowed, or null when they are.</summary>
+    public ToolOutcome? Refusal(string name) =>
+        Needs.TryGetValue(name, out var need) && !currentUser.Has(need.Permission) ? NoAccess(need.What) : null;
+
+    public static ToolOutcome NoAccess(string what) => new(
+        $"This user doesn't have permission to see {what} in SalesApp, so you can't look that up for them. Tell them, " +
+        "and that an administrator can give them access under Users & roles.",
+        true,
+        $"No access to {what}");
+
     public async Task<ToolOutcome> RunAsync(Guid conversationId, string name, IReadOnlyDictionary<string, JsonElement> input, CancellationToken cancellationToken) =>
-        name switch
+        Refusal(name) ?? name switch
         {
             AssistantPrompt.SearchCustomers => await SearchCustomersAsync(Text(input, "query"), cancellationToken),
             AssistantPrompt.GetCustomer => await GetCustomerAsync(Number(input, "customerId"), cancellationToken),
@@ -238,6 +263,11 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             .SingleOrDefaultAsync(i => i.Number == number, cancellationToken);
         if (invoice is not null)
         {
+            if (!currentUser.Has(Permissions.InvoicesView))
+            {
+                return NoAccess("invoices");
+            }
+
             var today = clock.Today;
             return new ToolOutcome(Serialize(new
             {
@@ -271,6 +301,11 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         if (order is null)
         {
             return new ToolOutcome($"No invoice, order or quotation is numbered {number}.", true, $"Looked for {number}");
+        }
+
+        if (!currentUser.Has(Permissions.OrdersView))
+        {
+            return NoAccess("orders and quotations");
         }
 
         var invoiceNumber = order.InvoiceId is { } invoiceId

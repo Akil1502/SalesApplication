@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Inventory;
 using SalesApp.Core.Security;
@@ -12,6 +12,7 @@ namespace SalesApp.Api.Controllers;
 /// Inventory: stock levels, the movement ledger, goods receipts and adjustments. Everyone can see stock;
 /// only managers and admins change it (sales change it through invoices, from phase P3).
 /// </summary>
+[RequirePermission(Permissions.StockView)]
 public sealed class StockController(IInventoryService inventory) : ApiControllerBase
 {
     /// <summary>Headline counts for the stock page. Stock value is shown to managers and admins only.</summary>
@@ -43,7 +44,7 @@ public sealed class StockController(IInventoryService inventory) : ApiController
 
     /// <summary>Records a goods receipt (GRN): stock in for one or more products.</summary>
     [HttpPost("receipts")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.StockEdit)]
     [ProducesResponseType<StockReceiptDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]
@@ -55,7 +56,7 @@ public sealed class StockController(IInventoryService inventory) : ApiController
 
     /// <summary>Corrects stock: add/remove a quantity, or set it to a counted figure. Notes are required.</summary>
     [HttpPost("adjustments")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.StockEdit)]
     [ProducesResponseType<StockMovementDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]

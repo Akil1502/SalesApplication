@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
@@ -84,7 +85,7 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        // Keep claim types exactly as issued ("sub", "role") instead of the long WS-* URIs.
+        // Keep claim types exactly as issued ("sub", "name") instead of the long WS-* URIs.
         options.MapInboundClaims = false;
         options.Events = new JwtBearerEvents
         {
@@ -124,10 +125,12 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = AppClaimTypes.Name,
-            RoleClaimType = AppClaimTypes.Role,
         };
     });
 
+// Role and permissions come from the database on each request, so an administrator's change applies at once.
+builder.Services.AddScoped<IClaimsTransformation, PermissionClaimsTransformation>();
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddAuthorizationBuilder()
     // Anything not explicitly [AllowAnonymous] requires a signed-in user - a safety net in case
     // a future controller forgets to inherit ApiControllerBase.

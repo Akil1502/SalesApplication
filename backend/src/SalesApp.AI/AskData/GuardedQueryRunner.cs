@@ -30,9 +30,9 @@ public sealed class GuardedQueryRunner(
     TimeProvider time,
     ILogger<GuardedQueryRunner> logger) : IGuardedQueryRunner
 {
-    public string RunAs => currentUser.IsManagerOrAdmin ? ReadOnlySqlExecutor.ManagerReader : ReadOnlySqlExecutor.Reader;
+    public string RunAs => currentUser.Has(Permissions.CostPricesView) ? ReadOnlySqlExecutor.ManagerReader : ReadOnlySqlExecutor.Reader;
 
-    private string[] Schemas => currentUser.IsManagerOrAdmin ? ["rpt", "rpt_mgr"] : ["rpt"];
+    private string[] Schemas => currentUser.Has(Permissions.CostPricesView) ? ["rpt", "rpt_mgr"] : ["rpt"];
 
     public async Task<GuardedQueryOutcome> RunAsync(Guid runId, string question, string sql, CancellationToken cancellationToken)
     {

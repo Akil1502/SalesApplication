@@ -9,6 +9,7 @@ using SalesApp.Api.Security;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Ai;
 using SalesApp.Core.Contracts.Sales;
+using SalesApp.Core.Security;
 
 namespace SalesApp.Api.Controllers;
 
@@ -47,6 +48,7 @@ public sealed class OrderExtractionForm
 /// Reading saves nothing; only the confirm call creates the order.
 /// </summary>
 [Route("api/orders/smart-entry")]
+[RequirePermission(Permissions.SmartEntryUse)]
 public sealed class SmartOrdersController(IOrderExtractionService extraction, ISmartOrderService smartOrders) : ApiControllerBase
 {
     private const int MaxUploadBytes = 12 * 1024 * 1024;
@@ -82,6 +84,7 @@ public sealed class SmartOrdersController(IOrderExtractionService extraction, IS
 
     /// <summary>Saves the reviewed order as a draft and learns product aliases from the user's corrections.</summary>
     [HttpPost]
+    [RequirePermission(Permissions.OrdersEdit)]
     [ProducesResponseType<OrderDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<OrderDto>> Confirm(SmartOrderConfirmRequest request, CancellationToken cancellationToken)

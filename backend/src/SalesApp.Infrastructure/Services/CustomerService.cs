@@ -21,12 +21,11 @@ public interface ICustomerService
 
 /// <summary>
 /// Customers. Credit limit, payment terms and the assigned rep are commercial decisions, so only
-/// managers and admins can set them; a sales rep's new customers are assigned to that rep.
+/// users who may set credit terms can set them; anyone else's new customers are assigned to them.
 /// </summary>
 public sealed class CustomerService(
     AppDbContext db,
     ILookupService lookups,
-    UserManager<AppUser> users,
     ICurrentUser currentUser) : ICustomerService
 {
     private const int DefaultPaymentTermsDays = 30;
@@ -110,7 +109,7 @@ public sealed class CustomerService(
         var customer = new Customer { Code = code, Name = request.Name.Trim(), BillingAddress = billing };
         ApplyDetails(customer, request, shipping, gstin);
 
-        if (currentUser.IsManagerOrAdmin)
+        if (currentUser.Has(Permissions.CreditTermsEdit))
         {
             await ApplyCommercialTermsAsync(customer, request);
         }
@@ -138,7 +137,7 @@ public sealed class CustomerService(
         ApplyDetails(customer, request, shipping, gstin);
 
         // Sales reps may edit contact details and addresses; commercial terms stay as they were.
-        if (currentUser.IsManagerOrAdmin)
+        if (currentUser.Has(Permissions.CreditTermsEdit))
         {
             await ApplyCommercialTermsAsync(customer, request);
         }
@@ -162,7 +161,7 @@ public sealed class CustomerService(
 
     private async Task ApplyCommercialTermsAsync(Customer customer, CustomerSaveRequest request)
     {
-        if (request.AssignedRepId is { } repId && !await LookupService.IsAssignableRepAsync(users, repId))
+        if (request.AssignedRepId is { } repId && !await LookupService.IsAssignableRepAsync(db, repId))
         {
             throw new ValidationException("assignedRepId", "Choose an active sales rep or sales manager.");
         }

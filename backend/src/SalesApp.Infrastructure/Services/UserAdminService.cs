@@ -6,6 +6,7 @@ using SalesApp.Core.Contracts.Users;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Security;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -19,13 +20,15 @@ public interface IUserAdminService
 }
 
 /// <summary>
-/// User management for admins. Each user holds exactly one role. Guard rails stop an admin from
-/// locking everyone out: you can't demote or deactivate yourself, and the last active admin stays.
+/// User management. Each user holds exactly one role, and may have permissions added to or taken away from that
+/// role for them alone. Guard rails stop an admin from locking everyone out: you can't change your own role or
+/// permissions or deactivate yourself, and the last active administrator stays.
 /// </summary>
 public sealed class UserAdminService(
     AppDbContext db,
     UserManager<AppUser> users,
     ICurrentUser currentUser,
+    IPermissionService permissions,
     TimeProvider timeProvider) : IUserAdminService
 {
     public async Task<PagedResult<UserDto>> ListAsync(UserListRequest request, CancellationToken cancellationToken)
@@ -64,13 +67,24 @@ public sealed class UserAdminService(
             _ => throw new ValidationException("sort", $"Can't sort by '{sortKey}'. Use one of: fullName, email, role, createdAt."),
         };
 
-        return await ordered
+        var page = await ordered
             .ThenBy(x => x.User.Id)
             .Select(x => new UserDto(
                 x.User.Id, x.User.Email ?? string.Empty, x.User.FullName, x.Role, x.User.IsActive,
                 x.User.LockoutEnd != null && x.User.LockoutEnd > now,
-                x.User.CreatedAtUtc))
+                x.User.CreatedAtUtc, new List<string>(), new List<string>()))
             .ToPagedResultAsync(request, cancellationToken);
+
+        var ids = page.Items.Select(u => u.Id).ToList();
+        var changes = await db.UserPermissionChanges.AsNoTracking().Where(p => ids.Contains(p.UserId)).ToListAsync(cancellationToken);
+        return page with
+        {
+            Items = [.. page.Items.Select(u => u with
+            {
+                AddedPermissions = Keys(changes.Where(c => c.UserId == u.Id && c.IsGranted)),
+                RemovedPermissions = Keys(changes.Where(c => c.UserId == u.Id && !c.IsGranted)),
+            })],
+        };
     }
 
     public async Task<UserDto> GetAsync(Guid id, CancellationToken cancellationToken)
@@ -81,7 +95,7 @@ public sealed class UserAdminService(
 
     public async Task<UserDto> CreateAsync(UserCreateRequest request, CancellationToken cancellationToken)
     {
-        EnsureValidRole(request.Role);
+        var role = await FindRoleAsync(request.Role, cancellationToken);
 
         var email = request.Email.Trim();
         if (await users.FindByEmailAsync(email) is not null)
@@ -101,22 +115,29 @@ public sealed class UserAdminService(
         // Create and role assignment succeed or fail together.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         ThrowIfFailed(await users.CreateAsync(user, request.Password), "password");
-        ThrowIfFailed(await users.AddToRoleAsync(user, request.Role), "role");
+        ThrowIfFailed(await users.AddToRoleAsync(user, role.Name!), "role");
+        await SetChangesAsync(user.Id, role, request.AddedPermissions, request.RemovedPermissions, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
+        permissions.Invalidate();
         return await ToDtoAsync(user);
     }
 
     public async Task<UserDto> UpdateAsync(Guid id, UserUpdateRequest request, CancellationToken cancellationToken)
     {
-        EnsureValidRole(request.Role);
+        var role = await FindRoleAsync(request.Role, cancellationToken);
         var user = await FindAsync(id);
         var currentRole = (await users.GetRolesAsync(user)).FirstOrDefault();
 
         var isSelf = id == currentUser.UserId;
-        if (isSelf && request.Role != currentRole)
+        if (isSelf && role.Name != currentRole)
         {
             throw new ValidationException("role", "You can't change your own role. Ask another admin.");
+        }
+
+        if (isSelf && !await SameChangesAsync(id, role, request.AddedPermissions, request.RemovedPermissions, cancellationToken))
+        {
+            throw new ValidationException("permissions", "You can't change your own permissions. Ask another admin.");
         }
 
         if (isSelf && !request.IsActive)
@@ -124,7 +145,7 @@ public sealed class UserAdminService(
             throw new ValidationException("isActive", "You can't deactivate your own account.");
         }
 
-        var losingAdmin = currentRole == Roles.Admin && user.IsActive && (request.Role != Roles.Admin || !request.IsActive);
+        var losingAdmin = currentRole == Roles.Admin && user.IsActive && (role.Name != Roles.Admin || !request.IsActive);
         if (losingAdmin && await CountActiveAdminsAsync(cancellationToken) <= 1)
         {
             throw new ConflictException("This is the only active admin. Make someone else an admin first.");
@@ -137,15 +158,17 @@ public sealed class UserAdminService(
         user.IsActive = request.IsActive;
         ThrowIfFailed(await users.UpdateAsync(user), "fullName");
 
-        if (request.Role != currentRole)
+        if (role.Name != currentRole)
         {
             if (currentRole is not null)
             {
                 ThrowIfFailed(await users.RemoveFromRoleAsync(user, currentRole), "role");
             }
 
-            ThrowIfFailed(await users.AddToRoleAsync(user, request.Role), "role");
+            ThrowIfFailed(await users.AddToRoleAsync(user, role.Name!), "role");
         }
+
+        await SetChangesAsync(user.Id, role, request.AddedPermissions, request.RemovedPermissions, cancellationToken);
 
         // Rotating the security stamp marks the change; deactivated users are also refused by /me and login.
         if (wasActive && !request.IsActive)
@@ -154,6 +177,7 @@ public sealed class UserAdminService(
         }
 
         await transaction.CommitAsync(cancellationToken);
+        permissions.Invalidate();
         return await ToDtoAsync(user);
     }
 
@@ -192,16 +216,51 @@ public sealed class UserAdminService(
     {
         var role = (await users.GetRolesAsync(user)).FirstOrDefault() ?? string.Empty;
         var lockedOut = await users.IsLockedOutAsync(user);
-        return new UserDto(user.Id, user.Email ?? string.Empty, user.FullName, role, user.IsActive, lockedOut, user.CreatedAtUtc);
+        var changes = await db.UserPermissionChanges.AsNoTracking().Where(p => p.UserId == user.Id).ToListAsync();
+        return new UserDto(user.Id, user.Email ?? string.Empty, user.FullName, role, user.IsActive, lockedOut, user.CreatedAtUtc,
+            Keys(changes.Where(c => c.IsGranted)), Keys(changes.Where(c => !c.IsGranted)));
     }
 
-    private static void EnsureValidRole(string role)
+    private async Task<AppRole> FindRoleAsync(string name, CancellationToken cancellationToken) =>
+        await db.Roles.AsNoTracking().Include(r => r.Permissions).SingleOrDefaultAsync(r => r.Name == name, cancellationToken)
+        ?? throw new ValidationException("role", $"There is no role called {name}.");
+
+    /// <summary>
+    /// The user's own changes, kept only where they differ from the role: added permissions the role lacks (with what
+    /// they need), removed permissions the role has. Administrators have everything, so they get no changes.
+    /// </summary>
+    private static (HashSet<string> Added, HashSet<string> Removed) Normalize(AppRole role, IEnumerable<string> added, IEnumerable<string> removed)
     {
-        if (!Roles.All.Contains(role))
+        if (role.IsSystem)
         {
-            throw new ValidationException("role", $"Role must be one of: {string.Join(", ", Roles.All)}.");
+            return ([], []);
         }
+
+        var rolePermissions = role.Permissions.Select(p => p.Permission).ToHashSet(StringComparer.Ordinal);
+        var addedSet = Permissions.WithNeeds(added);
+        addedSet.ExceptWith(rolePermissions);
+        var removedSet = removed.Where(rolePermissions.Contains).ToHashSet(StringComparer.Ordinal);
+        return (addedSet, removedSet);
     }
+
+    private async Task SetChangesAsync(Guid userId, AppRole role, IEnumerable<string> added, IEnumerable<string> removed, CancellationToken cancellationToken)
+    {
+        var (addedSet, removedSet) = Normalize(role, added, removed);
+        await db.UserPermissionChanges.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
+        db.UserPermissionChanges.AddRange(addedSet.Select(p => new UserPermissionChange { UserId = userId, Permission = p, IsGranted = true }));
+        db.UserPermissionChanges.AddRange(removedSet.Select(p => new UserPermissionChange { UserId = userId, Permission = p, IsGranted = false }));
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<bool> SameChangesAsync(Guid userId, AppRole role, IEnumerable<string> added, IEnumerable<string> removed, CancellationToken cancellationToken)
+    {
+        var (addedSet, removedSet) = Normalize(role, added, removed);
+        var stored = await db.UserPermissionChanges.AsNoTracking().Where(p => p.UserId == userId).ToListAsync(cancellationToken);
+        return addedSet.SetEquals(stored.Where(c => c.IsGranted).Select(c => c.Permission))
+            && removedSet.SetEquals(stored.Where(c => !c.IsGranted).Select(c => c.Permission));
+    }
+
+    private static List<string> Keys(IEnumerable<UserPermissionChange> changes) => [.. changes.Select(c => c.Permission).Order(StringComparer.Ordinal)];
 
     /// <summary>Identity reports problems (weak password, duplicate name) as IdentityResult errors; surface them on a field.</summary>
     private static void ThrowIfFailed(IdentityResult result, string field)

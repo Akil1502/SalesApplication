@@ -216,7 +216,7 @@ public sealed class SalesEndpointsTests(SalesAppFactory factory)
 
         var asRep = await rep.PostAsJsonAsync($"/api/orders/{order.Id}/confirm", new OrderConfirmRequest { RowVersion = order.RowVersion, OverrideCreditLimit = true }, TestClients.Json, Ct);
         Assert.Equal(HttpStatusCode.BadRequest, asRep.StatusCode);
-        Assert.Contains("Ask a manager", Assert.Single((await asRep.ReadAsync<ApiError>()).Errors!["creditLimit"]), StringComparison.Ordinal);
+        Assert.Contains("Ask someone who can override credit limits", Assert.Single((await asRep.ReadAsync<ApiError>()).Errors!["creditLimit"]), StringComparison.Ordinal);
 
         var managerNoOverride = await manager.PostAsJsonAsync($"/api/orders/{order.Id}/confirm", new OrderConfirmRequest { RowVersion = order.RowVersion }, TestClients.Json, Ct);
         Assert.Equal(HttpStatusCode.BadRequest, managerNoOverride.StatusCode);

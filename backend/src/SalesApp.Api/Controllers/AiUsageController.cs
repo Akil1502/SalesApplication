@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.AI.Claude;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Ai;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Security;
@@ -12,7 +12,7 @@ namespace SalesApp.Api.Controllers;
 /// query the AI wrote (with what the checker or the database said about it). Conversations themselves stay private.
 /// </summary>
 [Route("api/admin/ai-usage")]
-[Authorize(Roles = Roles.Admin)]
+[RequirePermission(Permissions.AiUsageView)]
 public sealed class AiUsageController(IAiUsageReport report) : ApiControllerBase
 {
     [HttpGet("summary")]

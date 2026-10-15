@@ -34,16 +34,16 @@ public sealed class JwtTokenServiceTests
     [Fact]
     public void Token_expires_after_the_configured_lifetime()
     {
-        var (_, expiresAtUtc) = CreateService().CreateToken(User, ["SalesRep"]);
+        var (_, expiresAtUtc) = CreateService().CreateToken(User);
 
         Assert.Equal(Now.UtcDateTime.AddMinutes(480), expiresAtUtc);
         Assert.Equal(DateTimeKind.Utc, expiresAtUtc.Kind);
     }
 
     [Fact]
-    public async Task Token_carries_identity_and_role_claims_and_validates_with_the_same_key()
+    public async Task Token_carries_identity_claims_only_and_validates_with_the_same_key()
     {
-        var (token, _) = CreateService().CreateToken(User, ["SalesManager", "SalesRep"]);
+        var (token, _) = CreateService().CreateToken(User);
 
         var result = await new JsonWebTokenHandler().ValidateTokenAsync(token, new TokenValidationParameters
         {
@@ -58,15 +58,14 @@ public sealed class JwtTokenServiceTests
         var jwt = (JsonWebToken)result.SecurityToken;
         Assert.Equal(User.Id.ToString(), jwt.Subject);
         Assert.Equal("Priya Raman", jwt.GetClaim(AppClaimTypes.Name).Value);
-        Assert.Equal(
-            ["SalesManager", "SalesRep"],
-            jwt.Claims.Where(c => c.Type == AppClaimTypes.Role).Select(c => c.Value).Order());
+        // Role and permissions are read per request, so a change applies before the token expires.
+        Assert.DoesNotContain(jwt.Claims, c => c.Type is "role" or AppClaimTypes.Permission or AppClaimTypes.RoleName);
     }
 
     [Fact]
     public async Task Token_signed_with_a_different_key_is_rejected()
     {
-        var (token, _) = CreateService().CreateToken(User, []);
+        var (token, _) = CreateService().CreateToken(User);
 
         var result = await new JsonWebTokenHandler().ValidateTokenAsync(token, new TokenValidationParameters
         {

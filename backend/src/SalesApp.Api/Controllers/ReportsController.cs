@@ -1,12 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Reports;
+using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Reporting;
 using SalesApp.Infrastructure.Services;
 
 namespace SalesApp.Api.Controllers;
 
 /// <summary>Standard reports, on screen or as Excel. Without dates they cover the financial year to date.</summary>
+[RequirePermission(Permissions.ReportsView)]
 public sealed class ReportsController(IReportService reports, ICompanySettingsService settings) : ApiControllerBase
 {
     [HttpGet]
@@ -36,6 +39,7 @@ public sealed class ReportsController(IReportService reports, ICompanySettingsSe
 }
 
 /// <summary>Home dashboard figures.</summary>
+[RequirePermission(Permissions.DashboardView)]
 public sealed class DashboardController(IDashboardService dashboard) : ApiControllerBase
 {
     [HttpGet]

@@ -137,7 +137,7 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
             .ToListAsync(ct);
         var total = rows.Sum(r => r.Taxable);
 
-        var showMargin = currentUser.IsManagerOrAdmin;
+        var showMargin = currentUser.Has(Permissions.CostPricesView);
         var margins = showMargin
             ? await db.RptMargins.Where(m => m.InvoiceDate >= from && m.InvoiceDate <= to)
                 .GroupBy(m => m.ProductId).Select(g => new MarginTotal(g.Key, g.Sum(m => m.CostValue), g.Sum(m => m.GrossMargin)))
@@ -288,7 +288,7 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
     private async Task<ReportResult> StockAsync(ReportDefinitionDto d, CancellationToken ct)
     {
-        var showValue = currentUser.IsManagerOrAdmin;
+        var showValue = currentUser.Has(Permissions.CostPricesView);
         var rows = await db.RptProducts
             .Where(p => p.IsActive)
             .OrderBy(p => p.CategoryName).ThenBy(p => p.Name)

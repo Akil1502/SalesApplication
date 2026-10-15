@@ -135,7 +135,7 @@ public sealed class AssistantTests(SalesAppFactory factory)
         Assert.StartsWith("<context>Today's date", ((ClaudeTextBlock)first.Messages[0].Blocks[0]).Text, StringComparison.Ordinal);
         Assert.Equal("What does Kavya Traders owe us?", ((ClaudeTextBlock)first.Messages[0].Blocks[1]).Text);
         Assert.True(first.System[^1].CacheAfter);
-        Assert.Contains("Test SalesRep", first.System[^1].Text, StringComparison.Ordinal);
+        Assert.Contains($"Test {Roles.SalesRep}", first.System[^1].Text, StringComparison.Ordinal);
         Assert.DoesNotContain("rpt_mgr", first.System[^1].Text, StringComparison.Ordinal);
 
         // Saved: question, two rounds of (tool call, results), and the answer.

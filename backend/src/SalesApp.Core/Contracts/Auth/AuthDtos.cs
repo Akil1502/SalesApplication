@@ -20,8 +20,13 @@ public sealed record LoginResponse(
     DateTime ExpiresAtUtc,
     CurrentUserDto User);
 
+/// <summary>
+/// The signed-in user: their role name (for display) and what they may do (keys from
+/// SalesApp.Core.Security.Permissions, after any changes made for them alone).
+/// </summary>
 public sealed record CurrentUserDto(
     Guid Id,
     string Email,
     string FullName,
-    IReadOnlyList<string> Roles);
+    string Role,
+    IReadOnlyList<string> Permissions);

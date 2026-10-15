@@ -169,12 +169,12 @@ public sealed class AssistantPromptTests
     }
 
     [Fact]
-    public void Reps_are_told_margins_are_for_managers_only()
+    public void Users_without_cost_prices_are_told_they_cant_see_margins()
     {
-        var rep = AssistantPrompt.System("Demo Textiles", "Arun Kumar", "sales rep", manager: false);
+        var rep = AssistantPrompt.System("Demo Textiles", "Arun Kumar", "Sales representative", manager: false);
 
         Assert.DoesNotContain("rpt_mgr", rep, StringComparison.Ordinal);
-        Assert.Contains("only for managers", rep, StringComparison.Ordinal);
+        Assert.Contains("can't see cost prices or margins", rep, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -192,5 +192,36 @@ public sealed class AssistantPromptTests
     public void Each_user_message_starts_with_the_date()
     {
         Assert.Equal("<context>Today's date in India: 2026-10-14 (Wednesday).</context>", AssistantPrompt.DateLine(new DateOnly(2026, 10, 14)));
+    }
+}
+
+public sealed class AssistantToolPermissionTests
+{
+    private sealed class User(params string[] permissions) : SalesApp.Core.Security.ICurrentUser
+    {
+        public Guid UserId { get; } = Guid.NewGuid();
+
+        public bool Has(string permission) => permissions.Contains(permission);
+
+        public string RoleName => "Test";
+    }
+
+    // Refusal only looks at the user, so the lookups' other dependencies aren't needed here.
+    private static AssistantTools Tools(params string[] permissions) => new(null!, null!, null!, new User(permissions));
+
+    [Fact]
+    public void Lookups_need_the_same_permission_as_the_screen()
+    {
+        var reportsOnly = Tools(SalesApp.Core.Security.Permissions.ReportsView);
+
+        Assert.True(reportsOnly.Refusal(AssistantPrompt.ListInvoices)?.IsError);
+        Assert.Equal("No access to invoices", reportsOnly.Refusal(AssistantPrompt.ListInvoices)?.Label);
+        Assert.NotNull(reportsOnly.Refusal(AssistantPrompt.SearchCustomers));
+        Assert.NotNull(reportsOnly.Refusal(AssistantPrompt.QuerySalesData));
+        Assert.NotNull(reportsOnly.Refusal(AssistantPrompt.CreateDraft));
+
+        var invoices = Tools(SalesApp.Core.Security.Permissions.InvoicesView);
+        Assert.Null(invoices.Refusal(AssistantPrompt.ListInvoices));
+        Assert.NotNull(invoices.Refusal(AssistantPrompt.SearchProducts));
     }
 }

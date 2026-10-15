@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Security;
 using SalesApp.Core.Contracts.Masters;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Services;
@@ -16,14 +16,14 @@ public sealed class CategoriesController(ICategoryService categories) : ApiContr
         categories.ListAsync(includeInactive, cancellationToken);
 
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.CatalogEdit)]
     [ProducesResponseType<CategoryDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CategoryDto>> Create(CategorySaveRequest request, CancellationToken cancellationToken) =>
         StatusCode(StatusCodes.Status201Created, await categories.CreateAsync(request, cancellationToken));
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.CatalogEdit)]
     [ProducesResponseType<CategoryDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
@@ -32,7 +32,7 @@ public sealed class CategoriesController(ICategoryService categories) : ApiContr
 
     /// <summary>Deletes an unused category. Categories with products return 409; deactivate those instead.</summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.CatalogEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ApiError>(StatusCodes.Status409Conflict)]
@@ -53,14 +53,14 @@ public sealed class HsnCodesController(IHsnCodeService hsnCodes) : ApiController
         hsnCodes.ListAsync(includeInactive, cancellationToken);
 
     [HttpPost]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.CatalogEdit)]
     [ProducesResponseType<HsnCodeDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<HsnCodeDto>> Create(HsnCodeSaveRequest request, CancellationToken cancellationToken) =>
         StatusCode(StatusCodes.Status201Created, await hsnCodes.CreateAsync(request, cancellationToken));
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.CatalogEdit)]
     [ProducesResponseType<HsnCodeDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
@@ -69,7 +69,7 @@ public sealed class HsnCodesController(IHsnCodeService hsnCodes) : ApiController
 
     /// <summary>Deletes an unused HSN code. Codes used by products return 409; deactivate those instead.</summary>
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = Roles.AdminOrManager)]
+    [RequirePermission(Permissions.CatalogEdit)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ApiError>(StatusCodes.Status409Conflict)]

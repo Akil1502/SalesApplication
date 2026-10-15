@@ -41,7 +41,8 @@ public sealed class AuthEndpointsTests(SalesAppFactory factory)
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
         var body = await login.Content.ReadFromJsonAsync<LoginResponse>(Ct);
         Assert.NotNull(body);
-        Assert.Equal([Roles.Admin], body.User.Roles);
+        Assert.Equal(Roles.Admin, body.User.Role);
+        Assert.Equal(Permissions.All.Order(StringComparer.Ordinal), body.User.Permissions);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", body.AccessToken);

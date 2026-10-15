@@ -13,7 +13,7 @@ public interface ILookupService
     /// <summary>All states and union territories, keyed by GST state code. Cached: it's migration-seeded reference data.</summary>
     Task<IReadOnlyDictionary<string, StateDto>> GetStatesAsync(CancellationToken cancellationToken);
 
-    /// <summary>Active users who can be assigned customers (sales reps and managers).</summary>
+    /// <summary>Active users who can be assigned customers (the "Can be a sales rep" permission).</summary>
     Task<IReadOnlyList<UserLookupDto>> GetSalesRepsAsync(CancellationToken cancellationToken);
 
     Task<StateDto> GetStateOrThrowAsync(string? code, string field, CancellationToken cancellationToken);
@@ -43,30 +43,26 @@ public sealed class LookupService(AppDbContext db, IMemoryCache cache) : ILookup
             : throw new Core.Common.ValidationException(field, "Choose a valid state.");
     }
 
-    public async Task<IReadOnlyList<UserLookupDto>> GetSalesRepsAsync(CancellationToken cancellationToken)
-    {
-        var roleIds = db.Roles
-            .Where(r => r.Name == Roles.SalesRep || r.Name == Roles.SalesManager)
-            .Select(r => r.Id);
-
-        return await db.Users
-            .AsNoTracking()
-            .Where(u => u.IsActive && db.UserRoles.Any(ur => ur.UserId == u.Id && roleIds.Contains(ur.RoleId)))
+    public async Task<IReadOnlyList<UserLookupDto>> GetSalesRepsAsync(CancellationToken cancellationToken) =>
+        await AssignableReps(db)
             .OrderBy(u => u.FullName)
             .Select(u => new UserLookupDto(u.Id, u.FullName, u.Email ?? string.Empty))
             .ToListAsync(cancellationToken);
-    }
 
-    /// <summary>True when the user exists, is active, and holds a role that can own customers.</summary>
-    internal static async Task<bool> IsAssignableRepAsync(UserManager<AppUser> users, Guid userId)
+    /// <summary>True when the user exists, is active, and can be assigned customers.</summary>
+    internal static Task<bool> IsAssignableRepAsync(AppDbContext db, Guid userId) =>
+        AssignableReps(db).AnyAsync(u => u.Id == userId);
+
+    /// <summary>
+    /// Active users with "Can be a sales rep": from their role (unless taken away from them) or given to them alone.
+    /// Administrators aren't included: they hold every permission implicitly, which would list them all.
+    /// </summary>
+    private static IQueryable<AppUser> AssignableReps(AppDbContext db)
     {
-        var user = await users.FindByIdAsync(userId.ToString());
-        if (user is not { IsActive: true })
-        {
-            return false;
-        }
-
-        var roles = await users.GetRolesAsync(user);
-        return roles.Contains(Roles.SalesRep) || roles.Contains(Roles.SalesManager);
+        const string key = Permissions.SalesRepAssignable;
+        return db.Users.AsNoTracking().Where(u => u.IsActive && (
+            db.UserPermissionChanges.Any(p => p.UserId == u.Id && p.Permission == key && p.IsGranted)
+            || (db.UserRoles.Any(ur => ur.UserId == u.Id && db.RoleGrants.Any(rp => rp.RoleId == ur.RoleId && rp.Permission == key))
+                && !db.UserPermissionChanges.Any(p => p.UserId == u.Id && p.Permission == key && !p.IsGranted))));
     }
 }

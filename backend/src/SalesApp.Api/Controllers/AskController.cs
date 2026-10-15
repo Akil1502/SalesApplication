@@ -12,6 +12,7 @@ using SalesApp.Api.Security;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Ai;
 using SalesApp.Core.Contracts.Reports;
+using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Reporting;
 using SalesApp.Infrastructure.Services;
 
@@ -22,6 +23,7 @@ namespace SalesApp.Api.Controllers;
 /// events (progress steps, then the answer) so the user sees what's happening during the 10-30 seconds it takes.
 /// </summary>
 [Route("api/ask")]
+[RequirePermission(Permissions.AskDataUse)]
 public sealed class AskController(
     IAskDataService askData,
     IClaudeGateway claude,

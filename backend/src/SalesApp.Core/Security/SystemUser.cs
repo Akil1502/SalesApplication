@@ -14,7 +14,9 @@ public sealed class SystemUser : ICurrentUser
 
     public Guid UserId => Guid.Empty;
 
-    public bool IsInRole(string role) => role == Roles.Admin;
+    public bool Has(string permission) => true;
+
+    public string RoleName => Roles.Admin;
 
     public bool IsSystem => true;
 }

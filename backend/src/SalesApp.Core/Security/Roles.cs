@@ -1,22 +1,37 @@
 namespace SalesApp.Core.Security;
 
 /// <summary>
-/// Role names used in JWT role claims and [Authorize(Roles = ...)] attributes.
-/// Kept as string constants so they can be used inside attributes.
+/// The built-in roles. Administrators can add their own roles in the app; a role is a set of
+/// <see cref="Permissions"/>, and access is always checked by permission, never by role name.
 /// </summary>
 public static class Roles
 {
-    /// <summary>Full access, including user management and company settings.</summary>
-    public const string Admin = "Admin";
+    /// <summary>Every permission, always. It can't be changed or deleted, and there is always one active administrator.</summary>
+    public const string Admin = "Administrator";
 
-    /// <summary>All sales data, reports, margins and AI insights; no user management.</summary>
-    public const string SalesManager = "SalesManager";
+    /// <summary>Starts with everything except administration (see <see cref="Permissions.SalesManagerDefaults"/>).</summary>
+    public const string SalesManager = "Sales manager";
 
-    /// <summary>Day-to-day order entry and customer work.</summary>
-    public const string SalesRep = "SalesRep";
+    /// <summary>Starts with day-to-day order and customer work (see <see cref="Permissions.SalesRepDefaults"/>).</summary>
+    public const string SalesRep = "Sales representative";
 
-    /// <summary>Comma-joined forms for attribute use.</summary>
-    public const string AdminOrManager = Admin + "," + SalesManager;
+    public static readonly IReadOnlyList<string> BuiltIn = [Admin, SalesManager, SalesRep];
 
-    public static readonly IReadOnlyList<string> All = [Admin, SalesManager, SalesRep];
+    /// <summary>What a built-in role is for, shown when choosing a role.</summary>
+    public static string? Description(string role) => role switch
+    {
+        Admin => "Everything, including users, roles and company settings.",
+        SalesManager => "All sales work, products, credit terms, margins and AI insights. No administration.",
+        SalesRep => "Customers, orders and invoices. No cost prices or credit terms.",
+        _ => null,
+    };
+
+    /// <summary>The permissions a built-in role is created with; an administrator can change them afterwards.</summary>
+    public static IReadOnlySet<string> DefaultPermissions(string role) => role switch
+    {
+        Admin => Permissions.All,
+        SalesManager => Permissions.SalesManagerDefaults,
+        SalesRep => Permissions.SalesRepDefaults,
+        _ => new HashSet<string>(),
+    };
 }

@@ -24,22 +24,32 @@ public static class DbInitializer
         await db.Database.MigrateAsync(cancellationToken);
         await DbObjectsInitializer.ApplyAsync(db, cancellationToken);
 
-        await SeedRolesAsync(provider.GetRequiredService<RoleManager<IdentityRole<Guid>>>(), logger);
+        await SeedRolesAsync(provider.GetRequiredService<RoleManager<AppRole>>(), logger);
         await SeedAdminAsync(provider, logger);
     }
 
-    private static async Task SeedRolesAsync(RoleManager<IdentityRole<Guid>> roleManager, ILogger logger)
+    /// <summary>
+    /// Creates any missing built-in role with its default permissions. A role that already exists is left alone, so
+    /// changes an administrator made to its permissions survive restarts.
+    /// </summary>
+    private static async Task SeedRolesAsync(RoleManager<AppRole> roleManager, ILogger logger)
     {
-        foreach (var role in Roles.All)
+        foreach (var name in Roles.BuiltIn)
         {
-            if (await roleManager.RoleExistsAsync(role))
+            if (await roleManager.RoleExistsAsync(name))
             {
                 continue;
             }
 
-            var result = await roleManager.CreateAsync(new IdentityRole<Guid>(role));
-            EnsureSucceeded(result, $"create role '{role}'");
-            logger.LogInformation("Created role {Role}", role);
+            var system = name == Roles.Admin;
+            var role = new AppRole(name)
+            {
+                Description = Roles.Description(name),
+                IsSystem = system,
+                Permissions = system ? [] : [.. Roles.DefaultPermissions(name).Select(p => new RoleGrant { Permission = p })],
+            };
+            EnsureSucceeded(await roleManager.CreateAsync(role), $"create role '{name}'");
+            logger.LogInformation("Created role {Role}", name);
         }
     }
 
@@ -72,7 +82,7 @@ public static class DbInitializer
         };
 
         EnsureSucceeded(await userManager.CreateAsync(admin, options.AdminPassword), "create the admin user");
-        EnsureSucceeded(await userManager.AddToRoleAsync(admin, Roles.Admin), "add the admin user to the Admin role");
+        EnsureSucceeded(await userManager.AddToRoleAsync(admin, Roles.Admin), "add the admin user to the Administrator role");
         logger.LogInformation("Created bootstrap admin {Email}", options.AdminEmail);
     }
 

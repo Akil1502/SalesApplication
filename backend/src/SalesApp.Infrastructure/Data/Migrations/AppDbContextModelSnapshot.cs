@@ -26,34 +26,6 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
             modelBuilder.HasSequence<int>("StockReceiptNumbers");
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
-
-                    b.ToTable("AspNetRoles", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -430,6 +402,41 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.HasIndex("UserId", "CreatedAtUtc");
 
                     b.ToTable("AiUsageLogs");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.AppRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsSystem")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex")
+                        .HasFilter("[NormalizedName] IS NOT NULL");
+
+                    b.ToTable("AspNetRoles", (string)null);
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.AppUser", b =>
@@ -1412,6 +1419,21 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.ToTable("ProductAliases");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.RoleGrant", b =>
+                {
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Permission")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.HasKey("RoleId", "Permission");
+
+                    b.ToTable("RolePermissions", (string)null);
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.SalesOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -1962,6 +1984,24 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.ToTable("StockReceipts");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Permission")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<bool>("IsGranted")
+                        .HasColumnType("bit");
+
+                    b.HasKey("UserId", "Permission");
+
+                    b.ToTable("UserPermissions", (string)null);
+                });
+
             modelBuilder.Entity("SalesApp.Infrastructure.Reporting.RptInvoice", b =>
                 {
                     b.Property<decimal>("AmountPaid")
@@ -2250,7 +2290,7 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
+                    b.HasOne("SalesApp.Core.Entities.AppRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2277,7 +2317,7 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
+                    b.HasOne("SalesApp.Core.Entities.AppRole", null)
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -2709,6 +2749,15 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.RoleGrant", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppRole", null)
+                        .WithMany("Permissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.SalesOrder", b =>
                 {
                     b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
@@ -2797,9 +2846,23 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.Navigation("CreatedBy");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.AiConversation", b =>
                 {
                     b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.AppRole", b =>
+                {
+                    b.Navigation("Permissions");
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.Invoice", b =>

@@ -39,7 +39,9 @@ public sealed class EvalUser(Guid id) : ICurrentUser
 {
     public Guid UserId => id;
 
-    public bool IsInRole(string role) => role == Roles.SalesManager;
+    public bool Has(string permission) => Permissions.SalesManagerDefaults.Contains(permission);
+
+    public string RoleName => Roles.SalesManager;
 }
 
 /// <summary>

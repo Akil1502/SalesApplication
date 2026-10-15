@@ -56,7 +56,7 @@ public sealed class AiUsageTests(SalesAppFactory factory)
         Assert.Equal(1, mine.Failed);
         Assert.Equal(Math.Round(0.85m * 88, 2), mine.CostInr);
         var rep = Assert.Single(summary.ByUser, u => u.UserId == repId);
-        Assert.Equal("Test SalesRep", rep.Name);
+        Assert.Equal($"Test {Roles.SalesRep}", rep.Name);
         Assert.Equal(Math.Round(0.75m * 88, 2), rep.Last24HoursInr);
         Assert.Equal(37.5m, rep.BudgetUsedPercent); // $0.75 of the $2 daily budget
         Assert.Contains(summary.ByUser, u => u.UserId == null && u.Name.StartsWith("Background", StringComparison.Ordinal));
@@ -100,7 +100,7 @@ public sealed class AiUsageTests(SalesAppFactory factory)
         var query = Assert.Single(rejected.Items);
         Assert.Equal("DELETE FROM rpt.Invoices", query.Sql);
         Assert.Equal("Only a single SELECT statement is allowed.", query.Error);
-        Assert.Equal("Test Admin", query.UserName);
+        Assert.Equal($"Test {Roles.Admin}", query.UserName);
     }
 
     [Fact]

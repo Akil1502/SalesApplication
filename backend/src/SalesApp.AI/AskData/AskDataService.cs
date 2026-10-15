@@ -57,7 +57,7 @@ public sealed class AskDataService(
         }
 
         var runId = Guid.NewGuid();
-        var manager = currentUser.IsManagerOrAdmin;
+        var manager = currentUser.Has(Permissions.CostPricesView);
         var maxQueries = Math.Clamp(options.CurrentValue.MaxQueries, 1, 10);
 
         var system = AskDataPrompt.System(manager, maxQueries);
