@@ -96,7 +96,7 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation()
-                  onAdjust({ id: s.productId, sku: s.sku, name: s.name, unit: s.unit, quantityOnHand: s.quantityOnHand, listPrice: 0, gstRate: 0 })
+                  onAdjust({ id: s.productId, sku: s.sku, name: s.name, unit: s.unit, quantityOnHand: s.quantityOnHand, price: 0, gstRate: 0 })
                 }}
               >
                 Adjust

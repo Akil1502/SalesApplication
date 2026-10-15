@@ -6,6 +6,7 @@ import { SearchInput } from '@/components/data-table/SearchInput'
 import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
 import { ActiveBadge } from '@/components/StatusBadge'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -23,7 +24,21 @@ const columns: Column<ProductListItem>[] = [
   { key: 'name', header: 'Product', sortKey: 'name', cell: (p) => <span className="font-medium">{p.name}</span> },
   { key: 'category', header: 'Category', sortKey: 'category', cell: (p) => p.categoryName },
   { key: 'hsn', header: 'HSN · GST', cell: (p) => <span className="tabular-nums">{p.hsnCode} · {formatPercent(p.gstRate)}</span> },
-  { key: 'price', header: 'List price', sortKey: 'listPrice', align: 'right', cell: (p) => `${formatINR(p.listPrice)} / ${p.unit}` },
+  {
+    key: 'price',
+    header: 'Price today',
+    align: 'right',
+    cell: (p) => (
+      <span className="inline-flex items-center gap-1.5">
+        {p.hasRate && (
+          <Badge variant="outline" title={`From the rate list; list price ${formatINR(p.listPrice)}`}>
+            Rate list
+          </Badge>
+        )}
+        {formatINR(p.price)} / {p.unit}
+      </span>
+    ),
+  },
   {
     key: 'stock',
     header: 'In stock',

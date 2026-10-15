@@ -207,7 +207,7 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         Assert.Equal(yarn.Id, matched.Product?.Id);
         Assert.Equal(yarn.Sku, matched.Product?.Sku);
         Assert.Equal(500m, matched.Quantity);
-        Assert.Equal(300m, matched.Product?.ListPrice); // from the price list, not the message
+        Assert.Equal(300m, matched.Product?.Price); // from the price list, not the message
         Assert.Equal(310m, matched.StatedPrice);
         Assert.Equal(0.0333m, matched.PriceVariance);
         Assert.Equal(ProductMatchSource.Ai, matched.MatchedBy);

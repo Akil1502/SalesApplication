@@ -57,7 +57,7 @@ export function toFormValues(order: Order): OrderFormValues {
     customerReference: order.customerReference ?? '',
     notes: order.notes ?? '',
     lines: order.lines.map((l) => ({
-      product: { id: l.productId, sku: l.sku, name: l.productName, unit: l.unit, quantityOnHand: l.quantityOnHand, listPrice: l.unitPrice, gstRate: l.gstRate },
+      product: { id: l.productId, sku: l.sku, name: l.productName, unit: l.unit, quantityOnHand: l.quantityOnHand, price: l.unitPrice, gstRate: l.gstRate },
       quantity: String(l.quantity),
       unitPrice: l.unitPrice.toFixed(2),
       discountPercent: l.discountPercent ? String(l.discountPercent) : '',

@@ -76,9 +76,18 @@ public sealed class OrderExtractionService(
         var reply = Parse(response.Text);
         var aliases = catalog.SelectMany(p => p.Aliases.Select(a => (Alias: AliasText.Normalize(a), Product: p)))
             .GroupBy(a => a.Alias).ToDictionary(g => g.Key, g => g.First().Product);
+        // Today's price: the rate for today's period if one is set, else the list price. The order is priced the same way.
+        var today = clock.Today;
         var products = await db.Products.AsNoTracking().Where(p => p.IsActive)
-            .Select(p => new { p.Id, p.Sku, p.Name, p.Unit, p.ListPrice, OnHand = p.Stock == null ? 0m : p.Stock.QuantityOnHand, p.HsnCode!.GstRate })
-            .ToDictionaryAsync(p => p.Id, p => new ExtractedProductDto(p.Id, p.Sku, p.Name, p.Unit, p.ListPrice, p.OnHand, p.GstRate), cancellationToken);
+            .Select(p => new
+            {
+                p.Id, p.Sku, p.Name, p.Unit, OnHand = p.Stock == null ? 0m : p.Stock.QuantityOnHand, p.HsnCode!.GstRate,
+                Price = db.ProductRates
+                    .Where(r => r.ProductId == p.Id && r.EffectiveFrom <= today && (r.EffectiveTo == null || r.EffectiveTo >= today))
+                    .Select(r => (decimal?)r.Rate)
+                    .FirstOrDefault() ?? p.ListPrice,
+            })
+            .ToDictionaryAsync(p => p.Id, p => new ExtractedProductDto(p.Id, p.Sku, p.Name, p.Unit, p.Price, p.OnHand, p.GstRate), cancellationToken);
 
         var lines = reply.IsOrder
             ? reply.Lines.Take(200).Select(line => ToLine(line, products, aliases)).ToList()
@@ -201,8 +210,8 @@ public sealed class OrderExtractionService(
         var product = productId is { } id ? products[id] : null;
         decimal? quantity = line.Quantity > 0 ? Math.Round(line.Quantity, 3) : null;
         decimal? stated = line.UnitPrice > 0 ? Math.Round(line.UnitPrice, 2) : null;
-        decimal? variance = product is not null && stated is { } price && product.ListPrice > 0
-            ? Math.Round((price - product.ListPrice) / product.ListPrice, 4)
+        decimal? variance = product is not null && stated is { } price && product.Price > 0
+            ? Math.Round((price - product.Price) / product.Price, 4)
             : null;
 
         return new ExtractedLineDto(

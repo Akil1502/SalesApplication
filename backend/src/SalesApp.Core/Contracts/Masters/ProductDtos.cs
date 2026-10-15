@@ -11,8 +11,15 @@ public sealed record ProductListRequest : PageRequest
 
     /// <summary>Only products at or below their reorder level.</summary>
     public bool LowStockOnly { get; init; }
+
+    /// <summary>The day to price products on (an order's date); today when left out.</summary>
+    public DateOnly? PriceOn { get; init; }
 }
 
+/// <summary>
+/// A product in a list. Price is its price on the requested day: the rate for that period (HasRate) or else the list
+/// price. New order lines start at Price.
+/// </summary>
 public sealed record ProductListItemDto(
     int Id,
     string Sku,
@@ -22,6 +29,8 @@ public sealed record ProductListItemDto(
     decimal GstRate,
     ProductUnit Unit,
     decimal ListPrice,
+    decimal Price,
+    bool HasRate,
     decimal QuantityOnHand,
     decimal ReorderLevel,
     bool IsActive);
