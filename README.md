@@ -4,7 +4,7 @@ A sales management application for an Indian trading business: customers, produc
 orders, GST invoices, payments, stock, and reports, with Claude-powered AI features built in.
 
 This is a ground-up rebuild of an ASP.NET MVC 5 application I wrote early in my career. The original
-source was lost, so the app is being rebuilt on a modern stack, with AI designed in from the start.
+source was lost, so the app has been rebuilt on a modern stack, with AI designed in from the start.
 
 ## Status
 
@@ -19,7 +19,7 @@ source was lost, so the app is being rebuilt on a modern stack, with AI designed
 | P6 | AI: ask your sales data in plain English (read-only, sandboxed SQL) | ✅ Done |
 | P7 | AI: assistant that drafts follow-ups, quotations and payment reminders | ✅ Built (live check with a real key pending) |
 | P8 | AI: insights, anomaly detection and demand forecasting | ✅ Done |
-| P9 | Hardening, AI usage dashboard, deployment guide, live evals | ✅ Built (the live eval run is yours to approve) |
+| P9 | Hardening, AI usage dashboard, deployment guide, live evals | ✅ Done |
 
 ## Tech stack
 
@@ -234,6 +234,18 @@ and the run stops if it reaches $3. Each suite writes a report to `backend/tests
 committed): pass or fail per case, why, and what it cost; for a failed question also the AI's SQL and summary. To
 re-check a few cases only, list their ids: `$env:SALESAPP_EVAL_CASES = 'top-debtor,payments-last-month'`. The
 graders, and a check that every reference query still runs, are ordinary tests that run every time at no cost.
+
+Results of the first run (15 Oct 2026, `claude-opus-5-5`):
+
+| Suite | Passed | Cost |
+|---|---|---|
+| Order entry | 12 of 12 | ₹12 |
+| Ask your data | 25 of 25 | ₹38, plus ₹6 to re-check three |
+
+The three re-checked questions had failed under the first grader: "who owes us the most?", "how much did we
+receive last month?" and "which month had the highest sales?". Claude answered each with a fuller table: the top 10
+debtors, payments by mode with the total, and all 12 months. Each table held the reference answer and its summary
+named it, so the grader now accepts this kind of answer.
 
 What is sent to Anthropic:
 - Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,
