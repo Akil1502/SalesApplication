@@ -668,7 +668,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The signed-in user, read fresh from the database so role changes show up immediately. */
+        /** The signed-in user, read fresh from the database so role and permission changes show up at once. */
         get: {
             parameters: {
                 query?: never;
@@ -1766,6 +1766,220 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoleDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RoleSaveRequest"];
+                    "text/json": components["schemas"]["RoleSaveRequest"];
+                    "application/*+json": components["schemas"]["RoleSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoleDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every permission, grouped by menu as the sidebar shows them, and the special rights. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PermissionCatalogDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RoleSaveRequest"];
+                    "text/json": components["schemas"]["RoleSaveRequest"];
+                    "application/*+json": components["schemas"]["RoleSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoleDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3450,12 +3664,17 @@ export interface components {
             invoiceTerms?: null | string;
             rowVersion: string;
         };
+        /**
+         * @description The signed-in user: their role name (for display) and what they may do (keys from
+         *     SalesApp.Core.Security.Permissions, after any changes made for them alone).
+         */
         CurrentUserDto: {
             /** Format: uuid */
             id: string;
             email: string;
             fullName: string;
-            roles: string[];
+            role: string;
+            permissions: string[];
         };
         CustomerCandidateDto: {
             /** Format: int32 */
@@ -4281,6 +4500,29 @@ export interface components {
         };
         /** @enum {unknown} */
         PaymentMode: "Cash" | "Upi" | "Neft" | "Rtgs" | "Cheque" | "Card" | "Other";
+        /** @description The permissions to choose from. Needs maps a permission to the ones granting it also grants. */
+        PermissionCatalogDto: {
+            menus: components["schemas"]["PermissionMenuDto"][];
+            specialRights: components["schemas"]["PermissionRightDto"][];
+            needs: {
+                [key: string]: string[];
+            };
+        };
+        /** @description A menu in the permission list: its View permission, and its Add &amp; change one if it changes data. */
+        PermissionMenuDto: {
+            section: string;
+            name: string;
+            view: string;
+            viewDescription: string;
+            edit: null | string;
+            editDescription: null | string;
+        };
+        /** @description A right that isn't a menu, such as seeing cost prices. */
+        PermissionRightDto: {
+            key: string;
+            name: string;
+            description: string;
+        };
         /** @description A product with full details. CostPrice is null for sales reps: cost and margin are manager-only. */
         ProductDto: {
             /** Format: int32 */
@@ -4450,6 +4692,26 @@ export interface components {
         };
         ResetPasswordRequest: {
             newPassword: string;
+        };
+        /**
+         * @description A role. IsSystem marks Administrator (every permission; it can't be changed or deleted). IsBuiltIn marks the roles
+         *     the app comes with (their names are fixed and they can't be deleted). UserCount counts active and inactive users.
+         */
+        RoleDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            isSystem: boolean;
+            isBuiltIn: boolean;
+            /** Format: int32 */
+            userCount: number;
+            permissions: string[];
+        };
+        RoleSaveRequest: {
+            name: string;
+            description?: null | string;
+            permissions?: string[];
         };
         /**
          * @description Draft → Quoted → Confirmed → Invoiced, or Cancelled from any state before Invoiced. Cancelling an
@@ -4647,7 +4909,12 @@ export interface components {
             role: string;
             /** @description Initial password the admin shares with the user. Minimum 8 characters with upper, lower and a digit. */
             password: string;
+            /** @description Permissions to give this user on top of their role. */
+            addedPermissions?: string[];
+            /** @description Permissions of their role to take away from this user. */
+            removedPermissions?: string[];
         };
+        /** @description A user. AddedPermissions are theirs on top of their role; RemovedPermissions are their role's that they don't have. */
         UserDto: {
             /** Format: uuid */
             id: string;
@@ -4658,6 +4925,8 @@ export interface components {
             isLockedOut: boolean;
             /** Format: date-time */
             createdAtUtc: string;
+            addedPermissions: string[];
+            removedPermissions: string[];
         };
         UserLookupDto: {
             /** Format: uuid */
@@ -4669,6 +4938,10 @@ export interface components {
             fullName: string;
             role: string;
             isActive?: boolean;
+            /** @description Permissions to give this user on top of their role. */
+            addedPermissions?: string[];
+            /** @description Permissions of their role to take away from this user. */
+            removedPermissions?: string[];
         };
     };
     responses: never;

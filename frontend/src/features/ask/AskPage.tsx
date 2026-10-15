@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { useAiStatus } from '@/features/ai/api'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import type { AskHandoff, AskStep } from './api'
 import { AnswerCard } from './AnswerCard'
 import { askStore, useAskHistory } from './ask-store'
@@ -41,7 +42,7 @@ function StepLine({ step, current }: { step: AskStep; current: boolean }) {
 }
 
 function AiOff({ reason }: { reason?: string | null }) {
-  const { hasRole } = useAuth()
+  const { can } = useAuth()
   return (
     <Empty className="border">
       <EmptyHeader>
@@ -50,7 +51,7 @@ function AiOff({ reason }: { reason?: string | null }) {
         </EmptyMedia>
         <EmptyTitle>Ask your data is switched off</EmptyTitle>
         <EmptyDescription>
-          {hasRole(Roles.Admin)
+          {can(Permissions.SettingsEdit)
             ? `${reason ?? ''} Add a Claude API key to the server's user-secrets (see the README), then restart the API.`
             : 'Ask your administrator to set up the AI features. The reports have the standard figures.'}
         </EmptyDescription>
@@ -64,7 +65,7 @@ function AiOff({ reason }: { reason?: string | null }) {
 
 export function AskPage() {
   const status = useAiStatus()
-  const { hasRole } = useAuth()
+  const { can } = useAuth()
   const [question, setQuestion] = useState('')
   // The questions live in a store outside this page: leaving the page doesn't cancel a running one.
   const history = useAskHistory()
@@ -142,7 +143,7 @@ export function AskPage() {
               </form>
               {history.length === 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {[...examples, ...(hasRole(Roles.Admin, Roles.SalesManager) ? managerExamples : [])].map((example) => (
+                  {[...examples, ...(can(Permissions.CostPricesView) ? managerExamples : [])].map((example) => (
                     <Button key={example} size="sm" variant="outline" className="h-auto py-1 whitespace-normal" onClick={() => ask(example)}>
                       {example}
                     </Button>

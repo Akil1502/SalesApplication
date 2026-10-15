@@ -10,7 +10,8 @@ export interface AuthContextValue {
   user: CurrentUser | null
   login: (email: string, password: string) => Promise<void>
   logout: () => void
-  hasRole: (...roles: string[]) => boolean
+  /** True when the user holds at least one of these permissions (see ./permissions). */
+  can: (...anyOf: string[]) => boolean
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -25,10 +26,3 @@ export function useAuth(): AuthContextValue {
   }
   return value
 }
-
-/** Role names; must match SalesApp.Core.Security.Roles on the server. */
-export const Roles = {
-  Admin: 'Admin',
-  SalesManager: 'SalesManager',
-  SalesRep: 'SalesRep',
-} as const

@@ -20,7 +20,8 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { useCustomer } from '@/features/customers/api'
 import { api } from '@/lib/api/client'
 import { ApiRequestError, errorMessage, unwrap } from '@/lib/api/errors'
@@ -52,8 +53,9 @@ export function OrderFormPage() {
   const id = idParam ? Number(idParam) : undefined
   const isNew = id === undefined
   const navigate = useNavigate()
-  const { hasRole } = useAuth()
-  const isManager = hasRole(Roles.Admin, Roles.SalesManager)
+  const { can } = useAuth()
+  const canEdit = can(Permissions.OrdersEdit)
+  const canOverride = can(Permissions.CreditLimitOverride)
   const customerPickerId = useId()
 
   const order = useOrder(id)
@@ -82,7 +84,7 @@ export function OrderFormPage() {
   }, [order.data, reset])
 
   const status = order.data?.status
-  const editable = isNew || status === 'Draft' || status === 'Quoted'
+  const editable = canEdit && (isNew || status === 'Draft' || status === 'Quoted')
   const dirty = formState.isDirty
 
   // ---- Live GST preview: place of supply comes from the customer's shipping (else billing) state.
@@ -360,7 +362,7 @@ export function OrderFormPage() {
       {/* Action bar: what's possible depends on the order's status. */}
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         {o && dirty && editable && <span className="mr-auto text-sm text-muted-foreground">Save your changes before quoting or confirming.</span>}
-        {o && (status === 'Draft' || status === 'Quoted' || status === 'Confirmed') && (
+        {o && canEdit && (status === 'Draft' || status === 'Quoted' || status === 'Confirmed') && (
           <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={() => setCancelOpen(true)}>
             <Ban />
             Cancel order
@@ -374,7 +376,7 @@ export function OrderFormPage() {
             </Link>
           </Button>
         )}
-        {o && status === 'Draft' && (
+        {o && canEdit && status === 'Draft' && (
           <Button
             type="button"
             variant="outline"
@@ -385,19 +387,19 @@ export function OrderFormPage() {
             Mark as quoted
           </Button>
         )}
-        {o && (status === 'Draft' || status === 'Quoted') && (
+        {o && canEdit && (status === 'Draft' || status === 'Quoted') && (
           <Button type="button" variant="outline" disabled={busy || dirty} onClick={() => doConfirm(false)}>
             <CheckCircle2 />
             Confirm order
           </Button>
         )}
-        {o && status === 'Confirmed' && isManager && (
+        {o && status === 'Confirmed' && can(Permissions.InvoicesEdit) && (
           <Button type="button" onClick={() => setInvoiceOpen(true)}>
             <ReceiptIndianRupee />
             Issue invoice
           </Button>
         )}
-        {o && status === 'Invoiced' && (
+        {o && status === 'Invoiced' && can(Permissions.InvoicesView) && (
           <Button type="button" asChild>
             <Link to={`/invoices/${o.invoiceId}`}>
               <FileText />
@@ -421,11 +423,11 @@ export function OrderFormPage() {
         onOpenChange={(open) => !open && setCreditProblem(null)}
         title="Over the credit limit"
         description={creditProblem ?? ''}
-        confirmLabel={isManager ? 'Confirm anyway' : 'OK'}
-        destructive={isManager}
+        confirmLabel={canOverride ? 'Confirm anyway' : 'OK'}
+        destructive={canOverride}
         onConfirm={() => {
           setCreditProblem(null)
-          if (isManager) void doConfirm(true)
+          if (canOverride) void doConfirm(true)
         }}
       />
       {o && (

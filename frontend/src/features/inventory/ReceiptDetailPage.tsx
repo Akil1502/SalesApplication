@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatQuantity } from '@/lib/format'
 import { useStockReceipt } from './api'
@@ -22,8 +23,8 @@ function Detail({ label, value }: { label: string; value: string | null | undefi
 
 export function ReceiptDetailPage() {
   const id = Number(useParams().id)
-  const { hasRole } = useAuth()
-  const showCost = hasRole(Roles.Admin, Roles.SalesManager)
+  const { can } = useAuth()
+  const showCost = can(Permissions.CostPricesView)
   const receipt = useStockReceipt(id)
 
   if (receipt.isPending) return <Skeleton className="h-80 w-full max-w-4xl" />

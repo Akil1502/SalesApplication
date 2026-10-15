@@ -9,7 +9,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const session = useSyncExternalStore(authStore.subscribe, authStore.getSession)
 
-  // The token proves who we are; /me tells us current roles and whether the account is still active.
+  // The token proves who we are; /me tells us the current role, permissions and whether the account is still active.
   const meQuery = useQuery({
     queryKey: currentUserQueryKey,
     queryFn: () => unwrap(api.GET('/api/auth/me')),
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       login,
       logout,
-      hasRole: (...roles) => user !== null && roles.some((role) => user.roles.includes(role)),
+      can: (...anyOf) => user !== null && anyOf.some((permission) => user.permissions.includes(permission)),
     }
   }, [session, meQuery.data, meQuery.isPending, login, logout])
 

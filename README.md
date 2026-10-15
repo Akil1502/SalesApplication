@@ -28,7 +28,7 @@ source was lost, so the app has been rebuilt on a modern stack, with AI designed
 | Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS + shadcn/ui, React Hook Form + Zod |
 | API | ASP.NET Core 10 Web API, built-in OpenAPI + Scalar, JWT bearer auth |
 | Data | EF Core 10 on SQL Server (LocalDB in development) |
-| Auth | ASP.NET Core Identity (users, roles, password hashing, lockout) + JWT. Roles: Admin, SalesManager, SalesRep |
+| Auth | ASP.NET Core Identity (users, roles, password hashing, lockout) + JWT. Roles are editable permission sets, with per-user changes |
 | AI (from P5) | Claude API via the official `Anthropic` C# SDK. All calls happen server-side. |
 | Tests | xUnit v3 (unit + integration against a throwaway LocalDB database), Vitest + Testing Library |
 
@@ -77,7 +77,7 @@ to sign in as, each with the password `Seed:DemoUserPassword` from `appsettings.
 | User | Role |
 |---|---|
 | `meena.krishnan@salesapp.local` | Sales manager (sees margins and stock value) |
-| `arun.kumar@salesapp.local`, `divya.rajan@salesapp.local`, `farhan.sheikh@salesapp.local` | Sales reps |
+| `arun.kumar@salesapp.local`, `divya.rajan@salesapp.local`, `farhan.sheikh@salesapp.local` | Sales representatives |
 
 All names, GSTINs and figures are made up. The command only runs in the Development environment.
 
@@ -95,6 +95,32 @@ All names, GSTINs and figures are made up. The command only runs in the Developm
 | Publish for IIS (after the UI build) | `dotnet publish backend/src/SalesApp.Api -c Release -o publish`, then see [docs/DEPLOYMENT-IIS.md](docs/DEPLOYMENT-IIS.md) |
 | Regenerate demo data (API stopped) | `dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset` |
 | Print the insight figures for the current data (no AI, nothing saved) | `dotnet run --project backend/src/SalesApp.Api -- --insights-metrics` |
+| Point the dev web app at another API (a second one on a test database) | `$env:SALESAPP_API_URL = 'http://localhost:5099'; npm run dev --prefix frontend` |
+
+## Users, roles and permissions
+
+Administration → **Users & roles** decides who can do what.
+
+- **Permissions** follow the menus: each has **View**, and **Add & change** where the menu changes data (orders,
+  invoices, payments, customers, products, categories, stock, users). A few special rights sit beside them: see cost
+  prices and margins, set credit terms, override credit limits, and can be a customer's sales rep.
+- **Roles** are sets of permissions. Three are built in: **Administrator** (everything, and it can't be changed),
+  **Sales manager** (everything except administration) and **Sales representative** (orders, customers, smart order
+  entry, viewing invoices, payments, products and stock, reports, Ask your data and the assistant; no cost prices or
+  credit terms). Their permissions can be changed; add your own roles too, such as an accountant or a storekeeper.
+- **Each user** has one role and can have permissions added or taken away just for them; the user list shows this as
+  `+1 −1` beside the role.
+- Granting a permission grants what it needs (Add & change needs View; smart order entry needs Orders: Add & change;
+  recording a payment needs Invoices: View, because it's done from the invoice), and taking one away takes away
+  what depends on it.
+- **Changes apply on the user's next request**, without signing in again. The API checks the permission on every
+  request; the web app only hides menus and buttons the user can't use. A deactivated user's session stops working
+  at once.
+- **The AI features follow them too.** The assistant's lookups need the same permission as the screen (customers,
+  invoices, orders and quotations, products; its SQL needs Ask your data), and only users who may see cost prices
+  get margins from Ask your data and the assistant.
+- **Guard rails:** you can't change your own role or permissions, there is always an active administrator, you can't
+  change your own role so that you lose Users & roles, and a role can't be deleted while anyone has it.
 
 ## Deployment
 
@@ -104,8 +130,10 @@ database, the IIS site, secrets as application-pool environment variables, the f
 
 Security in short:
 - **Secrets** come from user-secrets (development) or environment variables, never from committed files.
-- **Sign-in:** JWT bearer tokens (8 hours), roles (Admin, SalesManager, SalesRep) enforced by the API, account
-  lockout, and a per-address limit on sign-in attempts (`Security:LoginAttemptsPerMinute`, default 10).
+- **Sign-in:** JWT bearer tokens (8 hours), account lockout, and a per-address limit on sign-in attempts
+  (`Security:LoginAttemptsPerMinute`, default 10).
+- **Access:** permissions per menu and action, checked by the API on every request and read from the database rather
+  than the token, so a change or a deactivation applies at once (see [Users, roles and permissions](#users-roles-and-permissions)).
 - **Browser:** security headers on every response, and outside development a content security policy that allows
   only this site's own scripts, styles and API.
 - **AI:** see [AI features](#ai-features). In short: read-only database users and a SQL checker for AI-written
@@ -196,7 +224,7 @@ data", which fills the same question in there (without asking it, since asking c
 - **Replies are shown safely.** They are formatted text with no raw HTML. Images are never loaded (an image link is
   a known way to leak data to another server), and only links to pages inside SalesApp are clickable.
 
-**AI insights** (Insights → AI insights, managers only) puts the numbers first. Everything is computed in C# from
+**AI insights** (Insights → AI insights; Sales manager and Administrator by default) puts the numbers first. Everything is computed in C# from
 the sales data, so the page works fully with AI switched off; Claude only writes the summary on top.
 
 - **Forecast.** Monthly sales for this month and the next two, with a likely range. Each method forecasts the last
@@ -219,10 +247,11 @@ the sales data, so the page works fully with AI switched off; Claude only writes
   time catches up when it starts. Managers can also press **Refresh now**. Each run is saved with the exact figures
   Claude was given (`InsightRuns`).
 
-**AI usage** (Administration → AI usage, administrators only) shows what the AI costs: spend per day, per feature
-and per person (with each person's last 24 hours against their daily budget, and the morning insights as
-"background"), the share of input read from the prompt cache, every call to Claude with its outcome, and every SQL
-query the AI wrote with what the checker or the database said about it. Conversations stay private.
+**AI usage** (Administration → AI usage; administrators by default, or anyone given the AI usage permission) shows
+what the AI costs: spend per day, per feature and per person (with each person's last 24 hours against their daily
+budget, and the morning insights as "background"), the share of input read from the prompt cache, every call to
+Claude with its outcome, and every SQL query the AI wrote with what the checker or the database said about it.
+Conversations stay private.
 
 **Evaluations.** `backend/tests/SalesApp.Evals` measures the AI features against Claude itself, on a throwaway
 database with the standard demo data:
@@ -256,8 +285,8 @@ What is sent to Anthropic:
 - Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,
   description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other customer data.
 - Ask your data: the question, today's date, the view descriptions and the rows of the queries Claude runs (at most
-  50 per query). Those rows can include customer names, cities and amounts, and for managers the cost prices in
-  `rpt_mgr.Margins`; the views hold no phone numbers, emails, addresses or GSTINs.
+  50 per query). Those rows can include customer names, cities and amounts, and for users who may see cost prices
+  the cost prices in `rpt_mgr.Margins`; the views hold no phone numbers, emails, addresses or GSTINs.
 - Assistant: the conversation and the results of its lookups: customer names, codes, cities, GSTINs, contact
   person, credit terms, notes, invoices, orders, products and stock, plus query rows as for Ask your data.
   Customers' phone numbers and email addresses are never sent; the draft card shows them straight from the

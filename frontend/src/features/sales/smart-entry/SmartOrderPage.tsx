@@ -13,7 +13,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAiStatus } from '@/features/ai/api'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { api } from '@/lib/api/client'
 import { errorMessage, unwrap } from '@/lib/api/errors'
 import { useExtractOrder, type OrderExtraction } from './api'
@@ -32,7 +33,7 @@ function formatSize(bytes: number) {
 }
 
 function AiOff({ reason }: { reason?: string | null }) {
-  const { hasRole } = useAuth()
+  const { can } = useAuth()
   return (
     <Empty className="border">
       <EmptyHeader>
@@ -41,7 +42,7 @@ function AiOff({ reason }: { reason?: string | null }) {
         </EmptyMedia>
         <EmptyTitle>Smart order entry is switched off</EmptyTitle>
         <EmptyDescription>
-          {hasRole(Roles.Admin)
+          {can(Permissions.SettingsEdit)
             ? `${reason ?? ''} Add a Claude API key to the server's user-secrets (see the README), then restart the API.`
             : 'Ask your administrator to set up the AI features. You can still enter orders by hand.'}
         </EmptyDescription>

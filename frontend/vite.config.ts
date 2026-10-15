@@ -4,6 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
+// The API the dev server forwards to: :5080 normally; SALESAPP_API_URL points it elsewhere (a second API on a test
+// database, for example).
+const api = process.env.SALESAPP_API_URL ?? 'http://localhost:5080'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -15,11 +19,10 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    // The API runs on :5080 in development. Proxying keeps the browser on one origin,
-    // so there is no CORS configuration and the JWT never crosses origins.
+    // Proxying keeps the browser on one origin, so there is no CORS configuration and the JWT never crosses origins.
     proxy: {
-      '/api': { target: 'http://localhost:5080', changeOrigin: false },
-      '/health': { target: 'http://localhost:5080', changeOrigin: false },
+      '/api': { target: api, changeOrigin: false },
+      '/health': { target: api, changeOrigin: false },
     },
   },
   build: {

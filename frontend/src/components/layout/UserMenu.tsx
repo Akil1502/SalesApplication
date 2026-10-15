@@ -11,12 +11,6 @@ import {
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar'
 import { useAuth } from '@/features/auth/auth-context'
 
-const roleLabels: Record<string, string> = {
-  Admin: 'Administrator',
-  SalesManager: 'Sales manager',
-  SalesRep: 'Sales representative',
-}
-
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/)
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : '')).toUpperCase() || '?'
@@ -27,7 +21,6 @@ export function UserMenu() {
   const { isMobile } = useSidebar()
 
   if (!user) return null
-  const role = user.roles.map((r) => roleLabels[r] ?? r).join(', ')
 
   return (
     <SidebarMenu>
@@ -40,7 +33,7 @@ export function UserMenu() {
               </Avatar>
               <span className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.fullName}</span>
-                <span className="truncate text-xs text-muted-foreground">{role}</span>
+                <span className="truncate text-xs text-muted-foreground">{user.role}</span>
               </span>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>

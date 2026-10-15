@@ -18,7 +18,7 @@ import { findNavItem, navigation } from './navigation'
 import { UserMenu } from './UserMenu'
 
 export function AppSidebar() {
-  const { hasRole } = useAuth()
+  const { can } = useAuth()
   const { pathname } = useLocation()
   const activePath = findNavItem(pathname)?.to
 
@@ -28,7 +28,7 @@ export function AppSidebar() {
   const groups = navigation
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => (!item.roles || hasRole(...item.roles)) && (!item.ai || aiEnabled)),
+      items: group.items.filter((item) => can(item.permission) && (!item.ai || aiEnabled)),
     }))
     .filter((group) => group.items.length > 0)
 

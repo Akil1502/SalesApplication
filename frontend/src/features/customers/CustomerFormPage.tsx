@@ -13,7 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { ApiRequestError, applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { gstinPan, gstinStateCode, validateGstin } from '@/lib/gstin'
 import { useSalesReps, useStates } from '@/lib/lookups'
@@ -52,8 +53,9 @@ export function CustomerFormPage() {
   const id = idParam ? Number(idParam) : undefined
   const isNew = id === undefined
   const navigate = useNavigate()
-  const { hasRole } = useAuth()
-  const canEditTerms = hasRole(Roles.Admin, Roles.SalesManager)
+  const { can } = useAuth()
+  const canEdit = can(Permissions.CustomersEdit)
+  const canEditTerms = canEdit && can(Permissions.CreditTermsEdit)
 
   const customer = useCustomer(id)
   const states = useStates()
@@ -125,6 +127,7 @@ export function CustomerFormPage() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex max-w-4xl flex-col gap-6">
+      <fieldset disabled={!canEdit} className="contents">
       <UnsavedChangesGuard when={formState.isDirty && !saved} />
 
       <PageHeader
@@ -201,7 +204,7 @@ export function CustomerFormPage() {
         <CardHeader>
           <CardTitle>Commercial terms</CardTitle>
           <CardDescription>
-            {canEditTerms ? 'Credit limit and payment terms apply to new orders.' : 'Only managers can change credit terms and the assigned rep.'}
+            {canEditTerms ? 'Credit limit and payment terms apply to new orders.' : 'Changing credit terms and the sales rep needs the "Set credit terms" permission.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -237,15 +240,19 @@ export function CustomerFormPage() {
         </CardContent>
       </Card>
 
-      <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
-        <Button type="button" variant="outline" onClick={() => navigate('/customers')}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={formState.isSubmitting}>
-          {formState.isSubmitting && <Spinner />}
-          {isNew ? 'Create customer' : 'Save changes'}
-        </Button>
-      </div>
+      </fieldset>
+
+      {canEdit && (
+        <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
+          <Button type="button" variant="outline" onClick={() => navigate('/customers')}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={formState.isSubmitting}>
+            {formState.isSubmitting && <Spinner />}
+            {isNew ? 'Create customer' : 'Save changes'}
+          </Button>
+        </div>
+      )}
     </form>
   )
 }

@@ -6,6 +6,8 @@ import { SearchInput } from '@/components/data-table/SearchInput'
 import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAiStatus } from '@/features/ai/api'
 import { formatBusinessDate, formatINR } from '@/lib/format'
@@ -54,6 +56,7 @@ const columns: Column<OrderListItem>[] = [
 
 export function OrdersPage() {
   const navigate = useNavigate()
+  const { can } = useAuth()
   const [params, update] = useListParams()
   const status = params.filters.status as OrderStatus | undefined
 
@@ -67,7 +70,7 @@ export function OrdersPage() {
         description="Draft → quoted → confirmed → invoiced. Confirmed orders are ready to invoice."
         actions={
           <>
-            {ai.data?.orderEntry && (
+            {ai.data?.orderEntry && can(Permissions.SmartEntryUse) && (
               <Button asChild variant="outline">
                 <Link to="/orders/smart-entry">
                   <Sparkles />
@@ -75,12 +78,14 @@ export function OrdersPage() {
                 </Link>
               </Button>
             )}
-            <Button asChild>
-              <Link to="/orders/new">
-                <Plus />
-                New order
-              </Link>
-            </Button>
+            {can(Permissions.OrdersEdit) && (
+              <Button asChild>
+                <Link to="/orders/new">
+                  <Plus />
+                  New order
+                </Link>
+              </Button>
+            )}
           </>
         }
       />

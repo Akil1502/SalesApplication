@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatPercent, formatQuantity } from '@/lib/format'
 import { useCancelInvoice, useInvoice } from './api'
@@ -34,8 +35,9 @@ function Party({ title, name, gstin, lines }: { title: string; name: string; gst
 
 export function InvoiceDetailPage() {
   const id = Number(useParams().id)
-  const { hasRole } = useAuth()
-  const isManager = hasRole(Roles.Admin, Roles.SalesManager)
+  const { can } = useAuth()
+  const canCancel = can(Permissions.InvoicesEdit)
+  const canRecordPayment = can(Permissions.PaymentsEdit)
   const invoice = useInvoice(id)
   const cancel = useCancelInvoice()
   const [paymentOpen, setPaymentOpen] = useState(false)
@@ -84,13 +86,13 @@ export function InvoiceDetailPage() {
                 Print
               </Link>
             </Button>
-            {isManager && !cancelled && inv.amountPaid === 0 && (
+            {canCancel && !cancelled && inv.amountPaid === 0 && (
               <Button variant="outline" className="text-destructive" onClick={() => setCancelOpen(true)}>
                 <Ban />
                 Cancel invoice
               </Button>
             )}
-            {isManager && !cancelled && inv.balance > 0 && (
+            {canRecordPayment && !cancelled && inv.balance > 0 && (
               <Button onClick={() => setPaymentOpen(true)}>
                 <IndianRupee />
                 Record payment

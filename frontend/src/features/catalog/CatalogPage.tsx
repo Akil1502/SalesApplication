@@ -6,6 +6,8 @@ import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { PageHeader } from '@/components/PageHeader'
 import { ActiveBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { errorMessage } from '@/lib/api/errors'
 import { formatPercent } from '@/lib/format'
@@ -34,6 +36,8 @@ function RowActions({ onEdit, onDelete, canDelete, label }: { onEdit: () => void
 }
 
 export function CatalogPage() {
+  const { can } = useAuth()
+  const canEdit = can(Permissions.CatalogEdit)
   const categories = useCategories(true)
   const hsnCodes = useHsnCodes(true)
   const deleteCategory = useDeleteCategory()
@@ -48,7 +52,9 @@ export function CatalogPage() {
     { key: 'description', header: 'Description', cell: (c) => c.description ?? '—' },
     { key: 'products', header: 'Products', align: 'right', cell: (c) => c.productCount },
     { key: 'status', header: 'Status', cell: (c) => <ActiveBadge active={c.isActive} /> },
-    {
+  ]
+  if (canEdit)
+    categoryColumns.push({
       key: 'actions',
       header: '',
       className: 'w-24',
@@ -60,8 +66,7 @@ export function CatalogPage() {
           onDelete={() => setPendingDelete({ kind: 'category', item: c })}
         />
       ),
-    },
-  ]
+    })
 
   const hsnColumns: Column<HsnCode>[] = [
     { key: 'code', header: 'HSN', cell: (h) => <span className="font-mono">{h.code}</span>, className: 'w-24' },
@@ -69,7 +74,9 @@ export function CatalogPage() {
     { key: 'rate', header: 'GST', align: 'right', cell: (h) => formatPercent(h.gstRate) },
     { key: 'products', header: 'Products', align: 'right', cell: (h) => h.productCount },
     { key: 'status', header: 'Status', cell: (h) => <ActiveBadge active={h.isActive} /> },
-    {
+  ]
+  if (canEdit)
+    hsnColumns.push({
       key: 'actions',
       header: '',
       className: 'w-24',
@@ -81,8 +88,7 @@ export function CatalogPage() {
           onDelete={() => setPendingDelete({ kind: 'hsn', item: h })}
         />
       ),
-    },
-  ]
+    })
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
@@ -112,22 +118,26 @@ export function CatalogPage() {
         </TabsList>
 
         <TabsContent value="categories" className="flex flex-col gap-4 pt-2">
-          <div className="flex justify-end">
-            <Button onClick={() => setCategoryDialog({ open: true, item: null })}>
-              <Plus />
-              New category
-            </Button>
-          </div>
+          {canEdit && (
+            <div className="flex justify-end">
+              <Button onClick={() => setCategoryDialog({ open: true, item: null })}>
+                <Plus />
+                New category
+              </Button>
+            </div>
+          )}
           <DataTable columns={categoryColumns} rows={categories.data} getRowKey={(c) => c.id} isLoading={categories.isPending} error={categories.error} />
         </TabsContent>
 
         <TabsContent value="hsn" className="flex flex-col gap-4 pt-2">
           <div className="flex items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">Starter rates are illustrative. Confirm current rates with your tax advisor.</p>
-            <Button onClick={() => setHsnDialog({ open: true, item: null })}>
-              <Plus />
-              New HSN code
-            </Button>
+            {canEdit && (
+              <Button onClick={() => setHsnDialog({ open: true, item: null })}>
+                <Plus />
+                New HSN code
+              </Button>
+            )}
           </div>
           <DataTable columns={hsnColumns} rows={hsnCodes.data} getRowKey={(h) => h.id} isLoading={hsnCodes.isPending} error={hsnCodes.error} />
         </TabsContent>

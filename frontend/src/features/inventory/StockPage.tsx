@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { formatBusinessDate, formatDate, formatINR, formatQuantity } from '@/lib/format'
 import { useCategories } from '@/lib/lookups'
 import {
@@ -65,7 +66,7 @@ function SummaryCards() {
   )
 }
 
-function LevelsTab({ canEdit, onAdjust }: { canEdit: boolean; onAdjust: (product: PickedProduct) => void }) {
+function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost: boolean; onAdjust: (product: PickedProduct) => void }) {
   const navigate = useNavigate()
   const [params, update] = useListParams({ sort: 'name' })
   const categories = useCategories()
@@ -82,9 +83,9 @@ function LevelsTab({ canEdit, onAdjust }: { canEdit: boolean; onAdjust: (product
     { key: 'reorder', header: 'Reorder at', align: 'right', cell: (s) => formatQuantity(s.reorderLevel, s.unit) },
     { key: 'status', header: 'Status', cell: (s) => <StockStatusBadge status={s.status} /> },
     { key: 'last', header: 'Last movement', sortKey: 'lastMovement', cell: (s) => formatDate(s.lastMovementAtUtc) },
+    ...(showCost ? [{ key: 'value', header: 'Value at cost', align: 'right' as const, cell: (s: StockLevel) => formatINR(s.stockValue, 0) }] : []),
     ...(canEdit
       ? [
-          { key: 'value', header: 'Value at cost', align: 'right' as const, cell: (s: StockLevel) => formatINR(s.stockValue, 0) },
           {
             key: 'actions',
             header: '',
@@ -258,7 +259,7 @@ function MovementsTab() {
   )
 }
 
-function ReceiptsTab({ canEdit }: { canEdit: boolean }) {
+function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolean }) {
   const navigate = useNavigate()
   const [params, update] = useListParams()
   const receipts = useStockReceipts({ q: params.q || undefined, page: params.page, pageSize: params.pageSize })
@@ -269,7 +270,7 @@ function ReceiptsTab({ canEdit }: { canEdit: boolean }) {
     { key: 'supplier', header: 'Supplier', cell: (r) => r.supplierName ?? '—' },
     { key: 'ref', header: 'Supplier ref', cell: (r) => r.supplierReference ?? '—' },
     { key: 'lines', header: 'Lines', align: 'right', cell: (r) => r.lineCount },
-    ...(canEdit ? [{ key: 'cost', header: 'Total cost', align: 'right' as const, cell: (r: StockReceiptListItem) => formatINR(r.totalCost) }] : []),
+    ...(showCost ? [{ key: 'cost', header: 'Total cost', align: 'right' as const, cell: (r: StockReceiptListItem) => formatINR(r.totalCost) }] : []),
     { key: 'by', header: 'Received by', cell: (r) => r.createdByName },
   ]
 
@@ -300,8 +301,9 @@ function ReceiptsTab({ canEdit }: { canEdit: boolean }) {
 }
 
 export function StockPage() {
-  const { hasRole } = useAuth()
-  const canEdit = hasRole(Roles.Admin, Roles.SalesManager)
+  const { can } = useAuth()
+  const canEdit = can(Permissions.StockEdit)
+  const showCost = can(Permissions.CostPricesView)
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = (searchParams.get('tab') as Tab | null) ?? 'levels'
   const [adjusting, setAdjusting] = useState<{ open: boolean; product: PickedProduct | null }>({ open: false, product: null })
@@ -339,13 +341,13 @@ export function StockPage() {
           <TabsTrigger value="receipts">Goods receipts</TabsTrigger>
         </TabsList>
         <TabsContent value="levels" className="flex flex-col gap-4 pt-2">
-          {tab === 'levels' && <LevelsTab canEdit={canEdit} onAdjust={(product) => setAdjusting({ open: true, product })} />}
+          {tab === 'levels' && <LevelsTab canEdit={canEdit} showCost={showCost} onAdjust={(product) => setAdjusting({ open: true, product })} />}
         </TabsContent>
         <TabsContent value="movements" className="flex flex-col gap-4 pt-2">
           {tab === 'movements' && <MovementsTab />}
         </TabsContent>
         <TabsContent value="receipts" className="flex flex-col gap-4 pt-2">
-          {tab === 'receipts' && <ReceiptsTab canEdit={canEdit} />}
+          {tab === 'receipts' && <ReceiptsTab canEdit={canEdit} showCost={showCost} />}
         </TabsContent>
       </Tabs>
 

@@ -7,6 +7,8 @@ import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
 import { ActiveBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -27,6 +29,7 @@ const columns: Column<CustomerListItem>[] = [
 
 export function CustomersPage() {
   const navigate = useNavigate()
+  const { can } = useAuth()
   const [params, update] = useListParams({ sort: 'name' })
   const states = useStates()
   const stateCode = params.filters.stateCode
@@ -46,12 +49,14 @@ export function CustomersPage() {
         title="Customers"
         description="Buyers you invoice. GSTIN decides whether invoices carry CGST + SGST or IGST."
         actions={
-          <Button asChild>
-            <Link to="/customers/new">
-              <Plus />
-              New customer
-            </Link>
-          </Button>
+          can(Permissions.CustomersEdit) && (
+            <Button asChild>
+              <Link to="/customers/new">
+                <Plus />
+                New customer
+              </Link>
+            </Button>
+          )
         }
       />
 

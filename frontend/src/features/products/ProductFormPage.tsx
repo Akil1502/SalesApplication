@@ -13,7 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { ApiRequestError, applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, formatPercent, formatQuantity } from '@/lib/format'
 import { useCategories, useHsnCodes } from '@/lib/lookups'
@@ -25,8 +26,9 @@ export function ProductFormPage() {
   const id = idParam ? Number(idParam) : undefined
   const isNew = id === undefined
   const navigate = useNavigate()
-  const { hasRole } = useAuth()
-  const canEdit = hasRole(Roles.Admin, Roles.SalesManager)
+  const { can } = useAuth()
+  const canEdit = can(Permissions.ProductsEdit)
+  const showCost = can(Permissions.CostPricesView)
   const readOnly = !canEdit
 
   const product = useProduct(id)
@@ -92,7 +94,7 @@ export function ProductFormPage() {
 
       <PageHeader
         title={isNew ? 'New product' : (product.data?.name ?? 'Product')}
-        description={readOnly ? 'Only managers can edit products.' : 'Prices exclude GST.'}
+        description={readOnly ? 'You can view products; changing them needs Products: Add & change.' : 'Prices exclude GST.'}
         actions={
           <Button variant="ghost" asChild>
             <Link to="/products">
@@ -142,13 +144,13 @@ export function ProductFormPage() {
         <Card>
           <CardHeader>
             <CardTitle>Pricing</CardTitle>
-            <CardDescription>Per unit, excluding GST.{canEdit && ' Cost price is visible to managers only.'}</CardDescription>
+            <CardDescription>Per unit, excluding GST.{showCost && ' Cost price is visible only to users who may see cost prices.'}</CardDescription>
           </CardHeader>
           <CardContent>
             <FieldGroup className="grid gap-4 sm:grid-cols-3">
               <FormInput control={control} name="listPrice" label="List price (₹)" inputMode="decimal" disabled={readOnly} />
-              {canEdit && <FormInput control={control} name="costPrice" label="Cost price (₹)" inputMode="decimal" placeholder="Optional" />}
-              {canEdit && (
+              {showCost && <FormInput control={control} name="costPrice" label="Cost price (₹)" inputMode="decimal" placeholder="Optional" disabled={readOnly} />}
+              {showCost && (
                 <div className="space-y-2 text-sm">
                   <p className="font-medium">Gross margin</p>
                   <p className="text-muted-foreground tabular-nums">

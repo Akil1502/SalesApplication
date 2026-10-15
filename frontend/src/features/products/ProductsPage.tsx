@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Roles, useAuth } from '@/features/auth/auth-context'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { formatINR, formatPercent, formatQuantity } from '@/lib/format'
 import { useCategories } from '@/lib/lookups'
 import { useProducts, type ProductListItem } from './api'
@@ -40,8 +41,8 @@ const columns: Column<ProductListItem>[] = [
 
 export function ProductsPage() {
   const navigate = useNavigate()
-  const { hasRole } = useAuth()
-  const canEdit = hasRole(Roles.Admin, Roles.SalesManager)
+  const { can } = useAuth()
+  const canEdit = can(Permissions.ProductsEdit)
   const [params, update] = useListParams({ sort: 'name' })
   const categories = useCategories()
   const categoryId = params.filters.categoryId ? Number(params.filters.categoryId) : undefined

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Spinner } from '@/components/ui/spinner'
 import { useAiStatus } from '@/features/ai/api'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { useAssistant } from './assistant-store'
 
 const AssistantChat = lazy(() => import('./AssistantPanel'))
@@ -21,7 +23,8 @@ export function AssistantLauncher() {
   const [openAt, setOpenAt] = useState<string | null>(null)
   const open = openAt === location.key
   const { status: chat } = useAssistant()
-  if (!status.data?.assistant) return null
+  const { can } = useAuth()
+  if (!status.data?.assistant || !can(Permissions.AssistantUse)) return null
 
   return (
     <Sheet open={open} onOpenChange={(next) => setOpenAt(next ? location.key : null)}>
