@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Claude integration: gateway, usage logging, prompts and the AI features built on them. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Anthropic" />
+    <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SalesApp.Core\SalesApp.Core.csproj" />
+    <ProjectReference Include="..\SalesApp.Infrastructure\SalesApp.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SalesApp.Tests" />
+    <InternalsVisibleTo Include="SalesApp.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

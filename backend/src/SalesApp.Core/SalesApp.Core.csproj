@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Domain entities, DTOs and pure business logic. No EF Core, no ASP.NET Core. -->
+  <ItemGroup>
+    <!-- Only for IdentityUser<TKey>, which AppUser derives from. -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Stores" />
+  </ItemGroup>
+
+</Project>
