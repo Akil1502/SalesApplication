@@ -51,6 +51,10 @@ public static partial class NarrativeNumberCheck
     public static List<string> Unverified(string text, IReadOnlyCollection<decimal> known) =>
         [.. Figures(text).Where(f => !known.Any(k => Math.Abs(Math.Abs(k) - f.Amount) <= f.Tolerance)).Select(f => f.Text)];
 
+    /// <summary>Whether <paramref name="text"/> states <paramref name="value"/>, written exactly or rounded.</summary>
+    public static bool States(string text, decimal value) =>
+        Figures(text).Any(f => Math.Abs(Math.Abs(value) - f.Amount) <= f.Tolerance);
+
     /// <summary>A figure as written, its value in plain units, and how far off it may be given how it was rounded.</summary>
     private readonly record struct FigureText(string Text, decimal Amount, decimal Tolerance);
 

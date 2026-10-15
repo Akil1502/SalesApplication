@@ -11,7 +11,9 @@ using SalesApp.Infrastructure.Data;
 
 namespace SalesApp.Evals;
 
-public sealed record EvalResult(string Id, string Description, bool Passed, string Reason, decimal CostUsd, string? Detail = null);
+/// <param name="Detail">For a failed Ask-your-data case, the SQL behind the answer.</param>
+/// <param name="Summary">For a failed Ask-your-data case, the answer's written summary.</param>
+public sealed record EvalResult(string Id, string Description, bool Passed, string Reason, decimal CostUsd, string? Detail = null, string? Summary = null);
 
 /// <summary>Writes a run's results as a markdown report under results/ (not committed) and returns its path.</summary>
 public static class EvalReport
@@ -36,9 +38,18 @@ public static class EvalReport
             text.AppendLine(CultureInfo.InvariantCulture, $"| {r.Id}: {r.Description} | {(r.Passed ? "pass" : "**fail**")} | {r.Reason.Replace("|", "/", StringComparison.Ordinal)} | {r.CostUsd * usdToInr:0.00} |");
         }
 
-        foreach (var r in results.Where(r => r.Detail is not null))
+        foreach (var r in results.Where(r => r.Detail is not null || r.Summary is not null))
         {
-            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"## {r.Id}").AppendLine().AppendLine("```sql").AppendLine(r.Detail).AppendLine("```");
+            text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"## {r.Id}");
+            if (r.Summary is not null)
+            {
+                text.AppendLine().AppendLine(CultureInfo.InvariantCulture, $"> {r.Summary.ReplaceLineEndings(" ")}");
+            }
+
+            if (r.Detail is not null)
+            {
+                text.AppendLine().AppendLine("```sql").AppendLine(r.Detail).AppendLine("```");
+            }
         }
 
         File.WriteAllText(path, text.ToString());
@@ -64,12 +75,14 @@ public sealed class AskDataEvals(EvalHost host) : IClassFixture<EvalHost>
     public async Task Answers_match_the_reference_queries()
     {
         Assert.SkipUnless(EvalSettings.Enabled, EvalSettings.SkipReason);
+        var cases = AskDataCases.All.Where(c => EvalSettings.Selected(c.Id)).ToList();
+        Assert.SkipWhen(cases.Count == 0, "None of the cases in SALESAPP_EVAL_CASES are in this suite.");
         Assert.True(host.ClaudeAvailable, "No Claude API key: set Anthropic:ApiKey in user-secrets for SalesApp.Api (see the README).");
 
         var ct = TestContext.Current.CancellationToken;
         var started = Stopwatch.StartNew();
         var results = new List<EvalResult>();
-        foreach (var testCase in AskDataCases.All)
+        foreach (var testCase in cases)
         {
             await using var scope = host.Scope();
             var services = scope.ServiceProvider;
@@ -81,8 +94,9 @@ public sealed class AskDataEvals(EvalHost host) : IClassFixture<EvalHost>
                 var required = testCase.Required ?? [.. Enumerable.Range(0, gold.Columns.Count).Select(i => new[] { i })];
                 var (passed, reason) = answer.ResultId is null
                     ? (false, $"no result chosen: {answer.Summary}")
-                    : ResultGrader.Grade(gold.Rows, answer.Rows, required);
-                results.Add(new EvalResult(testCase.Id, testCase.Question, passed, reason, answer.Usage.CostUsd, passed ? null : answer.Sql));
+                    : ResultGrader.Grade(gold.Rows, answer.Rows, required, answer.Summary);
+                results.Add(new EvalResult(testCase.Id, testCase.Question, passed, reason, answer.Usage.CostUsd,
+                    passed ? null : answer.Sql, passed ? null : answer.Summary));
             }
             catch (AiBudgetExceededException)
             {
@@ -115,12 +129,14 @@ public sealed class OrderEntryEvals(EvalHost host) : IClassFixture<EvalHost>
     public async Task Orders_are_read_correctly()
     {
         Assert.SkipUnless(EvalSettings.Enabled, EvalSettings.SkipReason);
+        var cases = OrderCases.All.Where(c => EvalSettings.Selected(c.Id)).ToList();
+        Assert.SkipWhen(cases.Count == 0, "None of the cases in SALESAPP_EVAL_CASES are in this suite.");
         Assert.True(host.ClaudeAvailable, "No Claude API key: set Anthropic:ApiKey in user-secrets for SalesApp.Api (see the README).");
 
         var ct = TestContext.Current.CancellationToken;
         var started = Stopwatch.StartNew();
         var results = new List<EvalResult>();
-        foreach (var testCase in OrderCases.All)
+        foreach (var testCase in cases)
         {
             await using var scope = host.Scope();
             var services = scope.ServiceProvider;

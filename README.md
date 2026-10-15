@@ -86,7 +86,7 @@ All names, GSTINs and figures are made up. The command only runs in the Developm
 | Task | Command |
 |---|---|
 | Backend tests | `dotnet test --solution backend/SalesApp.slnx` (the live AI evals skip unless enabled) |
-| Live AI evals: calls Claude, about ₹110, stops at $3 | `$env:SALESAPP_RUN_EVALS = 'yes'; dotnet test --project backend/tests/SalesApp.Evals` |
+| Live AI evals: calls Claude, about ₹50, stops at $3 | `$env:SALESAPP_RUN_EVALS = 'yes'; dotnet test --project backend/tests/SalesApp.Evals -c Release` |
 | Frontend tests | `npm test --prefix frontend` |
 | Frontend lint / typecheck | `npm run lint --prefix frontend` · `npm run typecheck --prefix frontend` |
 | Regenerate TypeScript API types (API must be running) | `npm run gen:api --prefix frontend` |
@@ -222,14 +222,18 @@ query the AI wrote with what the checker or the database said about it. Conversa
 **Evaluations.** `backend/tests/SalesApp.Evals` measures the AI features against Claude itself, on a throwaway
 database with the standard demo data:
 - 25 Ask-your-data questions, each graded against a reference query by the values in the answer, not the SQL text.
+  A question with a one-row answer ("how much did we receive last month?") may be answered in more detail, such as
+  a breakdown by payment mode with the total. That passes when the table holds the right row and the written summary
+  states its figure.
 - 12 orders to read: an English email, WhatsApp messages in English shorthand, Tanglish, Hinglish and Tamil script,
   tonnes and boxes, a quoted price, an unknown product, a message that isn't an order, a prompt injection, the PDF
   purchase order and the photographed Tamil order.
 
-They cost money (about ₹110 for both suites), so they only run when you set `SALESAPP_RUN_EVALS=yes`, and the run
-stops if it reaches $3. Each suite writes a report to `backend/tests/SalesApp.Evals/results/` (not committed): pass
-or fail per case, why, and what it cost. The graders, and a check that every reference query still runs, are
-ordinary tests that run every time at no cost.
+They cost money (about ₹50 for both suites, a few minutes), so they only run when you set `SALESAPP_RUN_EVALS=yes`,
+and the run stops if it reaches $3. Each suite writes a report to `backend/tests/SalesApp.Evals/results/` (not
+committed): pass or fail per case, why, and what it cost; for a failed question also the AI's SQL and summary. To
+re-check a few cases only, list their ids: `$env:SALESAPP_EVAL_CASES = 'top-debtor,payments-last-month'`. The
+graders, and a check that every reference query still runs, are ordinary tests that run every time at no cost.
 
 What is sent to Anthropic:
 - Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,

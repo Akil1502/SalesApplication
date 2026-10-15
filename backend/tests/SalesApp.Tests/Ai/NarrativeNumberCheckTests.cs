@@ -41,6 +41,15 @@ public sealed class NarrativeNumberCheckTests
         Assert.Contains(expected, NarrativeNumberCheck.Unverified(text, Known));
 
     [Fact]
+    public void States_finds_a_figure_written_exactly_or_rounded()
+    {
+        Assert.True(NarrativeNumberCheck.States("November was best, at ₹4.54 crore.", 45410249.79m));
+        Assert.True(NarrativeNumberCheck.States("November was best, at ₹4,54,10,250.", 45410249.79m));
+        Assert.False(NarrativeNumberCheck.States("November was best, at ₹3.9 crore.", 45410249.79m));
+        Assert.False(NarrativeNumberCheck.States("November 2025 was the best month.", 2025m));
+    }
+
+    [Fact]
     public void Collects_every_number_in_the_metrics()
     {
         Assert.Contains(187176025m, Known);

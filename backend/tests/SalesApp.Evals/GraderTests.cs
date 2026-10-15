@@ -35,6 +35,32 @@ public sealed class ResultGraderTests
     }
 
     [Fact]
+    public void A_one_row_answer_given_in_more_detail_passes_when_the_summary_states_it()
+    {
+        object?[][] gold = [[35893239m]];
+        object?[][] byMode = [["Rtgs", 42, 16603330m], ["Neft", 53, 13073621m], ["Cheque", 21, 4501284m], ["Upi", 14, 1715004m], [null, 130, 35893239m]];
+
+        var (passed, reason) = ResultGrader.Grade(gold, byMode, [[0]], "We received ₹3.59 crore from 130 payments last month, most of it by RTGS (₹1.66 crore).");
+        Assert.True(passed, reason);
+        Assert.Equal("the answer is among the 5 rows and the summary states it", reason);
+
+        Assert.Equal("the answer is among the 5 rows, but the summary doesn't state 35893239",
+            ResultGrader.Grade(gold, byMode, [[0]], "We received ₹1.66 crore by RTGS last month.").Reason);
+    }
+
+    [Fact]
+    public void The_detailed_answer_must_hold_the_gold_row_itself()
+    {
+        object?[][] gold = [["Pandian Knits Pvt Ltd", 6777275m]];
+        object?[][] top3 = [["Pandian Knits Pvt Ltd", 6777275m, 17], ["Pandian Home Linen Pvt Ltd", 5985187m, 18], ["Kumaran Weaves LLP", 3836409m, 9]];
+        object?[][] mixedUp = [["Pandian Knits Pvt Ltd", 5985187m], ["Pandian Home Linen Pvt Ltd", 6777275m]];
+        const string Summary = "Pandian Knits Pvt Ltd owes the most: ₹67.77 lakh across 17 open invoices.";
+
+        Assert.True(ResultGrader.Grade(gold, top3, Both, Summary).Passed);
+        Assert.Equal("expected 1 row, got 2, and none of them is the answer", ResultGrader.Grade(gold, mixedUp, Both, Summary).Reason);
+    }
+
+    [Fact]
     public void Numbers_from_json_and_text_are_compared_as_numbers()
     {
         var json = System.Text.Json.JsonDocument.Parse("[412, \"2,47,318.50\"]").RootElement;

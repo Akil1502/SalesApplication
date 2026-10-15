@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using SalesApp.AI.Insights;
 
 namespace SalesApp.Evals;
 
@@ -8,13 +9,22 @@ namespace SalesApp.Evals;
 /// the answer must have the same number of rows, and for each required gold column some answer column must hold
 /// the same values (in any order, under any name). Numbers match to the paisa (±0.01 for averages), text ignoring
 /// case and surrounding spaces. Extra answer columns are fine.
+/// One exception: a question whose answer is one row (a total, "the top one") may be answered in more detail, as a
+/// breakdown with its total, the top 10 or every month. That passes when one of the rows is the gold row and the
+/// written summary states its figures, so the reader is told the answer rather than left to find it in the table.
 /// </summary>
 public static class ResultGrader
 {
     /// <param name="required">Groups of gold column indexes; each group passes if any one of its columns matches.</param>
+    /// <param name="summary">The answer's written summary, checked when a one-row answer comes with more rows.</param>
     public static (bool Passed, string Reason) Grade(
-        IReadOnlyList<object?[]> gold, IReadOnlyList<object?[]> answer, IReadOnlyList<int[]> required)
+        IReadOnlyList<object?[]> gold, IReadOnlyList<object?[]> answer, IReadOnlyList<int[]> required, string? summary = null)
     {
+        if (gold.Count == 1 && answer.Count > 1 && summary is not null)
+        {
+            return GradeInDetail(gold[0], answer, required, summary);
+        }
+
         if (gold.Count != answer.Count)
         {
             return (false, $"expected {gold.Count} rows, got {answer.Count}");
@@ -40,6 +50,31 @@ public static class ResultGrader
         }
 
         return (true, "values match");
+    }
+
+    private static (bool Passed, string Reason) GradeInDetail(
+        object?[] gold, IReadOnlyList<object?[]> answer, IReadOnlyList<int[]> required, string summary)
+    {
+        object? Gold(int index) => index < gold.Length ? Normalize(gold[index]) : null;
+
+        var found = answer.Any(row => required.All(group => group.Any(g => row.Any(value => Equal(Gold(g), Normalize(value))))));
+        if (!found)
+        {
+            return (false, $"expected 1 row, got {answer.Count}, and none of them is the answer");
+        }
+
+        // Each required group with a figure in it must have that figure stated in the summary.
+        var groupsWithFigures = required.Where(group => group.Any(g => Gold(g) is decimal)).ToList();
+        var unstated = groupsWithFigures
+            .Where(group => !group.Any(g => Gold(g) is decimal figure && NarrativeNumberCheck.States(summary, figure)))
+            .Select(group => Convert.ToString(group.Select(Gold).OfType<decimal>().First(), CultureInfo.InvariantCulture))
+            .ToList();
+        if (groupsWithFigures.Count == 0 || unstated.Count > 0)
+        {
+            return (false, $"the answer is among the {answer.Count} rows, but the summary doesn't state {(unstated.Count == 0 ? "it" : string.Join(", ", unstated))}");
+        }
+
+        return (true, $"the answer is among the {answer.Count} rows and the summary states it");
     }
 
     private static List<object?> Column(IReadOnlyList<object?[]> rows, int index) =>

@@ -17,10 +17,21 @@ public static class EvalSettings
     public static bool Enabled => string.Equals(Environment.GetEnvironmentVariable("SALESAPP_RUN_EVALS"), "yes", StringComparison.OrdinalIgnoreCase);
 
     public const string SkipReason =
-        "Live evals call the Claude API and cost money (about ₹110 for both suites). Set SALESAPP_RUN_EVALS=yes to run them.";
+        "Live evals call the Claude API and cost money (about ₹50 for both suites). Set SALESAPP_RUN_EVALS=yes to run them.";
 
     /// <summary>The run stops when this much has been spent (the gateway's daily budget for the eval user).</summary>
     public const decimal BudgetUsd = 3m;
+
+    /// <summary>
+    /// The case ids in SALESAPP_EVAL_CASES (comma-separated), to re-check a few cases without paying for the whole
+    /// suite. Unset means every case.
+    /// </summary>
+    public static IReadOnlySet<string> Cases { get; } =
+        (Environment.GetEnvironmentVariable("SALESAPP_EVAL_CASES") ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    public static bool Selected(string id) => Cases.Count == 0 || Cases.Contains(id);
 }
 
 /// <summary>The person the evals act as: a sales manager, so the margins view is available too.</summary>
