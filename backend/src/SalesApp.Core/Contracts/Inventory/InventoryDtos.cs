@@ -69,10 +69,10 @@ public sealed record StockReceiptLineInput
     [Range(1, int.MaxValue, ErrorMessage = "Choose a product.")]
     public int ProductId { get; init; }
 
-    [Range(typeof(decimal), "0.001", "99999999", ErrorMessage = "Quantity must be more than zero."), DecimalPlaces(3)]
+    [DecimalRange(0.001, 99999999, ErrorMessage = "Quantity must be more than zero."), DecimalPlaces(3)]
     public decimal Quantity { get; init; }
 
-    [Range(typeof(decimal), "0", "99999999", ErrorMessage = "Cost must be between 0 and 9,99,99,999."), DecimalPlaces(2)]
+    [DecimalRange(0, 99999999, ErrorMessage = "Cost must be between 0 and 9,99,99,999."), DecimalPlaces(2)]
     public decimal? UnitCost { get; init; }
 }
 
@@ -142,7 +142,7 @@ public sealed record StockAdjustmentRequest
     public AdjustmentMode Mode { get; init; }
 
     /// <summary>For Change: the signed amount (non-zero). For SetCount: the counted quantity (zero or more).</summary>
-    [Range(typeof(decimal), "-99999999", "99999999"), DecimalPlaces(3)]
+    [DecimalRange(-99999999, 99999999), DecimalPlaces(3)]
     public decimal Quantity { get; init; }
 
     public AdjustmentReason Reason { get; init; }

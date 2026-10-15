@@ -75,6 +75,27 @@ public sealed class DecimalPlacesAttribute(int places) : ValidationAttribute
     }
 }
 
+/// <summary>
+/// A range for money and quantities, compared as decimals. Use it instead of <c>[Range(typeof(decimal), "min", "max")]</c>:
+/// that form converts its text limits the first time it validates, and isn't thread-safe while doing so, so two
+/// requests checking the same field at once could fail with an InvalidCastException (a 500). These limits are numbers
+/// from the start, so there's nothing to convert. It still derives from RangeAttribute, so the OpenAPI document shows
+/// the minimum and maximum and the default message reads the same.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
+public sealed class DecimalRangeAttribute(double minimum, double maximum) : RangeAttribute(minimum, maximum)
+{
+    private readonly decimal _minimum = (decimal)minimum;
+    private readonly decimal _maximum = (decimal)maximum;
+
+    public override bool IsValid(object? value) => value switch
+    {
+        null => true,
+        decimal number => number >= _minimum && number <= _maximum,
+        _ => base.IsValid(value),
+    };
+}
+
 /// <summary>Indian Financial System Code: 4 letters, a zero, then 6 letters or digits.</summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
 public sealed class IfscAttribute() : RegularExpressionAttribute("^[A-Z]{4}0[A-Z0-9]{6}$")

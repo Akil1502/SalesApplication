@@ -90,14 +90,14 @@ public sealed record OrderLineInput
     [Range(1, int.MaxValue, ErrorMessage = "Choose a product.")]
     public int ProductId { get; init; }
 
-    [Range(typeof(decimal), "0.001", "99999999", ErrorMessage = "Quantity must be more than zero."), DecimalPlaces(3)]
+    [DecimalRange(0.001, 99999999, ErrorMessage = "Quantity must be more than zero."), DecimalPlaces(3)]
     public decimal Quantity { get; init; }
 
     /// <summary>Price per unit before GST. Defaults to the product's list price when omitted.</summary>
-    [Range(typeof(decimal), "0", "99999999", ErrorMessage = "Price must be between 0 and 9,99,99,999."), DecimalPlaces(2)]
+    [DecimalRange(0, 99999999, ErrorMessage = "Price must be between 0 and 9,99,99,999."), DecimalPlaces(2)]
     public decimal? UnitPrice { get; init; }
 
-    [Range(typeof(decimal), "0", "100", ErrorMessage = "Discount must be between 0% and 100%."), DecimalPlaces(2)]
+    [DecimalRange(0, 100, ErrorMessage = "Discount must be between 0% and 100%."), DecimalPlaces(2)]
     public decimal DiscountPercent { get; init; }
 }
 
@@ -301,7 +301,7 @@ public sealed record PaymentCreateRequest
     /// <summary>Defaults to today (India time).</summary>
     public DateOnly? PaymentDate { get; init; }
 
-    [Range(typeof(decimal), "0.01", "999999999", ErrorMessage = "Amount must be more than zero."), DecimalPlaces(2)]
+    [DecimalRange(0.01, 999999999, ErrorMessage = "Amount must be more than zero."), DecimalPlaces(2)]
     public decimal Amount { get; init; }
 
     public PaymentMode Mode { get; init; }

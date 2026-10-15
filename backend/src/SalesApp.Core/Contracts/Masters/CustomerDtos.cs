@@ -99,7 +99,7 @@ public sealed record CustomerSaveRequest
     public AddressInput? ShippingAddress { get; init; }
 
     /// <summary>Managers and admins only; ignored for sales reps.</summary>
-    [Range(typeof(decimal), "0", "999999999", ErrorMessage = "Credit limit must be between 0 and 99,99,99,999."), DecimalPlaces(2)]
+    [DecimalRange(0, 999999999, ErrorMessage = "Credit limit must be between 0 and 99,99,99,999."), DecimalPlaces(2)]
     public decimal? CreditLimit { get; init; }
 
     /// <summary>Managers and admins only; ignored for sales reps.</summary>
