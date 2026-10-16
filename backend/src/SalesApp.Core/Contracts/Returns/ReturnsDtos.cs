@@ -79,7 +79,7 @@ public sealed record CreditUseDto(
     DateTime CreatedAtUtc);
 
 /// <summary>Credit still available on one credit note or supplier return, for choosing which to use.</summary>
-public sealed record AvailableCreditDto(int Id, string Number, DateOnly Date, decimal GrandTotal, decimal Available);
+public sealed record AvailableCreditDto(int Id, string Number, DateOnly Date, decimal GrandTotal, decimal Available, string RowVersion);
 
 /// <summary>A credit note or supplier return as listed on its invoice or bill.</summary>
 public sealed record ReturnSummaryDto(

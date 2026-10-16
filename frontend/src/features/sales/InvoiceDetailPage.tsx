@@ -1,4 +1,4 @@
-import { ArrowLeft, Ban, IndianRupee, Printer } from 'lucide-react'
+import { ArrowLeft, Ban, FileCheck2, IndianRupee, Printer, Undo2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
@@ -12,9 +12,13 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { RecordHistory } from '@/features/audit/RecordHistory'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
+import { useApplyCreditNote, useAvailableCredit } from '@/features/returns/api'
+import { ReturnStatusBadge } from '@/features/returns/badges'
+import { creditNoteKindLabels } from '@/features/returns/labels'
+import { SetCreditDialog } from '@/features/returns/SetCreditDialog'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatPercent, formatQuantity } from '@/lib/format'
-import { useCancelInvoice, useInvoice } from './api'
+import { useCancelInvoice, useInvoice, type Invoice } from './api'
 import { InvoiceStatusBadge } from './badges'
 import { paymentModeLabel } from './labels'
 import { RecordPaymentDialog } from './RecordPaymentDialog'
@@ -39,10 +43,12 @@ export function InvoiceDetailPage() {
   const { can } = useAuth()
   const canCancel = can(Permissions.InvoicesEdit)
   const canRecordPayment = can(Permissions.PaymentsEdit)
+  const canCredit = can(Permissions.CreditNotesEdit)
   const invoice = useInvoice(id)
   const cancel = useCancelInvoice()
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [creditOpen, setCreditOpen] = useState(false)
 
   if (invoice.isPending) return <Skeleton className="h-96 w-full max-w-6xl" />
   if (invoice.error) {
@@ -64,7 +70,7 @@ export function InvoiceDetailPage() {
         title={`Invoice ${inv.number}`}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
-            <InvoiceStatusBadge status={inv.status} daysOverdue={inv.daysOverdue} />
+            <InvoiceStatusBadge status={inv.status} daysOverdue={inv.daysOverdue} settledByCredit={inv.amountPaid === 0 && inv.amountCredited > 0} />
             <span>
               Dated {formatBusinessDate(inv.invoiceDate)} · due {formatBusinessDate(inv.dueDate)} · from order{' '}
               <Link className="font-mono underline underline-offset-4" to={`/orders/${inv.salesOrderId}`}>
@@ -87,10 +93,24 @@ export function InvoiceDetailPage() {
                 Print
               </Link>
             </Button>
-            {canCancel && !cancelled && inv.amountPaid === 0 && (
+            {canCancel && !cancelled && !inv.cancelBlockedReason && (
               <Button variant="outline" className="text-destructive" onClick={() => setCancelOpen(true)}>
                 <Ban />
                 Cancel invoice
+              </Button>
+            )}
+            {canCredit && !cancelled && (
+              <Button variant="outline" asChild>
+                <Link to={`/invoices/${inv.id}/credit-note`}>
+                  <Undo2 />
+                  Credit note
+                </Link>
+              </Button>
+            )}
+            {canCredit && !cancelled && inv.balance > 0 && inv.customerCreditAvailable > 0 && (
+              <Button variant="outline" onClick={() => setCreditOpen(true)}>
+                <FileCheck2 />
+                Use credit ({formatINR(inv.customerCreditAvailable)})
               </Button>
             )}
             {canRecordPayment && !cancelled && inv.balance > 0 && (
@@ -213,6 +233,12 @@ export function InvoiceDetailPage() {
               <dd className="border-t pt-1.5 text-right font-semibold">{formatINR(inv.grandTotal)}</dd>
               <dt className="text-muted-foreground">Paid</dt>
               <dd className="text-right">{formatINR(inv.amountPaid)}</dd>
+              {inv.amountCredited > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Credited</dt>
+                  <dd className="text-right">{formatINR(inv.amountCredited)}</dd>
+                </>
+              )}
               <dt className="font-medium">Balance due</dt>
               <dd className="text-right font-medium">{formatINR(inv.balance)}</dd>
             </dl>
@@ -256,7 +282,12 @@ export function InvoiceDetailPage() {
         </CardContent>
       </Card>
 
+      {(inv.creditNotes.length > 0 || inv.creditsApplied.length > 0) && <CreditNotesCard invoice={inv} />}
+
       {!cancelled && <RecordPaymentDialog invoice={inv} open={paymentOpen} onOpenChange={setPaymentOpen} />}
+      {canCredit && !cancelled && inv.balance > 0 && inv.customerCreditAvailable > 0 && (
+        <UseCreditDialog invoice={inv} open={creditOpen} onOpenChange={setCreditOpen} />
+      )}
       <ReasonDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
@@ -276,5 +307,96 @@ export function InvoiceDetailPage() {
 
       <RecordHistory entityType="Invoice" entityId={inv.id} />
     </div>
+  )
+}
+
+/** Credit notes issued against this invoice, and credit from any of the customer's credit notes set against it. */
+function CreditNotesCard({ invoice }: { invoice: Invoice }) {
+  const own = new Set(invoice.creditNotes.map((c) => c.id))
+  const fromOthers = invoice.creditsApplied.filter((a) => !own.has(a.creditId))
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Credit notes</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {invoice.creditNotes.length > 0 && (
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Credit note</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>What</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoice.creditNotes.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      <Link className="font-mono text-xs underline underline-offset-4" to={`/credit-notes/${c.id}`}>
+                        {c.number}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatBusinessDate(c.date)}</TableCell>
+                    <TableCell>{creditNoteKindLabels[c.kind as keyof typeof creditNoteKindLabels] ?? c.kind}</TableCell>
+                    <TableCell>
+                      <ReturnStatusBadge status={c.status} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatINR(c.grandTotal)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        {fromOthers.length > 0 && (
+          <div className="text-sm">
+            <p className="mb-1 font-medium">Credit from other credit notes set against this invoice</p>
+            <ul className="space-y-1 text-muted-foreground">
+              {fromOthers.map((a) => (
+                <li key={a.id} className={a.reversed ? 'line-through' : undefined}>
+                  {formatINR(a.amount)} from{' '}
+                  <Link className="font-mono underline underline-offset-4" to={`/credit-notes/${a.creditId}`}>
+                    {a.creditNumber}
+                  </Link>{' '}
+                  on {formatBusinessDate(a.date)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {invoice.cancelBlockedReason && invoice.status !== 'Cancelled' && <p className="text-xs text-muted-foreground">{invoice.cancelBlockedReason}</p>}
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Sets credit from one of the customer's credit notes against what's still due on this invoice. */
+function UseCreditDialog({ invoice, open, onOpenChange }: { invoice: Invoice; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const available = useAvailableCredit(invoice.customerId, open)
+  const apply = useApplyCreditNote()
+  return (
+    <SetCreditDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Use the customer's credit"
+      description={`${invoice.customerName} has ${formatINR(invoice.customerCreditAvailable)} of credit. ${formatINR(invoice.balance)} is due on ${invoice.number}.`}
+      chooseLabel="Credit note"
+      emptyText="The customer has no credit left."
+      options={available.data?.map((c) => ({
+        id: c.id,
+        label: `${c.number} · ${formatBusinessDate(c.date)} · ${formatINR(c.available)} left`,
+        max: Math.min(c.available, invoice.balance),
+      }))}
+      minDate={invoice.invoiceDate}
+      onApply={async (creditNoteId, amount, date) => {
+        const note = available.data!.find((c) => c.id === creditNoteId)!
+        await apply.mutateAsync({ id: creditNoteId, documentId: invoice.id, amount, date, rowVersion: note.rowVersion })
+        return `${formatINR(amount)} from ${note.number} set against ${invoice.number}`
+      }}
+    />
   )
 }

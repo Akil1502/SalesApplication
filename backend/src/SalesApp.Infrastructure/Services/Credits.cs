@@ -133,9 +133,14 @@ internal static class Credits
             return $"{invoice.Number} has payments recorded against it, so it can't be cancelled. Issue a credit note instead.";
         }
 
-        if (hasCreditNotes || invoice.AmountCredited > 0)
+        if (hasCreditNotes)
         {
             return $"{invoice.Number} has credit notes against it, so it can't be cancelled. Issue a further credit note instead.";
+        }
+
+        if (invoice.AmountCredited > 0)
+        {
+            return $"Customer credit has been set against {invoice.Number}, so it can't be cancelled. Issue a credit note instead.";
         }
 
         return ReturnRules.InSameMonth(invoice.InvoiceDate, today)

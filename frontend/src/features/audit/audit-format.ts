@@ -32,6 +32,12 @@ export const recordTypes = [
   'Purchase order',
   'Supplier bill',
   'Supplier payment',
+  'Credit note',
+  'Credit used',
+  'Credit refund',
+  'Supplier return',
+  'Supplier credit used',
+  'Supplier refund',
   'User',
   'Role',
   'Company settings',
@@ -59,6 +65,16 @@ export function recordLink(entry: Pick<AuditEntry, 'entityType' | 'entityId'>): 
       return id ? `/supplier-bills/${id}` : null
     case 'Supplier payment':
       return '/supplier-payments'
+    case 'Credit note':
+      return id ? `/credit-notes/${id}` : null
+    case 'Credit used':
+    case 'Credit refund':
+      return '/credit-notes'
+    case 'Supplier return':
+      return id ? `/supplier-returns/${id}` : null
+    case 'Supplier credit used':
+    case 'Supplier refund':
+      return '/supplier-returns'
     case 'Rate':
       return '/rates?tab=history'
     case 'Category':

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
 import { formatQuantity } from '@/lib/format'
+import { useDebounced } from '@/lib/use-debounced'
 import { cn } from '@/lib/utils'
 
 /** A picked product. price is its price on the picker's priceOn day: that period's rate, else the list price. */
@@ -23,15 +24,6 @@ interface ProductPickerProps {
   id?: string
   /** The day to price products on (yyyy-mm-dd), such as the order date; today when left out. */
   priceOn?: string
-}
-
-function useDebounced<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs)
-    return () => clearTimeout(timer)
-  }, [value, delayMs])
-  return debounced
 }
 
 /**

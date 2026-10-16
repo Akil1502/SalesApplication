@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronRight, Clock, FileSpreadsheet, Landmark, Package, Users, Warehouse, type LucideIcon } from 'lucide-react'
+import { CalendarRange, ChevronRight, Clock, FileSpreadsheet, Landmark, Package, Undo2, Users, Warehouse, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -15,6 +15,8 @@ const icons: Record<string, LucideIcon> = {
   'hsn-summary': FileSpreadsheet,
   'receivables-ageing': Clock,
   stock: Warehouse,
+  'credit-notes': Undo2,
+  'supplier-returns': Undo2,
 }
 
 export function ReportsPage() {

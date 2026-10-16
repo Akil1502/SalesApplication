@@ -71,11 +71,13 @@ export const anomalyLabels: Record<AnomalyKind, string> = {
   DemandDrop: 'Demand drop',
   Stockout: 'Stock-out',
   PaymentRisk: 'Payment risk',
+  HighReturns: 'Many returns',
 }
 
 /** Where to look into an anomaly in the app. */
 export function anomalyLink(anomaly: Anomaly): { to: string; label: string } | null {
   if (anomaly.reference) return { to: `/invoices?q=${encodeURIComponent(anomaly.reference)}`, label: 'Open invoice' }
+  if (anomaly.kind === 'HighReturns' && anomaly.customerId) return { to: `/credit-notes?customerId=${anomaly.customerId}`, label: 'Their credit notes' }
   if (anomaly.customerId) return { to: `/customers/${anomaly.customerId}`, label: 'Open customer' }
   if (anomaly.productId) return { to: `/products/${anomaly.productId}`, label: 'Open product' }
   return null

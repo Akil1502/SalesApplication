@@ -15,6 +15,7 @@ const purposes: Record<string, string> = {
   thank_you: 'Thank-you',
   delivery_follow_up: 'Delivery follow-up',
   bill_query: 'Bill query',
+  credit_note: 'Credit note',
   other: 'Message',
 }
 

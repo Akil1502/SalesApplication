@@ -190,8 +190,12 @@ function MovementsTab() {
       key: 'ref',
       header: 'Reference',
       cell: (m) =>
-        m.referenceType === 'Receipt' && m.referenceId ? (
-          <Link className="font-mono text-xs underline-offset-4 hover:underline" to={`/stock/receipts/${m.referenceId}`} onClick={(e) => e.stopPropagation()}>
+        m.referenceId && m.referenceType && referencePaths[m.referenceType] ? (
+          <Link
+            className="font-mono text-xs underline-offset-4 hover:underline"
+            to={`${referencePaths[m.referenceType]}/${m.referenceId}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             {m.referenceNumber}
           </Link>
         ) : (
@@ -300,6 +304,14 @@ function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolea
       )}
     </>
   )
+}
+
+/** Where each kind of document a stock movement came from opens. */
+const referencePaths: Record<string, string> = {
+  Receipt: '/stock/receipts',
+  Invoice: '/invoices',
+  CreditNote: '/credit-notes',
+  SupplierReturn: '/supplier-returns',
 }
 
 export function StockPage() {

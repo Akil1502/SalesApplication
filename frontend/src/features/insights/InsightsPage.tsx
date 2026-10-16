@@ -12,6 +12,7 @@ import {
   TrendingDown,
   TrendingUp,
   TriangleAlert,
+  Undo2,
   UserX,
   Wallet,
   type LucideIcon,
@@ -53,6 +54,7 @@ const anomalyIcons: Record<AnomalyKind, LucideIcon> = {
   DemandDrop: TrendingDown,
   Stockout: PackageX,
   PaymentRisk: Wallet,
+  HighReturns: Undo2,
 }
 
 /** Claude's written summary, or why there isn't one. Only parts whose figures were found in the metrics are shown. */

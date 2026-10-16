@@ -29,7 +29,7 @@ const columns: Column<InvoiceListItem>[] = [
   { key: 'total', header: 'Total', align: 'right', cell: (i) => formatINR(i.grandTotal) },
   { key: 'balance', header: 'Balance due', align: 'right', cell: (i) => (i.balance > 0 ? formatINR(i.balance) : '—') },
   { key: 'due', header: 'Due', cell: (i) => formatBusinessDate(i.dueDate), className: 'w-28' },
-  { key: 'status', header: 'Status', cell: (i) => <InvoiceStatusBadge status={i.status} daysOverdue={i.daysOverdue} /> },
+  { key: 'status', header: 'Status', cell: (i) => <InvoiceStatusBadge status={i.status} daysOverdue={i.daysOverdue} settledByCredit={i.amountPaid === 0 && i.amountCredited > 0} /> },
 ]
 
 function SummaryCards() {

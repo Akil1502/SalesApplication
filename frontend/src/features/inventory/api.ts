@@ -17,6 +17,8 @@ export const movementTypeLabels: Record<StockMovementType, string> = {
   Adjustment: 'Adjustment',
   Sale: 'Sale',
   SaleReversal: 'Sale reversal',
+  SaleReturn: 'Customer return',
+  PurchaseReturn: 'Returned to supplier',
 }
 
 export const adjustmentReasons: { value: AdjustmentReason; label: string }[] = [

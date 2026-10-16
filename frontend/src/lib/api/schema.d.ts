@@ -3365,6 +3365,968 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/credit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: components["schemas"]["ReturnDocumentStatus"];
+                    kind?: components["schemas"]["CreditNoteKind"];
+                    customerId?: number;
+                    invoiceId?: number;
+                    from?: string;
+                    to?: string;
+                    /** @description Only credit notes with credit still unused. */
+                    withCreditOnly?: boolean;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfCreditNoteListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Issues a credit note against an invoice: returned goods go back into stock (or are written off) and the value comes off what's due. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreditNoteCreateRequest"];
+                    "text/json": components["schemas"]["CreditNoteCreateRequest"];
+                    "application/*+json": components["schemas"]["CreditNoteCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreditNoteDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credit-notes/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Credited this month, customer credit still unused, refunds this month. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreditNoteSummaryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credit-notes/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A customer's credit notes with credit left, oldest first, for setting against an invoice. */
+        get: {
+            parameters: {
+                query?: {
+                    customerId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailableCreditDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credit-notes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreditNoteDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credit-notes/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Works a credit note out exactly as issuing it would, without saving anything. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreditNoteCreateRequest"];
+                    "text/json": components["schemas"]["CreditNoteCreateRequest"];
+                    "application/*+json": components["schemas"]["CreditNoteCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreditNotePreviewDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credit-notes/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sets credit from this note against another of the customer's invoices. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreditApplyRequest"];
+                    "text/json": components["schemas"]["CreditApplyRequest"];
+                    "application/*+json": components["schemas"]["CreditApplyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreditNoteDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credit-notes/{id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Records credit paid back to the customer. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RefundCreateRequest"];
+                    "text/json": components["schemas"]["RefundCreateRequest"];
+                    "application/*+json": components["schemas"]["RefundCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreditNoteDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/credit-notes/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancels a credit note in its own month whose credit hasn't been used elsewhere or refunded. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReturnCancelRequest"];
+                    "text/json": components["schemas"]["ReturnCancelRequest"];
+                    "application/*+json": components["schemas"]["ReturnCancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreditNoteDto"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: components["schemas"]["ReturnDocumentStatus"];
+                    supplierId?: number;
+                    supplierBillId?: number;
+                    from?: string;
+                    to?: string;
+                    /** @description Only returns with credit still unused. */
+                    withCreditOnly?: boolean;
+                    /** @description Only returns whose supplier credit note hasn't been noted yet. */
+                    awaitingSupplierNoteOnly?: boolean;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfSupplierReturnListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Returns goods against a supplier bill: stock out at the bill's price, input GST reversed, what we owe reduced. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierReturnCreateRequest"];
+                    "text/json": components["schemas"]["SupplierReturnCreateRequest"];
+                    "application/*+json": components["schemas"]["SupplierReturnCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returned this month, supplier credit still unused, returns waiting for the supplier's credit note. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnSummaryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A supplier's returns with credit left, oldest first, for setting against a bill. */
+        get: {
+            parameters: {
+                query?: {
+                    supplierId?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvailableCreditDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierReturnCreateRequest"];
+                    "text/json": components["schemas"]["SupplierReturnCreateRequest"];
+                    "application/*+json": components["schemas"]["SupplierReturnCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnPreviewDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/{id}/supplier-credit-note": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Notes the supplier's credit note for the returned goods. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierReturnNoteRequest"];
+                    "text/json": components["schemas"]["SupplierReturnNoteRequest"];
+                    "application/*+json": components["schemas"]["SupplierReturnNoteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/{id}/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sets credit from this return against another of the supplier's bills. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreditApplyRequest"];
+                    "text/json": components["schemas"]["CreditApplyRequest"];
+                    "application/*+json": components["schemas"]["CreditApplyRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/{id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Records money the supplier paid back for the returned goods. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RefundCreateRequest"];
+                    "text/json": components["schemas"]["RefundCreateRequest"];
+                    "application/*+json": components["schemas"]["RefundCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-returns/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancels a return in its own month whose credit hasn't been used elsewhere or refunded; the goods come back into stock. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReturnCancelRequest"];
+                    "text/json": components["schemas"]["ReturnCancelRequest"];
+                    "application/*+json": components["schemas"]["ReturnCancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierReturnDto"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roles": {
         parameters: {
             query?: never;
@@ -5067,7 +6029,7 @@ export interface components {
             reference: null | string;
         };
         /** @enum {unknown} */
-        AnomalyKind: "StoppedBuying" | "UnusualInvoice" | "DemandSpike" | "DemandDrop" | "Stockout" | "PaymentRisk";
+        AnomalyKind: "StoppedBuying" | "UnusualInvoice" | "DemandSpike" | "DemandDrop" | "Stockout" | "PaymentRisk" | "HighReturns";
         /**
          * @description The one error shape every endpoint returns. string ApiError.TraceId matches the server log
          *     entry, so a user can quote it when reporting a problem. IReadOnlyDictionary&lt;string, string[]&gt;? ApiError.Errors is only present
@@ -5183,6 +6145,19 @@ export interface components {
             summary: null | string;
             changes: components["schemas"]["AuditChange"][];
             ipAddress: null | string;
+        };
+        /** @description Credit still available on one credit note or supplier return, for choosing which to use. */
+        AvailableCreditDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            available: number;
+            rowVersion: string;
         };
         BacktestDto: {
             method: components["schemas"]["ForecastMethod"];
@@ -5328,6 +6303,233 @@ export interface components {
             /** Format: double */
             billPriceTolerancePercent?: number;
             rowVersion: string;
+        };
+        /** @description Credit set against another invoice or bill of the same customer or supplier. */
+        CreditApplyRequest: {
+            /**
+             * Format: int32
+             * @description The invoice (credit notes) or supplier bill (supplier returns) to set the credit against.
+             */
+            documentId?: number;
+            /** Format: double */
+            amount?: number;
+            /**
+             * Format: date
+             * @description Defaults to today (India time).
+             */
+            date?: null | string;
+            rowVersion: string;
+        };
+        CreditNoteCreateRequest: {
+            /** Format: int32 */
+            invoiceId?: number;
+            /**
+             * Format: date
+             * @description Defaults to today (India time). Can't be in the future, before the invoice, or before the latest credit note this year.
+             */
+            creditNoteDate?: null | string;
+            kind?: components["schemas"]["CreditNoteKind"];
+            reason?: components["schemas"]["ReturnReason"];
+            reasonNote?: null | string;
+            lines: components["schemas"]["CreditNoteLineInput"][];
+        };
+        /**
+         * @description A credit note as printed. CancelBlockedReason is null when it can still be cancelled (in its own month, with its
+         *     credit not used on other invoices or refunded).
+         */
+        CreditNoteDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            financialYear: string;
+            /** Format: date */
+            creditNoteDate: string;
+            status: components["schemas"]["ReturnDocumentStatus"];
+            kind: components["schemas"]["CreditNoteKind"];
+            reason: components["schemas"]["ReturnReason"];
+            reasonNote: null | string;
+            withGst: boolean;
+            /** Format: int32 */
+            invoiceId: number;
+            invoiceNumber: string;
+            /** Format: date */
+            invoiceDate: string;
+            sellerName: string;
+            sellerGstin: string;
+            sellerStateCode: string;
+            sellerAddress: string;
+            /** Format: int32 */
+            customerId: number;
+            customerName: string;
+            customerGstin: null | string;
+            billingAddress: components["schemas"]["InvoiceAddressDto"];
+            placeOfSupplyStateCode: string;
+            placeOfSupplyStateName: string;
+            isInterState: boolean;
+            usesUtgst: boolean;
+            lines: components["schemas"]["CreditNoteLineDto"][];
+            hsnSummary: components["schemas"]["HsnSummaryDto"][];
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            roundOff: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            amountAdjusted: number;
+            /** Format: double */
+            amountRefunded: number;
+            /** Format: double */
+            creditAvailable: number;
+            amountInWords: string;
+            adjustments: components["schemas"]["CreditUseDto"][];
+            refunds: components["schemas"]["RefundDto"][];
+            /** Format: date-time */
+            cancelledAtUtc: null | string;
+            cancellationReason: null | string;
+            cancelBlockedReason: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            rowVersion: string;
+        };
+        /**
+         * @description Whether goods came back, or only the value of the invoice is being corrected.
+         * @enum {unknown}
+         */
+        CreditNoteKind: "GoodsReturn" | "PriceCorrection";
+        CreditNoteLineDto: {
+            /** Format: int32 */
+            lineNumber: number;
+            /** Format: int32 */
+            invoiceLineId: number;
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            hsnCode: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantity: null | number;
+            disposition: null | components["schemas"]["ReturnDisposition"];
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            gstRate: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            lineTotal: number;
+        };
+        /**
+         * @description One invoice line to credit. A goods return gives Quantity and Disposition; a price correction gives Amount, the
+         *     value (before GST) to take off the line.
+         */
+        CreditNoteLineInput: {
+            /** Format: int32 */
+            invoiceLineId?: number;
+            /** Format: double */
+            quantity?: null | number;
+            disposition?: null | components["schemas"]["ReturnDisposition"];
+            /** Format: double */
+            amount?: null | number;
+        };
+        CreditNoteListItemDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            /** Format: date */
+            creditNoteDate: string;
+            kind: components["schemas"]["CreditNoteKind"];
+            reason: components["schemas"]["ReturnReason"];
+            status: components["schemas"]["ReturnDocumentStatus"];
+            withGst: boolean;
+            /** Format: int32 */
+            invoiceId: number;
+            invoiceNumber: string;
+            /** Format: int32 */
+            customerId: number;
+            customerName: string;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            creditAvailable: number;
+        };
+        /** @description What a credit note would come to, worked out exactly as saving it would, without saving anything. */
+        CreditNotePreviewDto: {
+            lines: components["schemas"]["CreditNotePreviewLineDto"][];
+            withGst: boolean;
+            /** Format: date */
+            gstDeadline: string;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            roundOff: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            offInvoice: number;
+            /** Format: double */
+            leftAsCredit: number;
+        };
+        CreditNotePreviewLineDto: {
+            /** Format: int32 */
+            invoiceLineId: number;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            taxAmount: number;
+            /** Format: double */
+            lineTotal: number;
+        };
+        CreditNoteSummaryDto: {
+            /** Format: double */
+            creditedThisMonth: number;
+            /** Format: int32 */
+            countThisMonth: number;
+            /** Format: double */
+            customerCreditAvailable: number;
+            /** Format: int32 */
+            customersWithCredit: number;
+            /** Format: double */
+            refundedThisMonth: number;
+        };
+        /** @description A credit set against an invoice or bill: which credit, which document, how much. */
+        CreditUseDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            creditId: number;
+            creditNumber: string;
+            /** Format: int32 */
+            documentId: number;
+            documentNumber: string;
+            /** Format: date */
+            date: string;
+            /** Format: double */
+            amount: number;
+            reversed: boolean;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
         };
         /**
          * @description The signed-in user: their role name (for display) and what they may do (keys from
@@ -5593,8 +6795,17 @@ export interface components {
         GoodsReceiptLineInput: {
             /** Format: int32 */
             purchaseOrderLineId?: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Accepted into stock. Zero when everything delivered on this line was rejected.
+             */
             quantity?: number;
+            /**
+             * Format: double
+             * @description Refused on delivery: it doesn't enter stock, and the order still expects it.
+             */
+            quantityRejected?: number;
+            rejectionReason?: null | string;
         };
         HsnCodeDto: {
             /** Format: int32 */
@@ -5696,7 +6907,11 @@ export interface components {
              */
             invoiceDate?: null | string;
         };
-        /** @description A tax invoice as printed. Bank details and terms are the company's current ones. */
+        /**
+         * @description A tax invoice as printed. Bank details and terms are the company's current ones. CancelBlockedReason is null while it
+         *     can still be cancelled (unpaid, uncredited, in its own month); GstCreditDeadline is the last day a credit note against
+         *     it can reduce GST.
+         */
         InvoiceDto: {
             /** Format: int32 */
             id: number;
@@ -5742,11 +6957,20 @@ export interface components {
             /** Format: double */
             amountPaid: number;
             /** Format: double */
+            amountCredited: number;
+            /** Format: double */
             balance: number;
             /** Format: int32 */
             daysOverdue: null | number;
             amountInWords: string;
             payments: components["schemas"]["PaymentDto"][];
+            creditsApplied: components["schemas"]["CreditUseDto"][];
+            creditNotes: components["schemas"]["ReturnSummaryDto"][];
+            /** Format: double */
+            customerCreditAvailable: number;
+            /** Format: date */
+            gstCreditDeadline: string;
+            cancelBlockedReason: null | string;
             /** Format: date-time */
             cancelledAtUtc: null | string;
             cancellationReason: null | string;
@@ -5759,7 +6983,10 @@ export interface components {
             /** Format: date-time */
             createdAtUtc: string;
         };
+        /** @description An invoice line. QuantityReturned and ValueCredited are what credit notes have taken back so far. */
         InvoiceLineDto: {
+            /** Format: int32 */
+            id: number;
             /** Format: int32 */
             lineNumber: number;
             /** Format: int32 */
@@ -5796,6 +7023,10 @@ export interface components {
             igstAmount: number;
             /** Format: double */
             lineTotal: number;
+            /** Format: double */
+            quantityReturned: number;
+            /** Format: double */
+            valueCredited: number;
         };
         InvoiceListItemDto: {
             /** Format: int32 */
@@ -5812,6 +7043,8 @@ export interface components {
             grandTotal: number;
             /** Format: double */
             amountPaid: number;
+            /** Format: double */
+            amountCredited: number;
             /** Format: double */
             balance: number;
             status: components["schemas"]["InvoiceStatus"];
@@ -6061,6 +7294,17 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        PagedResultOfCreditNoteListItemDto: {
+            items: components["schemas"]["CreditNoteListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
         PagedResultOfCustomerListItemDto: {
             items: components["schemas"]["CustomerListItemDto"][];
             /** Format: int32 */
@@ -6195,6 +7439,17 @@ export interface components {
         };
         PagedResultOfSupplierPaymentDto: {
             items: components["schemas"]["SupplierPaymentDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfSupplierReturnListItemDto: {
+            items: components["schemas"]["SupplierReturnListItemDto"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -6673,6 +7928,34 @@ export interface components {
             /** Format: int32 */
             customersOverdue: number;
         };
+        /** @description Money paid back: to a customer from their credit, or to us by a supplier. */
+        RefundCreateRequest: {
+            /**
+             * Format: date
+             * @description Defaults to today (India time).
+             */
+            refundDate?: null | string;
+            /** Format: double */
+            amount?: number;
+            mode?: components["schemas"]["PaymentMode"];
+            reference?: null | string;
+            notes?: null | string;
+            rowVersion: string;
+        };
+        RefundDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: date */
+            refundDate: string;
+            /** Format: double */
+            amount: number;
+            mode: components["schemas"]["PaymentMode"];
+            reference: null | string;
+            notes: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+        };
         /**
          * @description A product at or below its reorder level that open orders don't already cover, with a quantity to order, its
          *     preferred supplier and the last price paid to them.
@@ -6761,6 +8044,33 @@ export interface components {
         };
         ResetPasswordRequest: {
             newPassword: string;
+        };
+        ReturnCancelRequest: {
+            reason: string;
+            rowVersion: string;
+        };
+        /** @enum {unknown} */
+        ReturnDisposition: "Restock" | "Damaged" | null;
+        /** @enum {unknown} */
+        ReturnDocumentStatus: "Issued" | "Cancelled";
+        /**
+         * @description Why goods came back or the value was corrected. Supplier returns use the goods reasons only.
+         * @enum {unknown}
+         */
+        ReturnReason: "Damaged" | "WrongItem" | "QualityIssue" | "ExcessSupplied" | "RateDifference" | "ShortSupply" | "Discount" | "Other";
+        /** @description A credit note or supplier return as listed on its invoice or bill. */
+        ReturnSummaryDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            /** Format: date */
+            date: string;
+            kind: string;
+            reason: components["schemas"]["ReturnReason"];
+            status: components["schemas"]["ReturnDocumentStatus"];
+            withGst: boolean;
+            /** Format: double */
+            grandTotal: number;
         };
         /**
          * @description A role. IsSystem marks Administrator (every permission; it can't be changed or deleted). IsBuiltIn marks the roles
@@ -6887,7 +8197,7 @@ export interface components {
             createdAtUtc: string;
         };
         /** @enum {unknown} */
-        StockMovementType: "Opening" | "Receipt" | "Adjustment" | "Sale" | "SaleReversal";
+        StockMovementType: "Opening" | "Receipt" | "Adjustment" | "Sale" | "SaleReversal" | "SaleReturn" | "PurchaseReturn";
         StockReceiptDto: {
             /** Format: int32 */
             id: number;
@@ -6919,6 +8229,9 @@ export interface components {
             quantity: number;
             /** Format: double */
             unitCost: null | number;
+            /** Format: double */
+            quantityRejected: number;
+            rejectionReason: null | string;
         };
         /** @description A goods receipt in a list. Receipts are recorded against purchase orders; older ones may have none. */
         StockReceiptListItemDto: {
@@ -7055,6 +8368,8 @@ export interface components {
             /** Format: double */
             amountPaid: number;
             /** Format: double */
+            amountCredited: number;
+            /** Format: double */
             balance: number;
             /** Format: int32 */
             daysOverdue: null | number;
@@ -7065,6 +8380,11 @@ export interface components {
             approvalNote: null | string;
             notes: null | string;
             payments: components["schemas"]["SupplierPaymentDto"][];
+            creditsApplied: components["schemas"]["CreditUseDto"][];
+            returns: components["schemas"]["ReturnSummaryDto"][];
+            /** Format: double */
+            supplierCreditAvailable: number;
+            cancelBlockedReason: null | string;
             /** Format: date-time */
             cancelledAtUtc: null | string;
             cancellationReason: null | string;
@@ -7073,8 +8393,10 @@ export interface components {
             createdAtUtc: string;
             rowVersion: string;
         };
-        /** @description A bill line. Issue is what the three-way check found wrong with it. */
+        /** @description A bill line. Issue is what the three-way check found wrong with it; QuantityReturned what went back since. */
         SupplierBillLineDto: {
+            /** Format: int32 */
+            id: number;
             /** Format: int32 */
             lineNumber: number;
             /** Format: int32 */
@@ -7104,6 +8426,8 @@ export interface components {
             /** Format: double */
             lineTotal: number;
             issue: null | string;
+            /** Format: double */
+            quantityReturned: number;
         };
         SupplierBillLineInput: {
             /** Format: int32 */
@@ -7137,6 +8461,8 @@ export interface components {
             grandTotal: number;
             /** Format: double */
             amountPaid: number;
+            /** Format: double */
+            amountCredited: number;
             /** Format: double */
             balance: number;
             status: components["schemas"]["SupplierBillStatus"];
@@ -7248,6 +8574,193 @@ export interface components {
             createdByName: string;
             /** Format: date-time */
             createdAtUtc: string;
+        };
+        SupplierReturnCreateRequest: {
+            /** Format: int32 */
+            supplierBillId?: number;
+            /**
+             * Format: date
+             * @description Defaults to today (India time).
+             */
+            returnDate?: null | string;
+            reason?: components["schemas"]["ReturnReason"];
+            reasonNote?: null | string;
+            supplierCreditNoteNumber?: null | string;
+            /** Format: date */
+            supplierCreditNoteDate?: null | string;
+            lines: components["schemas"]["SupplierReturnLineInput"][];
+        };
+        /** @description A debit note as printed. Our company's details are today's, like the bank details on an invoice. */
+        SupplierReturnDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            financialYear: string;
+            /** Format: date */
+            returnDate: string;
+            status: components["schemas"]["ReturnDocumentStatus"];
+            reason: components["schemas"]["ReturnReason"];
+            reasonNote: null | string;
+            withGst: boolean;
+            /** Format: int32 */
+            supplierBillId: number;
+            billNumber: string;
+            supplierInvoiceNumber: string;
+            /** Format: date */
+            billDate: string;
+            /** Format: int32 */
+            purchaseOrderId: number;
+            purchaseOrderNumber: string;
+            /** Format: int32 */
+            supplierId: number;
+            supplierName: string;
+            supplierGstin: null | string;
+            supplierStateCode: string;
+            supplierStateName: string;
+            isInterState: boolean;
+            companyName: string;
+            companyGstin: string;
+            companyAddress: string;
+            supplierCreditNoteNumber: null | string;
+            /** Format: date */
+            supplierCreditNoteDate: null | string;
+            lines: components["schemas"]["SupplierReturnLineDto"][];
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            roundOff: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            amountAdjusted: number;
+            /** Format: double */
+            amountRefunded: number;
+            /** Format: double */
+            creditAvailable: number;
+            amountInWords: string;
+            adjustments: components["schemas"]["CreditUseDto"][];
+            refunds: components["schemas"]["RefundDto"][];
+            /** Format: date-time */
+            cancelledAtUtc: null | string;
+            cancellationReason: null | string;
+            cancelBlockedReason: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            rowVersion: string;
+        };
+        SupplierReturnLineDto: {
+            /** Format: int32 */
+            lineNumber: number;
+            /** Format: int32 */
+            supplierBillLineId: number;
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            hsnCode: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            unitPrice: number;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            gstRate: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            lineTotal: number;
+        };
+        SupplierReturnLineInput: {
+            /** Format: int32 */
+            supplierBillLineId?: number;
+            /** Format: double */
+            quantity?: number;
+        };
+        SupplierReturnListItemDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            /** Format: date */
+            returnDate: string;
+            reason: components["schemas"]["ReturnReason"];
+            status: components["schemas"]["ReturnDocumentStatus"];
+            withGst: boolean;
+            /** Format: int32 */
+            supplierBillId: number;
+            billNumber: string;
+            supplierInvoiceNumber: string;
+            /** Format: int32 */
+            supplierId: number;
+            supplierName: string;
+            supplierCreditNoteNumber: null | string;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            creditAvailable: number;
+        };
+        /** @description Notes the supplier's credit note for the returned goods once it arrives. */
+        SupplierReturnNoteRequest: {
+            supplierCreditNoteNumber: string;
+            /** Format: date */
+            supplierCreditNoteDate?: null | string;
+            rowVersion: string;
+        };
+        SupplierReturnPreviewDto: {
+            lines: components["schemas"]["SupplierReturnPreviewLineDto"][];
+            withGst: boolean;
+            /** Format: date */
+            gstDeadline: string;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            roundOff: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            offBill: number;
+            /** Format: double */
+            leftAsCredit: number;
+        };
+        SupplierReturnPreviewLineDto: {
+            /** Format: int32 */
+            supplierBillLineId: number;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            taxAmount: number;
+            /** Format: double */
+            lineTotal: number;
+        };
+        SupplierReturnSummaryDto: {
+            /** Format: double */
+            returnedThisMonth: number;
+            /** Format: int32 */
+            countThisMonth: number;
+            /** Format: double */
+            supplierCreditAvailable: number;
+            /** Format: int32 */
+            awaitingSupplierNote: number;
         };
         SupplierSaveRequest: {
             /** @description Optional on create (generated when blank); ignored on update because codes are permanent. */

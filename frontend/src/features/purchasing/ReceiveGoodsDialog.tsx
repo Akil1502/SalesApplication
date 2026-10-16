@@ -25,7 +25,8 @@ export function ReceiveGoodsDialog({ order, open, onOpenChange }: ReceiveGoodsDi
         <DialogHeader>
           <DialogTitle>Receive goods</DialogTitle>
           <DialogDescription>
-            Against {order.number} from {order.supplierName}. Enter what actually arrived; anything still to come stays on the order.
+            Against {order.number} from {order.supplierName}. Enter what you accepted, and anything refused at the door: rejected goods
+            never enter stock and stay due on the order.
           </DialogDescription>
         </DialogHeader>
         {open && <ReceiveForm order={order} onDone={() => onOpenChange(false)} />}
@@ -39,6 +40,8 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
   const lines = order.lines.filter((l) => l.maxReceivable > 0)
   // Each line starts at what's still to come.
   const [quantities, setQuantities] = useState<Record<number, string>>(() => Object.fromEntries(lines.map((l) => [l.id, l.quantityPending > 0 ? String(l.quantityPending) : ''])))
+  const [rejected, setRejected] = useState<Record<number, string>>({})
+  const [reasons, setReasons] = useState<Record<number, string>>({})
   const [receiptDate, setReceiptDate] = useState(todayInIndia())
   const [reference, setReference] = useState('')
   const [notes, setNotes] = useState('')
@@ -52,8 +55,14 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
     if (Number(raw) > max) return `At most ${formatQuantity(max)}.`
     return null
   }
-  const entered = lines.filter((l) => Number(quantities[l.id]) > 0)
-  const invalid = lines.some((l) => problem(l.id, l.maxReceivable) !== null)
+  const rejectProblem = (lineId: number): string | null => {
+    const raw = (rejected[lineId] ?? '').trim()
+    if (raw === '') return null
+    if (!/^\d+(\.\d{1,3})?$/.test(raw)) return 'Up to 3 decimals.'
+    return Number(raw) > 0 && !(reasons[lineId] ?? '').trim() ? 'Say why.' : null
+  }
+  const entered = lines.filter((l) => Number(quantities[l.id]) > 0 || Number(rejected[l.id]) > 0)
+  const invalid = lines.some((l) => problem(l.id, l.maxReceivable) !== null || rejectProblem(l.id) !== null)
 
   const submit = async () => {
     setErrors({})
@@ -65,7 +74,12 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
           receiptDate,
           supplierReference: reference.trim() || null,
           notes: notes.trim() || null,
-          lines: entered.map((l) => ({ purchaseOrderLineId: l.id, quantity: Number(quantities[l.id]) })),
+          lines: entered.map((l) => ({
+            purchaseOrderLineId: l.id,
+            quantity: Number(quantities[l.id]) || 0,
+            quantityRejected: Number(rejected[l.id]) || 0,
+            rejectionReason: Number(rejected[l.id]) > 0 ? (reasons[l.id] ?? '').trim() || null : null,
+          })),
         },
       })
       toast.success(`Goods receipt ${receipt.number} recorded; stock updated`)
@@ -86,7 +100,8 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
           <Link to={`/stock/receipts/${received.id}`} className="font-mono underline underline-offset-4">
             {received.number}
           </Link>
-          . The goods are in stock, and the products' cost has been re-averaged at the order price.
+          . The accepted goods are in stock, and the products' cost has been re-averaged at the order price. Anything rejected is still due
+          on the order.
         </p>
         <DialogFooter>
           <Button type="button" onClick={onDone}>
@@ -123,7 +138,8 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
               <TableHead className="text-right">Ordered</TableHead>
               <TableHead className="text-right">Received</TableHead>
               <TableHead className="text-right">Still to come</TableHead>
-              <TableHead className="w-36">Arrived now</TableHead>
+              <TableHead className="w-32">Accepted</TableHead>
+              <TableHead className="w-44">Rejected</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -149,6 +165,33 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
                         onChange={(e) => setQuantities((current) => ({ ...current, [l.id]: e.target.value }))}
                       />
                       <FieldError errors={lineProblem ? [{ message: lineProblem }] : []} />
+                    </Field>
+                  </TableCell>
+                  <TableCell>
+                    <Field data-invalid={!!(rejectProblem(l.id) ?? errors[`lines[${entered.indexOf(l)}].rejectionReason`])}>
+                      <Input
+                        value={rejected[l.id] ?? ''}
+                        inputMode="decimal"
+                        placeholder="0"
+                        aria-label={`Quantity of ${l.sku} rejected, line ${index + 1}`}
+                        onChange={(e) => setRejected((current) => ({ ...current, [l.id]: e.target.value }))}
+                      />
+                      {Number(rejected[l.id]) > 0 && (
+                        <Input
+                          value={reasons[l.id] ?? ''}
+                          maxLength={200}
+                          placeholder="Why, e.g. wet cones"
+                          aria-label={`Why ${l.sku} was rejected`}
+                          onChange={(e) => setReasons((current) => ({ ...current, [l.id]: e.target.value }))}
+                        />
+                      )}
+                      <FieldError
+                        errors={
+                          (rejectProblem(l.id) ?? errors[`lines[${entered.indexOf(l)}].rejectionReason`])
+                            ? [{ message: rejectProblem(l.id) ?? errors[`lines[${entered.indexOf(l)}].rejectionReason`] }]
+                            : []
+                        }
+                      />
                     </Field>
                   </TableCell>
                 </TableRow>

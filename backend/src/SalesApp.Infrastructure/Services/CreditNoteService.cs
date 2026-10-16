@@ -114,11 +114,12 @@ public sealed class CreditNoteService(
     }
 
     public async Task<IReadOnlyList<AvailableCreditDto>> AvailableAsync(int customerId, CancellationToken cancellationToken) =>
-        await db.CreditNotes.AsNoTracking()
-            .Where(c => c.CustomerId == customerId && c.Status == ReturnDocumentStatus.Issued && c.GrandTotal - c.AmountAdjusted - c.AmountRefunded > 0)
-            .OrderBy(c => c.CreditNoteDate).ThenBy(c => c.Id)
-            .Select(c => new AvailableCreditDto(c.Id, c.Number, c.CreditNoteDate, c.GrandTotal, c.GrandTotal - c.AmountAdjusted - c.AmountRefunded))
-            .ToListAsync(cancellationToken);
+        [.. (await db.CreditNotes.AsNoTracking()
+                .Where(c => c.CustomerId == customerId && c.Status == ReturnDocumentStatus.Issued && c.GrandTotal - c.AmountAdjusted - c.AmountRefunded > 0)
+                .OrderBy(c => c.CreditNoteDate).ThenBy(c => c.Id)
+                .Select(c => new { c.Id, c.Number, c.CreditNoteDate, c.GrandTotal, Available = c.GrandTotal - c.AmountAdjusted - c.AmountRefunded, c.RowVersion })
+                .ToListAsync(cancellationToken))
+            .Select(c => new AvailableCreditDto(c.Id, c.Number, c.CreditNoteDate, c.GrandTotal, c.Available, RowVersions.ToToken(c.RowVersion)))];
 
     public async Task<CreditNoteDto> GetAsync(int id, CancellationToken cancellationToken)
     {

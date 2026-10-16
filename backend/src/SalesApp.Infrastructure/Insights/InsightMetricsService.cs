@@ -539,7 +539,7 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
             .Select(x => new AnomalyDto(AnomalyKind.HighReturns,
                 $"{x.p.Sku}: {x.Rate.ToString("0.#", India)}% of what was sold came back",
                 $"{x.p.ProductName}: {Quantity(Math.Round(x.p.Returned, 0), x.p.Unit)} returned out of {Quantity(Math.Round(x.p.Sold, 0), x.p.Unit)} sold in the last 12 months, " +
-                $"on {x.p.Notes} credit notes. Across products the usual rate is {typicalProduct.ToString("0.#", India)}%.",
+                $"on {x.p.Notes} credit notes. " + (typicalProduct > 0 ? $"Across products the usual rate is {typicalProduct.ToString("0.#", India)}%." : "Most products had no returns at all."),
                 (double)(x.Rate / Math.Max(typicalProduct, 0.5m)), null, null, Math.Round(x.p.Returned, 0), typicalProduct, x.Rate, null, null, x.p.ProductId, null));
 
         var buyers = customers.Where(c => c.Bought > 0).ToList();
@@ -552,7 +552,7 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
             .Select(x => new AnomalyDto(AnomalyKind.HighReturns,
                 $"{x.c.CustomerName} returned {x.Rate.ToString("0.#", India)}% of what they bought",
                 $"{Money(x.c.Returned)} of goods came back out of {Money(x.c.Bought)} bought in the last 12 months, on {x.c.Notes} credit notes. " +
-                $"Customers usually return {typicalCustomer.ToString("0.#", India)}%.",
+                (typicalCustomer > 0 ? $"Customers usually return {typicalCustomer.ToString("0.#", India)}%." : "Most customers returned nothing."),
                 (double)(x.Rate / Math.Max(typicalCustomer, 0.5m)), null, Rupees(x.c.Returned), null, typicalCustomer, x.Rate, null, x.c.CustomerId, null, null));
 
         return [.. productAlerts, .. customerAlerts];

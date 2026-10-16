@@ -111,11 +111,12 @@ public sealed class SupplierReturnService(
     }
 
     public async Task<IReadOnlyList<AvailableCreditDto>> AvailableAsync(int supplierId, CancellationToken cancellationToken) =>
-        await db.SupplierReturns.AsNoTracking()
-            .Where(r => r.SupplierId == supplierId && r.Status == ReturnDocumentStatus.Issued && r.GrandTotal - r.AmountAdjusted - r.AmountRefunded > 0)
-            .OrderBy(r => r.ReturnDate).ThenBy(r => r.Id)
-            .Select(r => new AvailableCreditDto(r.Id, r.Number, r.ReturnDate, r.GrandTotal, r.GrandTotal - r.AmountAdjusted - r.AmountRefunded))
-            .ToListAsync(cancellationToken);
+        [.. (await db.SupplierReturns.AsNoTracking()
+                .Where(r => r.SupplierId == supplierId && r.Status == ReturnDocumentStatus.Issued && r.GrandTotal - r.AmountAdjusted - r.AmountRefunded > 0)
+                .OrderBy(r => r.ReturnDate).ThenBy(r => r.Id)
+                .Select(r => new { r.Id, r.Number, r.ReturnDate, r.GrandTotal, Available = r.GrandTotal - r.AmountAdjusted - r.AmountRefunded, r.RowVersion })
+                .ToListAsync(cancellationToken))
+            .Select(r => new AvailableCreditDto(r.Id, r.Number, r.ReturnDate, r.GrandTotal, r.Available, RowVersions.ToToken(r.RowVersion)))];
 
     public async Task<SupplierReturnDto> GetAsync(int id, CancellationToken cancellationToken)
     {

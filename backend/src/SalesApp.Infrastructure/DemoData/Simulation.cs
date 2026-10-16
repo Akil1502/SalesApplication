@@ -64,6 +64,7 @@ internal sealed class Simulation(
     private readonly Dictionary<DateOnly, List<DemoBill>> _supplierReturns = [];
     private readonly Dictionary<int, List<DemoCreditNote>> _customerCredit = [];
     private readonly Dictionary<DemoCreditNote, DateOnly> _refundOn = [];
+    private readonly HashSet<DemoCreditNote> _kept = [];
     private readonly Dictionary<int, List<DemoSupplierReturn>> _supplierCredit = [];
     private readonly Dictionary<string, int> _supplierCreditNoteNumbers = [];
     private Dictionary<string, (string Name, bool UsesUtgst)> _states = [];
@@ -149,6 +150,11 @@ internal sealed class Simulation(
             }
 
             ProcessReturns(day);
+            if (day == Weekday(generator.Today.AddDays(-5)))
+            {
+                ComplainLate(day);
+            }
+
             InvoiceDueOrders(day);
 
             var orderedToday = products.ToDictionary(p => p, _ => 0m);
@@ -861,7 +867,7 @@ internal sealed class Simulation(
             return;
         }
 
-        foreach (var credit in credits.Where(c => c.Entity.CreditNoteDate <= date && !_refundOn.ContainsKey(c)).ToList())
+        foreach (var credit in credits.Where(c => c.Entity.CreditNoteDate <= date && !_refundOn.ContainsKey(c) && !_kept.Contains(c)).ToList())
         {
             var use = Math.Min(Available(credit.Entity), invoice.GrandTotal - invoice.AmountCredited);
             if (use <= 0)
@@ -975,7 +981,7 @@ internal sealed class Simulation(
     /// once), the rest price corrections. Its value comes off what's still due, and payments still to come shrink to
     /// match; whatever is left is the customer's credit, for their next invoice or a refund.
     /// </summary>
-    private void IssueCreditNote(DemoInvoice demoInvoice, DateOnly day)
+    private DemoCreditNote? IssueCreditNote(DemoInvoice demoInvoice, DateOnly day)
     {
         var invoice = demoInvoice.Entity;
         var lines = demoInvoice.Order.Lines;
@@ -1014,7 +1020,7 @@ internal sealed class Simulation(
         var (roundOff, total) = ReturnRules.Total([amounts]);
         if (total <= 0)
         {
-            return;
+            return null;
         }
 
         var notes = DemoCatalog.ReturnNotes[reason];
@@ -1107,6 +1113,26 @@ internal sealed class Simulation(
             }
 
             (_customerCredit.TryGetValue(invoice.CustomerId, out var credits) ? credits : _customerCredit[invoice.CustomerId] = []).Add(demo);
+        }
+
+        return demo;
+    }
+
+    /// <summary>
+    /// A quality complaint five days ago about a fully paid invoice from last month. Its credit is still on the
+    /// customer's account today, waiting to be used on one of their invoices or refunded: something to try.
+    /// </summary>
+    private void ComplainLate(DateOnly day)
+    {
+        // A customer who still owes on a newer invoice, so the credit can be set against it.
+        var owing = Invoices.Where(i => i.Entity.Status != InvoiceStatus.Paid).Select(i => i.Entity.CustomerId).ToHashSet();
+        var invoice = Invoices.LastOrDefault(i => i.Entity.Status == InvoiceStatus.Paid && i.Entity.AmountCredited == 0 && owing.Contains(i.Entity.CustomerId)
+            && i.Entity.InvoiceDate > day.AddDays(-60) && i.Entity.InvoiceDate < day.AddDays(-30)
+            && i.Entity.Payments.All(p => p.PaymentDate <= day) && !CreditNotes.Any(c => c.Invoice == i));
+        if (invoice is not null && IssueCreditNote(invoice, day) is { } note)
+        {
+            _refundOn.Remove(note);
+            _kept.Add(note);
         }
     }
 
@@ -1248,7 +1274,7 @@ internal sealed class Simulation(
     {
         foreach (var credits in _customerCredit.Values)
         {
-            foreach (var credit in credits.Where(c => (_refundOn.TryGetValue(c, out var on) ? on : c.Entity.CreditNoteDate.AddDays(45)) <= day).ToList())
+            foreach (var credit in credits.Where(c => !_kept.Contains(c) && (_refundOn.TryGetValue(c, out var on) ? on : c.Entity.CreditNoteDate.AddDays(45)) <= day).ToList())
             {
                 var amount = Available(credit.Entity);
                 var mode = amount >= 50_000m ? PaymentMode.Neft : generator.Pick([(PaymentMode.Neft, 0.6), (PaymentMode.Upi, 0.3), (PaymentMode.Cheque, 0.1)], m => m.Item2).Item1;
