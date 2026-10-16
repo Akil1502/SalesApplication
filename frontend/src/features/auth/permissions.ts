@@ -11,8 +11,16 @@ export const Permissions = {
   InvoicesEdit: 'invoices.edit',
   PaymentsView: 'payments.view',
   PaymentsEdit: 'payments.edit',
+  PurchaseOrdersView: 'purchase-orders.view',
+  PurchaseOrdersEdit: 'purchase-orders.edit',
+  SupplierBillsView: 'supplier-bills.view',
+  SupplierBillsEdit: 'supplier-bills.edit',
+  SupplierPaymentsView: 'supplier-payments.view',
+  SupplierPaymentsEdit: 'supplier-payments.edit',
   CustomersView: 'customers.view',
   CustomersEdit: 'customers.edit',
+  SuppliersView: 'suppliers.view',
+  SuppliersEdit: 'suppliers.edit',
   ProductsView: 'products.view',
   ProductsEdit: 'products.edit',
   RatesView: 'rates.view',
@@ -34,6 +42,9 @@ export const Permissions = {
   CreditTermsEdit: 'credit-terms.edit',
   CreditLimitOverride: 'credit-limit.override',
   SalesRepAssignable: 'sales-rep.assignable',
+  PurchaseOrdersApprove: 'purchase-orders.approve',
+  SupplierBillsApprove: 'supplier-bills.approve',
+  BillReadingUse: 'bill-reading.use',
 } as const
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions]

@@ -12,6 +12,7 @@ public sealed class AnthropicOptions
 public static class AiFeatures
 {
     public const string OrderEntry = "OrderEntry";
+    public const string BillReading = "BillReading";
 }
 
 /// <summary>How the AI features behave: which model each uses, spending limits and the price list for cost estimates.</summary>

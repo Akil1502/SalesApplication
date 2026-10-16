@@ -14,12 +14,21 @@ internal sealed class AuditLookups(Dictionary<(string Property, string Id), stri
 {
     /// <summary>The properties whose values are ids of other records, and so get a name.</summary>
     internal static readonly HashSet<string> References =
-        ["AssignedRepId", "CategoryId", "HsnCodeId", "CustomerId", "ProductId", "InvoiceId", "SalesOrderId", "StateCode", "PlaceOfSupplyStateCode"];
+    [
+        "AssignedRepId", "ApprovedByUserId", "CategoryId", "HsnCodeId", "CustomerId", "ProductId", "InvoiceId", "SalesOrderId", "StateCode",
+        "PlaceOfSupplyStateCode", "SupplierStateCode", "SupplierId", "PreferredSupplierId", "PurchaseOrderId", "SupplierBillId",
+    ];
 
     public string? Name(string property, object? id) =>
         id is null ? null : names.TryGetValue((Kind(property), Key(id)), out var name) ? name : Key(id);
 
-    internal static string Kind(string property) => property.EndsWith("StateCode", StringComparison.Ordinal) ? "StateCode" : property;
+    internal static string Kind(string property) => property switch
+    {
+        _ when property.EndsWith("StateCode", StringComparison.Ordinal) => "StateCode",
+        "ApprovedByUserId" => "AssignedRepId",
+        "PreferredSupplierId" => "SupplierId",
+        _ => property,
+    };
 
     internal static string Key(object id) => Convert.ToString(id, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
 
@@ -73,6 +82,21 @@ internal sealed class AuditLookups(Dictionary<(string Property, string Id), stri
             Add("SalesOrderId", (await db.SalesOrders.AsNoTracking().Where(o => orders.Contains(o.Id)).Select(o => new { o.Id, o.Number }).ToListAsync(cancellationToken)).Select(o => (o.Id, o.Number)));
         }
 
+        if (Of<int>("SupplierId") is { Count: > 0 } suppliers)
+        {
+            Add("SupplierId", (await db.Suppliers.AsNoTracking().Where(s => suppliers.Contains(s.Id)).Select(s => new { s.Id, s.Name }).ToListAsync(cancellationToken)).Select(s => (s.Id, s.Name)));
+        }
+
+        if (Of<int>("PurchaseOrderId") is { Count: > 0 } purchaseOrders)
+        {
+            Add("PurchaseOrderId", (await db.PurchaseOrders.AsNoTracking().Where(o => purchaseOrders.Contains(o.Id)).Select(o => new { o.Id, o.Number }).ToListAsync(cancellationToken)).Select(o => (o.Id, o.Number)));
+        }
+
+        if (Of<int>("SupplierBillId") is { Count: > 0 } bills)
+        {
+            Add("SupplierBillId", (await db.SupplierBills.AsNoTracking().Where(b => bills.Contains(b.Id)).Select(b => new { b.Id, b.Number }).ToListAsync(cancellationToken)).Select(b => (b.Id, b.Number)));
+        }
+
         if (Of<string>("StateCode") is { Count: > 0 } states)
         {
             Add("StateCode", (await db.States.AsNoTracking().Where(s => states.Contains(s.Code)).Select(s => new { s.Code, s.Name }).ToListAsync(cancellationToken)).Select(s => (s.Code, s.Name)));
@@ -97,7 +121,7 @@ internal static class AuditCollector
         }
 
         // The audited records this save touches: changed ones, owners of changed parts (a customer whose address
-        // changed), and orders whose lines changed.
+        // changed), and orders (sales or purchase) whose lines changed.
         var records = new List<EntityEntry>();
         void Include(EntityEntry? entry)
         {
@@ -110,7 +134,7 @@ internal static class AuditCollector
         }
 
         var owned = changed.Where(e => e.Metadata.IsOwned()).ToList();
-        var lines = changed.Where(e => e.Entity is SalesOrderLine).ToList();
+        var lines = changed.Where(e => LineParents.ContainsKey(e.Metadata.ClrType)).ToList();
         foreach (var entry in changed.Where(e => !e.Metadata.IsOwned()))
         {
             Include(entry);
@@ -127,7 +151,7 @@ internal static class AuditCollector
 
         foreach (var line in lines)
         {
-            Include(OrderOf(db, line));
+            Include(ParentOf(db, line));
         }
 
         if (records.Count == 0)
@@ -153,7 +177,7 @@ internal static class AuditCollector
                 changes.AddRange(OwnedChanges(db, record, owned, lookups));
             }
 
-            if (record.Entity is SalesOrder && LineChange(db, record, lines, lookups) is { } lineChange)
+            if (record.Entity is SalesOrder or PurchaseOrder && LineChange(db, record, lines, lookups) is { } lineChange)
             {
                 changes.Add(lineChange);
             }
@@ -240,10 +264,13 @@ internal static class AuditCollector
         }
     }
 
-    /// <summary>An order's lines before and after, as one change ("CY-30C × 500 @ ₹300; …").</summary>
+    /// <summary>
+    /// An order's lines before and after, as one change ("CY-30C × 500 @ ₹300; …"). Only product, quantity, price and
+    /// discount count, so a purchase order line that just records goods received or billed isn't a change to the order.
+    /// </summary>
     private static AuditChange? LineChange(AppDbContext db, EntityEntry order, List<EntityEntry> lines, AuditLookups lookups)
     {
-        var mine = lines.Where(l => OrderOf(db, l) is { } o && ReferenceEquals(o.Entity, order.Entity)).ToList();
+        var mine = lines.Where(l => ParentOf(db, l) is { } o && ReferenceEquals(o.Entity, order.Entity)).ToList();
         if (mine.Count == 0)
         {
             return null;
@@ -257,14 +284,13 @@ internal static class AuditCollector
             return text.Length == 0 ? null : text;
         }
 
-        (int, int, decimal, decimal, decimal) Row(EntityEntry line, bool original) =>
-            original
-                ? ((int)line.Property(nameof(SalesOrderLine.LineNumber)).OriginalValue!, (int)line.Property(nameof(SalesOrderLine.ProductId)).OriginalValue!,
-                   (decimal)line.Property(nameof(SalesOrderLine.Quantity)).OriginalValue!, (decimal)line.Property(nameof(SalesOrderLine.UnitPrice)).OriginalValue!,
-                   (decimal)line.Property(nameof(SalesOrderLine.DiscountPercent)).OriginalValue!)
-                : ((int)line.Property(nameof(SalesOrderLine.LineNumber)).CurrentValue!, (int)line.Property(nameof(SalesOrderLine.ProductId)).CurrentValue!,
-                   (decimal)line.Property(nameof(SalesOrderLine.Quantity)).CurrentValue!, (decimal)line.Property(nameof(SalesOrderLine.UnitPrice)).CurrentValue!,
-                   (decimal)line.Property(nameof(SalesOrderLine.DiscountPercent)).CurrentValue!);
+        (int, int, decimal, decimal, decimal) Row(EntityEntry line, bool original)
+        {
+            object? Read(string name) => original ? line.Property(name).OriginalValue : line.Property(name).CurrentValue;
+            var discount = line.Metadata.FindProperty(nameof(SalesOrderLine.DiscountPercent)) is null ? 0m : (decimal)Read(nameof(SalesOrderLine.DiscountPercent))!;
+            return ((int)Read(nameof(SalesOrderLine.LineNumber))!, (int)Read(nameof(SalesOrderLine.ProductId))!,
+                (decimal)Read(nameof(SalesOrderLine.Quantity))!, (decimal)Read(nameof(SalesOrderLine.UnitPrice))!, discount);
+        }
 
         var old = Summary(mine.Where(l => l.State is EntityState.Deleted or EntityState.Modified).Select(l => Row(l, original: true)));
         var current = Summary(mine.Where(l => l.State is EntityState.Added or EntityState.Modified).Select(l => Row(l, original: false)));
@@ -309,12 +335,18 @@ internal static class AuditCollector
         return (owner, ownership.PrincipalToDependent?.Name);
     }
 
-    private static EntityEntry<SalesOrder>? OrderOf(AppDbContext db, EntityEntry line)
+    /// <summary>Line types whose changes are recorded on their document, with the document type and the line's key to it.</summary>
+    private static readonly Dictionary<Type, (Type Parent, string ForeignKey)> LineParents = new()
     {
-        var orderId = line.State == EntityState.Deleted
-            ? line.Property(nameof(SalesOrderLine.SalesOrderId)).OriginalValue
-            : line.Property(nameof(SalesOrderLine.SalesOrderId)).CurrentValue;
-        return db.ChangeTracker.Entries<SalesOrder>().FirstOrDefault(o => Equals(o.Property(nameof(SalesOrder.Id)).CurrentValue, orderId));
+        [typeof(SalesOrderLine)] = (typeof(SalesOrder), nameof(SalesOrderLine.SalesOrderId)),
+        [typeof(PurchaseOrderLine)] = (typeof(PurchaseOrder), nameof(PurchaseOrderLine.PurchaseOrderId)),
+    };
+
+    private static EntityEntry? ParentOf(AppDbContext db, EntityEntry line)
+    {
+        var (parent, foreignKey) = LineParents[line.Metadata.ClrType];
+        var parentId = line.State == EntityState.Deleted ? line.Property(foreignKey).OriginalValue : line.Property(foreignKey).CurrentValue;
+        return db.ChangeTracker.Entries().FirstOrDefault(e => e.Metadata.ClrType == parent && Equals(e.Property("Id").CurrentValue, parentId));
     }
 
     private static string? KeyOf(EntityEntry entry) =>

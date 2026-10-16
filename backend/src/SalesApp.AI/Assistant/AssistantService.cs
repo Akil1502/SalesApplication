@@ -220,7 +220,7 @@ public sealed class AssistantService(
                 }
                 else if (call.Name == AssistantPrompt.CreateDraft)
                 {
-                    (outcome, draft) = tools.Refusal(call.Name) is { } refused
+                    (outcome, draft) = tools.Refusal(call.Name, call.Input) is { } refused
                         ? (refused, null)
                         : await drafts.CreateAsync(conversation.Id, call, ToolResults(history), CancellationToken.None);
                 }

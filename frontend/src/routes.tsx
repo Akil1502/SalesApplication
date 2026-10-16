@@ -18,6 +18,30 @@ const featureRoutes: RouteObject[] = [
   guarded([P.CustomersEdit], [
     { path: '/customers/new', lazy: () => import('@/features/customers/CustomerFormPage').then((m) => ({ Component: m.CustomerFormPage })) },
   ]),
+  guarded([P.SuppliersView], [
+    { path: '/suppliers', lazy: () => import('@/features/purchasing/SuppliersPage').then((m) => ({ Component: m.SuppliersPage })) },
+    { path: '/suppliers/:id', lazy: () => import('@/features/purchasing/SupplierFormPage').then((m) => ({ Component: m.SupplierFormPage })) },
+  ]),
+  guarded([P.SuppliersEdit], [
+    { path: '/suppliers/new', lazy: () => import('@/features/purchasing/SupplierFormPage').then((m) => ({ Component: m.SupplierFormPage })) },
+  ]),
+  guarded([P.PurchaseOrdersView], [
+    { path: '/purchase-orders', lazy: () => import('@/features/purchasing/PurchaseOrdersPage').then((m) => ({ Component: m.PurchaseOrdersPage })) },
+    { path: '/purchase-orders/:id', lazy: () => import('@/features/purchasing/PurchaseOrderFormPage').then((m) => ({ Component: m.PurchaseOrderFormPage })) },
+  ]),
+  guarded([P.PurchaseOrdersEdit], [
+    { path: '/purchase-orders/new', lazy: () => import('@/features/purchasing/PurchaseOrderFormPage').then((m) => ({ Component: m.PurchaseOrderFormPage })) },
+  ]),
+  guarded([P.SupplierBillsView], [
+    { path: '/supplier-bills', lazy: () => import('@/features/purchasing/SupplierBillsPage').then((m) => ({ Component: m.SupplierBillsPage })) },
+    { path: '/supplier-bills/:id', lazy: () => import('@/features/purchasing/SupplierBillDetailPage').then((m) => ({ Component: m.SupplierBillDetailPage })) },
+  ]),
+  guarded([P.SupplierBillsEdit], [
+    { path: '/supplier-bills/new', lazy: () => import('@/features/purchasing/SupplierBillFormPage').then((m) => ({ Component: m.SupplierBillFormPage })) },
+  ]),
+  guarded([P.SupplierPaymentsView], [
+    { path: '/supplier-payments', lazy: () => import('@/features/purchasing/SupplierPaymentsPage').then((m) => ({ Component: m.SupplierPaymentsPage })) },
+  ]),
   guarded([P.ProductsView], [
     { path: '/products', lazy: () => import('@/features/products/ProductsPage').then((m) => ({ Component: m.ProductsPage })) },
     { path: '/products/:id', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
@@ -43,9 +67,6 @@ const featureRoutes: RouteObject[] = [
   guarded([P.StockView], [
     { path: '/stock', lazy: () => import('@/features/inventory/StockPage').then((m) => ({ Component: m.StockPage })) },
     { path: '/stock/receipts/:id', lazy: () => import('@/features/inventory/ReceiptDetailPage').then((m) => ({ Component: m.ReceiptDetailPage })) },
-  ]),
-  guarded([P.StockEdit], [
-    { path: '/stock/receipts/new', lazy: () => import('@/features/inventory/ReceiptFormPage').then((m) => ({ Component: m.ReceiptFormPage })) },
   ]),
   guarded([P.ReportsView], [
     { path: '/reports', lazy: () => import('@/features/reports/ReportsPage').then((m) => ({ Component: m.ReportsPage })) },
@@ -95,6 +116,9 @@ export const routes: RouteObject[] = [
       ]),
       guarded([P.OrdersView], [
         { path: '/orders/:id/print', lazy: () => import('@/features/sales/print/QuotationPrintPage').then((m) => ({ Component: m.QuotationPrintPage })) },
+      ]),
+      guarded([P.PurchaseOrdersView], [
+        { path: '/purchase-orders/:id/print', lazy: () => import('@/features/purchasing/PurchaseOrderPrintPage').then((m) => ({ Component: m.PurchaseOrderPrintPage })) },
       ]),
     ],
   },

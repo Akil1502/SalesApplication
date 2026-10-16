@@ -30,6 +30,9 @@ internal sealed record ProductSpec(
 
 internal sealed record CitySpec(string City, string StateCode, int PincodeBase, double Weight, Segment[] Segments);
 
+/// <summary>A supplier: where they are (their state decides IGST), how long we take to pay them, and who to ask for.</summary>
+internal sealed record SupplierSpec(string Name, string City, string StateCode, int Pincode, int PaymentTermsDays, string ContactPerson);
+
 internal static class DemoCatalog
 {
     public const string CottonYarn = "Cotton yarn";
@@ -125,10 +128,25 @@ internal static class DemoCatalog
         "A. Imran", "T. Deepa", "B. Prakash", "J. Mohan", "Harpreet Singh", "Rakesh Patel", "Sanjay Gupta", "Sourav Das",
     ];
 
-    public static readonly string[] Suppliers =
+    /// <summary>Mostly local mills and makers (CGST + SGST on their bills); the synthetic yarn comes from Surat (IGST).</summary>
+    public static readonly SupplierSpec[] Suppliers =
     [
-        "Lakshmi Spinning Mills", "Kongu Yarn Agencies", "Coimbatore Cotton Corporation", "Erode Fabric Processors",
-        "Karur Home Textile Makers", "Tiruppur Garment Works", "Sivakasi Packaging Industries",
+        new("Lakshmi Spinning Mills", "Coimbatore", "33", 641014, 30, "S. Venkatesh"),
+        new("Kongu Yarn Agencies", "Erode", "33", 638011, 30, "P. Saravanan"),
+        new("Coimbatore Cotton Corporation", "Coimbatore", "33", 641018, 45, "R. Bhuvana"),
+        new("Erode Fabric Processors", "Erode", "33", 638003, 45, "K. Murali"),
+        new("Karur Home Textile Makers", "Karur", "33", 639002, 30, "M. Jayanthi"),
+        new("Tiruppur Garment Works", "Tiruppur", "33", 641604, 30, "A. Rafiq"),
+        new("Sivakasi Packaging Industries", "Sivakasi", "33", 626123, 15, "T. Ganesan"),
+        new("Surat Synthetic Yarns", "Surat", "24", 395003, 45, "Mehul Shah"),
+    ];
+
+    /// <summary>Why a bill's price differed from the order, as the approver noted it.</summary>
+    public static readonly string[] PriceApprovalNotes =
+    [
+        "Mill raised the rate after the order; increase agreed by phone.",
+        "Cotton price revision accepted for this lot.",
+        "Rate difference confirmed with the supplier; within budget.",
     ];
 
     /// <summary>Relative demand by calendar month: festive Navratri/Diwali peak in Oct-Nov, March year-end push, April-May lull.</summary>

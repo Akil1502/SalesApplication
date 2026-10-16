@@ -23,6 +23,17 @@ public static class AuditFormat
         ["ProductId"] = "Product",
         ["InvoiceId"] = "Invoice",
         ["SalesOrderId"] = "Order",
+        ["SupplierId"] = "Supplier",
+        ["PreferredSupplierId"] = "Preferred supplier",
+        ["PurchaseOrderId"] = "Purchase order",
+        ["SupplierBillId"] = "Bill",
+        ["ApprovedByUserId"] = "Approved by",
+        ["SupplierInvoiceNumber"] = "Supplier's invoice number",
+        ["PurchaseApprovalLimit"] = "Purchase approval limit",
+        ["OverReceiptTolerancePercent"] = "Over-receipt tolerance",
+        ["BillPriceTolerancePercent"] = "Bill price tolerance",
+        ["ChargesGstRate"] = "GST rate on charges",
+        ["BankIfsc"] = "Bank IFSC",
         ["Gstin"] = "GSTIN",
         ["Pan"] = "PAN",
         ["Ifsc"] = "IFSC",
@@ -39,6 +50,17 @@ public static class AuditFormat
         ["EffectiveFrom"] = "From",
         ["EffectiveTo"] = "To",
         ["Type"] = "Type",
+    };
+
+    /// <summary>Enum values that aren't plain words: payment modes are acronyms, sources say what AI read.</summary>
+    private static readonly Dictionary<string, string> EnumWords = new(StringComparer.Ordinal)
+    {
+        ["Upi"] = "UPI",
+        ["Neft"] = "NEFT",
+        ["Rtgs"] = "RTGS",
+        ["AiText"] = "AI (text)",
+        ["AiPdf"] = "AI (PDF)",
+        ["AiImage"] = "AI (photo)",
     };
 
     /// <summary>"CreditLimit" → "Credit limit", "BillingAddress" + "City" → "Billing address: city".</summary>
@@ -64,7 +86,7 @@ public static class AuditFormat
         decimal m => Decimal(m, property),
         double or float => Decimal(Convert.ToDecimal(value, CultureInfo.InvariantCulture), property),
         int or long or short => Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("N0", India),
-        Enum e => Words(e.ToString()),
+        Enum e => EnumWords.TryGetValue(e.ToString(), out var words) ? words : Words(e.ToString()),
         Guid g => g.ToString(),
         _ => Convert.ToString(value, CultureInfo.InvariantCulture),
     };
@@ -92,7 +114,7 @@ public static class AuditFormat
 
     private static string? Decimal(decimal value, string property)
     {
-        if (property.EndsWith("Percent", StringComparison.Ordinal) || property == "GstRate")
+        if (property.EndsWith("Percent", StringComparison.Ordinal) || property.EndsWith("GstRate", StringComparison.Ordinal))
         {
             return value.ToString("0.##", CultureInfo.InvariantCulture) + "%";
         }

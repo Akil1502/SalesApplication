@@ -140,6 +140,10 @@ public sealed class UsersAndSettingsEndpointsTests(SalesAppFactory factory)
         InvoicePrefix = s.InvoicePrefix,
         QuotationPrefix = s.QuotationPrefix,
         InvoiceTerms = s.InvoiceTerms,
+        PurchaseOrderTerms = s.PurchaseOrderTerms,
+        PurchaseApprovalLimit = s.PurchaseApprovalLimit,
+        OverReceiptTolerancePercent = s.OverReceiptTolerancePercent,
+        BillPriceTolerancePercent = s.BillPriceTolerancePercent,
         RowVersion = s.RowVersion,
     };
 }

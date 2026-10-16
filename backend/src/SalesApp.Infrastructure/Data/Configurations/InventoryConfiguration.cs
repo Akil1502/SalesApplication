@@ -51,5 +51,20 @@ internal sealed class StockReceiptConfiguration : IEntityTypeConfiguration<Stock
         builder.HasIndex(r => r.ReceiptDate);
 
         builder.HasOne(r => r.CreatedBy).WithMany().HasForeignKey(r => r.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(r => r.PurchaseOrder).WithMany().HasForeignKey(r => r.PurchaseOrderId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(r => r.Supplier).WithMany().HasForeignKey(r => r.SupplierId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(r => r.Lines).WithOne().HasForeignKey(l => l.StockReceiptId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class StockReceiptLineConfiguration : IEntityTypeConfiguration<StockReceiptLine>
+{
+    public void Configure(EntityTypeBuilder<StockReceiptLine> builder)
+    {
+        builder.Property(l => l.Quantity).HasPrecision(18, 3);
+        builder.HasOne(l => l.Product).WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<PurchaseOrderLine>().WithMany().HasForeignKey(l => l.PurchaseOrderLineId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(l => l.PurchaseOrderLineId);
+        builder.ToTable(t => t.HasCheckConstraint("CK_StockReceiptLines_Quantity", "[Quantity] > 0"));
     }
 }

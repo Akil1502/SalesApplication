@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 import { FormInput, FormSelect, FormTextarea } from '@/components/form/fields'
 import {
+  moneyString,
   optionalEmail,
   optionalPhone,
   optionalText,
@@ -14,6 +15,7 @@ import {
   requiredText,
   stateCode,
   toNullIfBlank,
+  toNumberOrNull,
 } from '@/components/form/schemas'
 import { UnsavedChangesGuard } from '@/components/form/UnsavedChangesGuard'
 import { PageHeader } from '@/components/PageHeader'
@@ -53,6 +55,10 @@ const schema = z
     invoicePrefix: prefix,
     quotationPrefix: prefix,
     invoiceTerms: optionalText(2000),
+    purchaseOrderTerms: optionalText(2000),
+    purchaseApprovalLimit: moneyString({ optional: true, max: 999_999_999 }),
+    overReceiptTolerancePercent: z.string().trim().regex(/^\d{1,2}(\.\d{1,2})?$/, { error: 'Use 0 to 50, up to 2 decimals.' }).refine((v) => Number(v) <= 50, { error: 'At most 50%.' }),
+    billPriceTolerancePercent: z.string().trim().regex(/^\d{1,2}(\.\d{1,2})?$/, { error: 'Use 0 to 50, up to 2 decimals.' }).refine((v) => Number(v) <= 50, { error: 'At most 50%.' }),
   })
   .refine((v) => validateGstin(v.gstin) !== null || !v.stateCode || gstinStateCode(v.gstin) === v.stateCode, {
     path: ['gstin'],
@@ -81,6 +87,10 @@ function toValues(s: CompanySettings): Values {
     invoicePrefix: s.invoicePrefix,
     quotationPrefix: s.quotationPrefix,
     invoiceTerms: s.invoiceTerms ?? '',
+    purchaseOrderTerms: s.purchaseOrderTerms ?? '',
+    purchaseApprovalLimit: s.purchaseApprovalLimit?.toString() ?? '',
+    overReceiptTolerancePercent: s.overReceiptTolerancePercent.toString(),
+    billPriceTolerancePercent: s.billPriceTolerancePercent.toString(),
   }
 }
 
@@ -126,6 +136,10 @@ export function CompanySettingsPage() {
         bankIfsc: toNullIfBlank(values.bankIfsc),
         bankBranch: toNullIfBlank(values.bankBranch),
         invoiceTerms: toNullIfBlank(values.invoiceTerms),
+        purchaseOrderTerms: toNullIfBlank(values.purchaseOrderTerms),
+        purchaseApprovalLimit: toNumberOrNull(values.purchaseApprovalLimit),
+        overReceiptTolerancePercent: Number(values.overReceiptTolerancePercent),
+        billPriceTolerancePercent: Number(values.billPriceTolerancePercent),
         rowVersion: settings.data!.rowVersion,
       })
       toast.success('Company settings saved')
@@ -220,6 +234,40 @@ export function CompanySettingsPage() {
             <FormInput control={control} name="invoicePrefix" label="Invoice prefix" className="font-mono uppercase" maxLength={4} />
             <FormInput control={control} name="quotationPrefix" label="Quotation prefix" className="font-mono uppercase" maxLength={4} />
             <FormTextarea control={control} name="invoiceTerms" label="Terms printed on invoices" rows={4} className="sm:col-span-2" />
+          </FieldGroup>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Purchasing</CardTitle>
+          <CardDescription>Approval for large purchase orders, and how strictly deliveries and supplier bills are checked against the order.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup className="grid gap-4 sm:grid-cols-3">
+            <FormInput
+              control={control}
+              name="purchaseApprovalLimit"
+              label="Approval needed above (₹)"
+              inputMode="decimal"
+              placeholder="No approvals"
+              description="Total with GST. Leave blank to let any order go straight out."
+            />
+            <FormInput
+              control={control}
+              name="overReceiptTolerancePercent"
+              label="Extra accepted on delivery (%)"
+              inputMode="decimal"
+              description="Yarn and fabric rarely arrive exact."
+            />
+            <FormInput
+              control={control}
+              name="billPriceTolerancePercent"
+              label="Bill price difference allowed (%)"
+              inputMode="decimal"
+              description="Beyond this, a bill needs approval before it's paid."
+            />
+            <FormTextarea control={control} name="purchaseOrderTerms" label="Terms printed on purchase orders" rows={3} className="sm:col-span-3" />
           </FieldGroup>
         </CardContent>
       </Card>

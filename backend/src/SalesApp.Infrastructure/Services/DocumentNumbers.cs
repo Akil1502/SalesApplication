@@ -14,10 +14,14 @@ public interface IDocumentNumbers
 }
 
 /// <summary>
-/// Gapless per-financial-year numbering. The counter row is incremented with MERGE ... HOLDLOCK inside the
-/// caller's transaction: concurrent callers queue on the row lock, and if the document fails to save the
-/// increment rolls back with it. That's what GST expects of invoice numbers (consecutive, no gaps) and
-/// what SQL Server SEQUENCE objects can't promise.
+/// Gapless per-financial-year numbering. The counter row is incremented inside the caller's transaction, so
+/// if the document fails to save the increment rolls back with it. That's what GST expects of invoice numbers
+/// (consecutive, no gaps) and what SQL Server SEQUENCE objects can't promise.
+/// <para>
+/// Callers for the same type and year queue on an application lock held until their transaction ends.
+/// It replaces MERGE ... HOLDLOCK, whose key-range locks deadlocked when several transactions created
+/// the first number of a year for different document types at the same moment.
+/// </para>
 /// </summary>
 public sealed class DocumentNumbers(AppDbContext db) : IDocumentNumbers
 {
@@ -32,10 +36,14 @@ public sealed class DocumentNumbers(AppDbContext db) : IDocumentNumbers
         }
 
         var financialYear = FinancialYear.StartYear(documentDate);
+        var lockName = $"DocumentNumber:{documentType}:{financialYear}";
 
         // ToListAsync: composing would wrap MERGE in a subquery, which SQL Server doesn't allow.
         var allocated = (await db.Database.SqlQuery<int>($"""
-            MERGE [dbo].[DocumentSequences] WITH (HOLDLOCK) AS target
+            DECLARE @locked int;
+            EXEC @locked = sp_getapplock @Resource = {lockName}, @LockMode = 'Exclusive', @LockOwner = 'Transaction';
+            IF @locked < 0 THROW 51000, 'Could not lock the document number counter.', 1;
+            MERGE [dbo].[DocumentSequences] AS target
             USING (SELECT {documentType} AS [DocumentType], {financialYear} AS [FinancialYear]) AS source
                ON target.[DocumentType] = source.[DocumentType] AND target.[FinancialYear] = source.[FinancialYear]
             WHEN MATCHED THEN

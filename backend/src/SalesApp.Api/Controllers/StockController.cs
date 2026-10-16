@@ -9,8 +9,8 @@ using SalesApp.Infrastructure.Services;
 namespace SalesApp.Api.Controllers;
 
 /// <summary>
-/// Inventory: stock levels, the movement ledger, goods receipts and adjustments. Everyone can see stock;
-/// only managers and admins change it (sales change it through invoices, from phase P3).
+/// Inventory: stock levels, the movement ledger, goods receipts and adjustments. Goods are received against purchase
+/// orders (POST /api/purchase-orders/{id}/receipts); sales take stock out through invoices.
 /// </summary>
 [RequirePermission(Permissions.StockView)]
 public sealed class StockController(IInventoryService inventory) : ApiControllerBase
@@ -41,18 +41,6 @@ public sealed class StockController(IInventoryService inventory) : ApiController
     [ProducesResponseType<StockReceiptDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
     public Task<StockReceiptDto> Receipt(int id, CancellationToken cancellationToken) => inventory.GetReceiptAsync(id, cancellationToken);
-
-    /// <summary>Records a goods receipt (GRN): stock in for one or more products.</summary>
-    [HttpPost("receipts")]
-    [RequirePermission(Permissions.StockEdit)]
-    [ProducesResponseType<StockReceiptDto>(StatusCodes.Status201Created)]
-    [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType<ApiError>(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<StockReceiptDto>> CreateReceipt(StockReceiptCreateRequest request, CancellationToken cancellationToken)
-    {
-        var receipt = await inventory.CreateReceiptAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(Receipt), new { id = receipt.Id }, receipt);
-    }
 
     /// <summary>Corrects stock: add/remove a quantity, or set it to a counted figure. Notes are required.</summary>
     [HttpPost("adjustments")]

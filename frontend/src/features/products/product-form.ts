@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { integerString, moneyString, optionalText, quantityString, requiredText, toNullIfBlank, toNumberOrNull } from '@/components/form/schemas'
+import type { PickedSupplier } from '@/components/SupplierPicker'
 import type { Product, ProductSaveRequest, ProductUnit } from './api'
 
 const units = ['Kg', 'Metre', 'Piece', 'Cone', 'Bale', 'Box', 'Roll', 'Set'] as const satisfies readonly ProductUnit[]
@@ -18,6 +19,7 @@ export const productFormSchema = z.object({
   reorderLevel: quantityString,
   reorderQuantity: quantityString,
   leadTimeDays: integerString(0, 365, 'Lead time'),
+  preferredSupplier: z.custom<PickedSupplier | null>(),
   isActive: z.boolean(),
 })
 
@@ -35,6 +37,7 @@ export const emptyProductForm: ProductFormValues = {
   reorderLevel: '0',
   reorderQuantity: '0',
   leadTimeDays: '7',
+  preferredSupplier: null,
   isActive: true,
 }
 
@@ -51,6 +54,10 @@ export function toFormValues(p: Product): ProductFormValues {
     reorderLevel: p.reorderLevel.toString(),
     reorderQuantity: p.reorderQuantity.toString(),
     leadTimeDays: p.leadTimeDays.toString(),
+    preferredSupplier:
+      p.preferredSupplierId != null
+        ? { id: p.preferredSupplierId, code: '', name: p.preferredSupplierName ?? 'Supplier', gstin: null, city: '', stateName: '' }
+        : null,
     isActive: p.isActive,
   }
 }
@@ -68,6 +75,7 @@ export function toSaveRequest(v: ProductFormValues, rowVersion: string | undefin
     reorderLevel: Number(v.reorderLevel),
     reorderQuantity: Number(v.reorderQuantity),
     leadTimeDays: Number(v.leadTimeDays),
+    preferredSupplierId: v.preferredSupplier?.id ?? null,
     isActive: v.isActive,
     rowVersion: rowVersion ?? null,
   }

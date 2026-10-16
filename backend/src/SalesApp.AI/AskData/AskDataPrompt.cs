@@ -6,7 +6,7 @@ namespace SalesApp.AI.AskData;
 
 /// <summary>
 /// What Claude knows when answering a data question: how to work, what the business terms mean, and the reporting
-/// views it may query. Fixed text, so it stays a cached prefix; the managers' version adds the margins view.
+/// views it may query. Fixed text, so it stays a cached prefix; the managers' version adds margins and purchasing.
 /// </summary>
 public static class AskDataPrompt
 {
@@ -101,6 +101,37 @@ public static class AskDataPrompt
         rpt_mgr.Margins: managers only. Gross margin per invoice line at the product's current cost price.
           InvoiceLineId, InvoiceId, InvoiceNumber, InvoiceDate, MonthStart, FinancialYear, CustomerId, CustomerName,
           ProductId, Sku, ProductName, CategoryName, Quantity, TaxableValue, CostPrice, CostValue, GrossMargin
+
+        Purchasing (managers only). Purchases mean TaxableValue on supplier bills (excluding GST); payables are
+        Outstanding on bills with Status 'Unpaid' or 'PartiallyPaid', overdue when DaysOverdue > 0; the GST on bills
+        is the input tax credit. Cancelled bills and orders are already excluded.
+
+        rpt_mgr.Suppliers: one row per supplier (no contact details).
+          SupplierId, Code, Name, TradeName, City, StateCode, StateName, IsGstRegistered (bit), PaymentTermsDays,
+          IsActive (bit)
+
+        rpt_mgr.PurchaseOrderLines: one row per purchase order line.
+          PurchaseOrderLineId, PurchaseOrderId, PurchaseOrderNumber, Status ('Draft', 'PendingApproval', 'Ordered',
+          'PartlyReceived', 'Received', 'Closed'), OrderDate, ExpectedDate, MonthStart, FinancialYearStart,
+          FinancialYear, SupplierId, SupplierName, ProductId, Sku, ProductName, CategoryName, Unit, QuantityOrdered,
+          QuantityReceived, QuantityBilled, QuantityPending (still to come on open orders), UnitPrice (order price
+          before GST), GstRate, OrderedValue, DaysLate (open orders past their expected date, else 0)
+
+        rpt_mgr.SupplierBills: one row per supplier bill.
+          BillId, BillNumber, SupplierInvoiceNumber, BillDate, DueDate, MonthStart, FinancialYearStart, FinancialYear,
+          SupplierId, SupplierName, IsInterState (bit), PurchaseOrderNumber, Status ('Unpaid', 'PartiallyPaid',
+          'Paid'), MatchStatus ('Matched', 'NeedsApproval', 'Approved'), GoodsValue, ChargesAmount (freight and
+          the like), TaxableValue (goods plus charges), CgstAmount, SgstAmount, IgstAmount, TaxAmount, GrandTotal,
+          AmountPaid, Outstanding, DaysOverdue
+
+        rpt_mgr.SupplierBillLines: one row per bill line; the grain for what was paid per product and supplier.
+          BillLineId, BillId, BillNumber, BillDate, MonthStart, FinancialYearStart, FinancialYear, SupplierId,
+          SupplierName, ProductId, Sku, ProductName, CategoryName, HsnCode, Unit, Quantity, UnitPrice (price paid
+          before GST), OrderedPrice, TaxableValue, GstRate, TaxAmount, LineTotal
+
+        rpt_mgr.SupplierPayments: one row per payment made to a supplier.
+          PaymentId, PaymentDate, MonthStart, Amount, Mode, BillId, BillNumber, SupplierInvoiceNumber, SupplierId,
+          SupplierName
         """;
 
     public static IReadOnlyList<ClaudeSystemBlock> System(bool manager, int maxQueries) =>

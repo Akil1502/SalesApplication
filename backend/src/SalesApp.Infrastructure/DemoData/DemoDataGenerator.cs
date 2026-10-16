@@ -28,14 +28,20 @@ public sealed record DemoDataSummary(
     int StockReceipts,
     int StockMovements,
     decimal TaxableSales,
-    TimeSpan Elapsed);
+    TimeSpan Elapsed,
+    int Suppliers = 0,
+    int PurchaseOrders = 0,
+    int SupplierBills = 0,
+    int SupplierPayments = 0);
 
 /// <summary>
 /// Generates realistic, fully consistent demo history: a day-by-day simulation of a textile trading
 /// business, so stock never goes negative, ledger balances add up, invoice numbers are gapless per
 /// financial year, and payments follow each customer's habits. Built-in patterns for the AI phases to find:
 /// festive Oct-Nov peak, year-on-year growth, customers who churn or join, late payers and defaulters, a
-/// cotton price hike, a one-off bulk order, a demand surge and two stockouts. Deterministic for a seed and date.
+/// cotton price hike, a one-off bulk order, a demand surge and two stockouts. Stock comes in through purchase orders,
+/// goods receipts and supplier bills (some with price differences or freight), paid on each supplier's terms, with a
+/// few late deliveries still open today. Deterministic for a seed and date.
 /// </summary>
 public sealed class DemoDataGenerator(
     AppDbContext db,
@@ -87,9 +93,10 @@ public sealed class DemoDataGenerator(
             var settings = await db.CompanySettings.AsNoTracking().SingleAsync(cancellationToken);
             var team = await EnsureTeamAsync(cancellationToken);
             var products = await CreateProductsAsync(cancellationToken);
+            var suppliers = await CreateSuppliersAsync(products, cancellationToken);
             var customers = await CreateCustomersAsync(team, settings.StateCode, cancellationToken);
 
-            var simulation = new Simulation(this, products, customers, team, settings);
+            var simulation = new Simulation(this, products, customers, suppliers, team, settings);
             simulation.Run();
             await simulation.SaveAsync(cancellationToken);
 
@@ -97,7 +104,8 @@ public sealed class DemoDataGenerator(
 
             var summary = new DemoDataSummary(_start, _today, customers.Count, products.Count, simulation.Orders.Count,
                 simulation.Invoices.Count, simulation.PaymentCount, simulation.Receipts.Count, simulation.Movements.Count,
-                simulation.Invoices.Sum(i => i.Entity.TaxableValue), stopwatch.Elapsed);
+                simulation.Invoices.Sum(i => i.Entity.TaxableValue), stopwatch.Elapsed,
+                suppliers.Count, simulation.PurchaseOrders.Count, simulation.Bills.Count, simulation.SupplierPaymentCount);
             logger.LogInformation("Demo data generated: {Summary}", summary);
             return summary;
         }
@@ -108,10 +116,13 @@ public sealed class DemoDataGenerator(
         }
     }
 
-    /// <summary>Removes customers, products and all sales/stock history. Users, settings, states, categories and HSN codes stay.</summary>
+    /// <summary>
+    /// Removes customers, suppliers, products and all sales, purchase and stock history (and the assistant's drafts,
+    /// which point at customers and suppliers). Users, settings, states, categories and HSN codes stay.
+    /// </summary>
     private async Task ResetAsync(CancellationToken cancellationToken)
     {
-        logger.LogWarning("Resetting customers, products, orders, invoices, payments and stock history");
+        logger.LogWarning("Resetting customers, suppliers, products, orders, invoices, purchases, payments and stock history");
         foreach (var sql in new[]
         {
             "UPDATE [dbo].[SalesOrders] SET [InvoiceId] = NULL",
@@ -120,11 +131,21 @@ public sealed class DemoDataGenerator(
             "DELETE FROM [dbo].[Invoices]",
             "DELETE FROM [dbo].[SalesOrderLines]",
             "DELETE FROM [dbo].[SalesOrders]",
+            "DELETE FROM [dbo].[SupplierPayments]",
+            "DELETE FROM [dbo].[SupplierBillLines]",
+            "DELETE FROM [dbo].[SupplierBills]",
             "DELETE FROM [dbo].[StockMovements]",
+            "DELETE FROM [dbo].[StockReceiptLines]",
             "DELETE FROM [dbo].[StockReceipts]",
+            "DELETE FROM [dbo].[PurchaseOrderLines]",
+            "DELETE FROM [dbo].[PurchaseOrders]",
             "DELETE FROM [dbo].[StockLevels]",
+            "DELETE FROM [dbo].[ProductRates]",
+            "DELETE FROM [dbo].[ProductAliases]",
             "DELETE FROM [dbo].[Products]",
+            "DELETE FROM [dbo].[AiDrafts]",
             "DELETE FROM [dbo].[Customers]",
+            "DELETE FROM [dbo].[Suppliers]",
             "DELETE FROM [dbo].[DocumentSequences]",
         })
         {
@@ -190,6 +211,9 @@ public sealed class DemoDataGenerator(
         public decimal Reserved { get; set; }
         public double AverageDailyDemand { get; set; }
         public decimal Available => OnHand - Reserved;
+
+        /// <summary>Weighted average cost, kept the way the app keeps it as goods come in and bills arrive.</summary>
+        public decimal? AverageCost { get; set; }
     }
 
     private async Task<List<DemoProduct>> CreateProductsAsync(CancellationToken cancellationToken)
@@ -231,12 +255,62 @@ public sealed class DemoDataGenerator(
                 CreatedAtUtc = ToUtc(_start.AddDays(-30)),
             };
             db.Products.Add(product);
-            created.Add(new DemoProduct(product, spec, hsnCodes[spec.Hsn].GstRate, spec.Hsn) { AverageDailyDemand = dailyDemand });
+            created.Add(new DemoProduct(product, spec, hsnCodes[spec.Hsn].GstRate, spec.Hsn)
+            {
+                AverageDailyDemand = dailyDemand,
+                AverageCost = Math.Round(PriceAt(spec, _start) * spec.CostRatio, 2), // what the opening stock cost
+            });
         }
 
         db.ChangeTracker.DetectChanges();
         await db.SaveChangesAsync(cancellationToken);
         return created;
+    }
+
+    /// <summary>The suppliers, and each product's preferred supplier (who the simulation buys it from).</summary>
+    private async Task<Dictionary<string, Supplier>> CreateSuppliersAsync(List<DemoProduct> products, CancellationToken cancellationToken)
+    {
+        var suppliers = new Dictionary<string, Supplier>(StringComparer.Ordinal);
+        var number = 1;
+        foreach (var spec in DemoCatalog.Suppliers)
+        {
+            var supplier = new Supplier
+            {
+                Code = $"S{number++:D5}",
+                Name = spec.Name,
+                Gstin = FakeGstin(spec.StateCode, spec.Name),
+                ContactPerson = spec.ContactPerson,
+                Phone = $"+91{_random.Next(7, 10)}{_random.Next(100_000_000, 999_999_999)}",
+                Email = $"sales@{new string(spec.Name.ToLowerInvariant().Where(char.IsLetter).Take(14).ToArray())}.example",
+                Address = new Address
+                {
+                    Line1 = $"{_random.Next(1, 300)}, {Pick(["Mill Road", "SIDCO Industrial Estate", "Avinashi Road", "Bypass Road", "Ring Road"], _ => 1)}",
+                    City = spec.City,
+                    StateCode = spec.StateCode,
+                    Pincode = spec.Pincode.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                },
+                PaymentTermsDays = spec.PaymentTermsDays,
+                BankName = Pick(["State Bank of India", "Indian Bank", "HDFC Bank", "Karur Vysya Bank"], _ => 1),
+                BankAccountNumber = $"{_random.Next(10_000_000, 99_999_999)}{_random.Next(1000, 9999)}",
+                BankIfsc = Pick(["SBIN0001234", "IDIB000C123", "HDFC0004321", "KVBL0001122"], _ => 1),
+                CreatedAtUtc = ToUtc(_start.AddDays(-45)),
+            };
+            supplier.UpdatedAtUtc = supplier.CreatedAtUtc;
+            db.Suppliers.Add(supplier);
+            suppliers[spec.Name] = supplier;
+        }
+
+        db.ChangeTracker.DetectChanges();
+        await db.SaveChangesAsync(cancellationToken);
+
+        foreach (var product in products)
+        {
+            product.Entity.PreferredSupplierId = suppliers[Simulation.SupplierFor(product)].Id;
+        }
+
+        db.ChangeTracker.DetectChanges();
+        await db.SaveChangesAsync(cancellationToken);
+        return suppliers;
     }
 
     internal enum PaymentHabit
@@ -446,8 +520,6 @@ public sealed class DemoDataGenerator(
         var first14 = $"{stateCode}{pan}1Z";
         return first14 + Gstin.ComputeCheckCharacter(first14);
     }
-
-    internal static string NextNumberSql => "SELECT NEXT VALUE FOR [dbo].[" + StockReceiptConfiguration.NumberSequence + "] AS [Value]";
 
     internal static string SellerAddress(CompanySettings s, string stateName) =>
         string.Join(", ", new[] { s.AddressLine1, s.AddressLine2, $"{s.City} - {s.Pincode}", stateName }.Where(p => !string.IsNullOrWhiteSpace(p)));

@@ -1,7 +1,8 @@
 # SalesApp
 
 A sales management application for an Indian trading business: customers, products, quotations and
-orders, GST invoices, payments, stock, and reports, with Claude-powered AI features built in.
+orders, GST invoices, payments, purchases from suppliers, stock, and reports, with Claude-powered AI
+features built in.
 
 This is a ground-up rebuild of an ASP.NET MVC 5 application I wrote early in my career. The original
 source was lost, so the app has been rebuilt on a modern stack, with AI designed in from the start.
@@ -71,7 +72,9 @@ dotnet run --project backend/src/SalesApp.Api -- --seed-demo --months 24 --reset
 
 It runs in under 10 seconds and is repeatable (fixed random seed). The history has a festive October to
 November peak, year-on-year growth, customers who stop buying, slow payers, a few stockouts and a bulk
-order, and a current pipeline of open orders and products due for reorder. It also creates a demo team
+order, and a current pipeline of open orders and products due for reorder. The buying side matches it: suppliers
+(one in Gujarat, so its bills carry IGST), purchase orders delivered in parts and sometimes late, supplier bills (a
+couple waiting for approval of a price difference) and payments, with one supplier paid slowly. It also creates a demo team
 to sign in as, each with the password `Seed:DemoUserPassword` from `appsettings.Development.json`:
 
 | User | Role |
@@ -103,17 +106,19 @@ All names, GSTINs and figures are made up. The command only runs in the Developm
 Administration → **Users & roles** decides who can do what.
 
 - **Permissions** follow the menus: each has **View**, and **Add & change** where the menu changes data (orders,
-  invoices, payments, customers, products, categories, stock, users). A few special rights sit beside them: see cost
-  prices and margins, set credit terms, override credit limits, and can be a customer's sales rep.
+  invoices, payments, customers, products, categories, stock, suppliers, purchase orders, supplier bills, supplier
+  payments, users). A few special rights sit beside them: see cost prices and margins, set credit terms, override
+  credit limits, can be a customer's sales rep, approve purchase orders above the limit, approve bill differences,
+  and read supplier bills with AI.
 - **Roles** are sets of permissions. Three are built in: **Administrator** (everything, and it can't be changed),
-  **Sales manager** (everything except administration and rate updates) and **Sales representative** (orders, customers, smart order
+  **Sales manager** (everything except administration, rate updates and the two purchase approvals) and **Sales representative** (orders, customers, smart order
   entry, viewing invoices, payments, products and stock, reports, Ask your data and the assistant; no cost prices or
   credit terms). Their permissions can be changed; add your own roles too, such as an accountant or a storekeeper.
 - **Each user** has one role and can have permissions added or taken away just for them; the user list shows this as
   `+1 −1` beside the role.
 - Granting a permission grants what it needs (Add & change needs View; smart order entry needs Orders: Add & change;
-  recording a payment needs Invoices: View, because it's done from the invoice), and taking one away takes away
-  what depends on it.
+  recording a payment needs Invoices: View, because it's done from the invoice; receiving goods needs Purchase
+  orders: View), and taking one away takes away what depends on it.
 - **Changes apply on the user's next request**, without signing in again. The API checks the permission on every
   request; the web app only hides menus and buttons the user can't use. A deactivated user's session stops working
   at once.
@@ -141,14 +146,48 @@ selling rate for a period, such as a month's rate list from 1 to 31 January.
   naming the product and the period in the way. Rate history lists every period with who set it and when; periods
   can be edited or removed there. Each product's page shows its periods and today's price.
 
+## Purchases
+
+The **Purchases** menu covers buying, from the order to the supplier's payment: purchase order → goods received →
+supplier bill → payment. Suppliers are under Masters.
+
+- **Purchase orders.** A draft can be edited; a line left without a price gets the last price paid to that supplier
+  for the product, else its cost price. Placing an order above the approval limit in Company settings (default
+  ₹5,00,000) sends it for approval, unless the person placing it may approve purchase orders; an approver can approve
+  it or send it back with a reason. Orders print for the supplier with the terms from Company settings.
+- **Reordering.** Stock → **Reorder low stock**, and **Draft purchase orders** on AI insights' reorder suggestions,
+  draft one order per preferred supplier for the products chosen, with suggested quantities. Stock already on
+  unfinished orders counts, so a product those orders cover isn't suggested again.
+- **Receiving goods.** Every receipt is against a purchase order, so stock can't arrive unplanned. Deliveries can come
+  in parts, and up to 5% more than ordered is accepted (Company settings). Receiving posts the goods to stock at the
+  order's price and updates each product's cost by **weighted average**: 100 kg at ₹200 plus 50 kg at ₹230 gives
+  ₹210. An order can be closed to stop further deliveries, or cancelled if nothing has arrived.
+- **Supplier bills and the three-way check.** A bill is entered against its order, by hand or by reading the
+  supplier's PDF or photo with AI (see [AI features](#ai-features)). It is checked against the order and what was
+  received: no more billed than received, prices within 2% of the order (Company settings), the right GST rate, and
+  lines that add up to the total printed on the invoice (₹1 either way is rounding). A bill that passes can be paid;
+  one that doesn't shows each difference in a sentence and waits until someone who may approve bill differences
+  approves it with a note. GST is CGST + SGST from a supplier in our state and IGST from one in another. The same
+  supplier invoice number can't be entered twice.
+- **Freight and price differences go into stock cost.** Freight and other charges on a bill are shared across its
+  lines by value, and a price on the bill that differs from the order's adds the difference. Both apply to the part
+  of the delivery still in stock; the part already sold went at the old cost. Cancelling the bill reverses it.
+- **Paying suppliers.** Payments are recorded from the bill, in parts if needed, and can't exceed what's due. Cash of
+  more than ₹10,000 to one supplier in a day is refused (Income-tax Act s.40A(3)). TDS isn't handled yet.
+- **Reports.** Purchase register (bills with taxable value and input GST), Payables ageing (what we owe each
+  supplier, by how overdue) and GST payable (output GST on sales less input credit on bills, by month), for anyone
+  who may view supplier bills.
+- **Earlier goods receipts.** Receipts from before purchase orders existed keep their lines, and the upgrade creates
+  a supplier for each supplier name they used, marked "Address not recorded"; add the address and GSTIN in Suppliers.
+
 ## Audit trail
 
 Administration → **Audit log** (administrators by default; anyone given the Audit log permission) shows who did what
 and when.
 
 - **Every change, field by field.** Creating, changing or removing a customer (including its addresses), product,
-  rate, category, HSN code, order (including its lines), invoice, payment, goods receipt, stock adjustment, user,
-  role or the company settings is recorded with each field's old and new value, written as people read them
+  rate, category, HSN code, order (including its lines), invoice, payment, supplier, purchase order, goods receipt,
+  supplier bill, supplier payment, stock adjustment, user, role or the company settings is recorded with each field's old and new value, written as people read them
   ("Credit limit: ₹26,00,000 → ₹30,00,000", "Sales rep: Arun Kumar → Divya Rajan").
 - **Security events:** sign-ins, failed sign-ins (under the email that was tried, with the reason), lockouts,
   password resets, changes to a user's role or permissions and to a role's permissions, and Excel downloads.
@@ -209,6 +248,13 @@ difference), and if the order's GSTIN, phone or name points to a different custo
 and offers to switch. Nothing is saved until the user reviews the draft and confirms. When the user picks a different product for some wording, that
 wording is saved as an alias and offered to Claude next time.
 
+**Supplier bill reading** (Purchases → Supplier bills → New bill, then **Read the bill**) fills in a bill from the
+supplier's PDF or photo. One Claude call with structured output reads it against the lines of the purchase order it's
+for, then the server checks the result: order lines must be on that order, the GSTIN should be the supplier's, the
+invoice mustn't be entered already, and the lines must add up to the printed total. Problems show as warnings on the
+form. Nothing is saved until the clerk reviews the form and saves it, and the three-way check then runs as for any
+bill.
+
 **Ask your data** (Insights → Ask your data) answers questions such as "top 10 customers this financial year" or
 "who owes us the most" from the reporting views. Claude writes SQL and calls a `run_sql_query` tool; it answers by
 pointing at the result it wants shown, so the table, chart and Excel download are the database's own rows, never
@@ -216,8 +262,9 @@ numbers retyped by the model. Progress streams to the browser as server-sent eve
 answer. A question keeps running if the user moves to another screen; a notification says when the answer is ready.
 The safety layers, each tested on its own:
 
-1. Claude is only told about the `rpt` reporting views (managers also see `rpt_mgr.Margins`), which leave out
-   contact details and cost prices.
+1. Claude is only told about the `rpt` reporting views, which leave out contact details and cost prices. Users who
+   may see cost prices also get `rpt_mgr.Margins` and the purchasing views (suppliers, purchase order lines,
+   supplier bills and their lines, supplier payments), so they can ask what was bought, from whom, and at what price.
 2. `SqlGuard` parses the SQL with Microsoft's T-SQL parser and accepts exactly one `SELECT` over those views, with
    built-in functions from an allow-list. Other tables, databases, the `sys` catalog, variables, hints, `INTO`,
    `OPENROWSET` and every non-`SELECT` statement are refused, and the reason goes back to Claude.
@@ -235,7 +282,9 @@ refuses both kinds of statement, so the AI path can't issue them.
 **Assistant** (the Assistant button in the top bar, on every screen) is a chat that looks things up and drafts
 messages. It has read-only tools: find customers, a customer's full picture (sales this and last year, outstanding
 and overdue, recent orders, top products), outstanding or overdue invoices, any invoice, order or quotation by
-number, product and stock search, and the same guarded SQL query as Ask your data for totals and trends. Replies
+number, product and stock search, and the same guarded SQL query as Ask your data for totals and trends. Users who may
+view suppliers can also find suppliers and see a supplier's open purchase orders and unpaid bills, and look up a
+purchase order or supplier bill by number; orders and bills each need their own View permission. Replies
 stream in as they're written; Stop ends the reply (and Anthropic's billing for it), and closing the panel doesn't.
 
 The two overlap on purpose but do different jobs. Ask your data is for figures: its table and chart come straight
@@ -244,8 +293,9 @@ writes figures into its replies itself. When an assistant reply only looked up f
 data", which fills the same question in there (without asking it, since asking costs money).
 
 - **Drafts, never sending.** Asked for a payment reminder, follow-up or quotation note, it writes an email or
-  WhatsApp draft that the user can edit, copy, or open in their own email or WhatsApp. SalesApp sends nothing. The
-  recipient comes from the customer record, never from the model.
+  WhatsApp draft that the user can edit, copy, or open in their own email or WhatsApp. SalesApp sends nothing. It
+  can also write to a supplier, such as chasing a late delivery or querying a bill. The recipient comes from the
+  customer or supplier record, never from the model.
 - **Drafts are checked.** Every invoice, order or quotation number in a draft must exist and belong to that
   customer, and every exact rupee amount must appear in data the assistant looked up in the conversation; anything
   else shows as a "Check before sending" warning on the draft.
@@ -320,13 +370,16 @@ named it, so the grader now accepts this kind of answer.
 What is sent to Anthropic:
 - Smart order entry: the order text or file, today's date, and the product catalog (SKU, name, unit, category,
   description, learned aliases). Not sent: cost prices, stock levels, the customer list or any other customer data.
+- Supplier bill reading: the bill file, today's date, the supplier's name, and the purchase order's lines (SKU,
+  product, unit, HSN code, quantities ordered, received and billed, the order price and GST rate). Not sent: the
+  supplier's contact details or anything about other suppliers.
 - Ask your data: the question, today's date, the view descriptions and the rows of the queries Claude runs (at most
   50 per query). Those rows can include customer names, cities and amounts, and for users who may see cost prices
   the cost prices in `rpt_mgr.Margins`; the views hold no phone numbers, emails, addresses or GSTINs.
 - Assistant: the conversation and the results of its lookups: customer names, codes, cities, GSTINs, contact
-  person, credit terms, notes, invoices, orders, products and stock, plus query rows as for Ask your data.
-  Customers' phone numbers and email addresses are never sent; the draft card shows them straight from the
-  customer record.
+  person, credit terms, notes, invoices, orders, products and stock; for suppliers the same kinds of details with
+  their purchase orders and bills; plus query rows as for Ask your data. Phone numbers and email addresses of
+  customers and suppliers are never sent; the draft card shows them straight from the record.
 - AI insights: the computed figures only: sales totals, the forecast, customer names and cities with their sales,
   product codes and stock, overdue amounts and the anomaly descriptions. No contact details.
 

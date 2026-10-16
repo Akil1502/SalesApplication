@@ -203,8 +203,12 @@ public sealed class AiDraft
     public AiDraftKind Kind { get; set; }
     public required string Purpose { get; set; }
 
-    public int CustomerId { get; set; }
+    /// <summary>Who the message is for: a customer or a supplier, never both.</summary>
+    public int? CustomerId { get; set; }
     public Customer? Customer { get; set; }
+
+    public int? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
 
     public string? Subject { get; set; }
     public required string Body { get; set; }

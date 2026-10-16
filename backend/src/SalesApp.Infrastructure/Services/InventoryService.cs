@@ -16,24 +16,20 @@ public interface IInventoryService
     Task<PagedResult<StockMovementDto>> ListMovementsAsync(StockMovementListRequest request, CancellationToken cancellationToken);
     Task<PagedResult<StockReceiptListItemDto>> ListReceiptsAsync(PageRequest request, CancellationToken cancellationToken);
     Task<StockReceiptDto> GetReceiptAsync(int id, CancellationToken cancellationToken);
-    Task<StockReceiptDto> CreateReceiptAsync(StockReceiptCreateRequest request, CancellationToken cancellationToken);
     Task<StockMovementDto> AdjustAsync(StockAdjustmentRequest request, CancellationToken cancellationToken);
 }
 
 /// <summary>
 /// Stock levels, the movement ledger, goods receipts and adjustments. Every change goes through
-/// <see cref="IStockLedger"/>; this service adds the business rules and the read models.
+/// <see cref="IStockLedger"/>; this service adds the business rules and the read models. Goods are received against
+/// purchase orders (see <see cref="PurchaseOrderService"/>).
 /// </summary>
 public sealed class InventoryService(
     AppDbContext db,
     IStockLedger ledger,
     IBusinessClock clock,
-    ICurrentUser currentUser,
-    TimeProvider timeProvider) : IInventoryService
+    ICurrentUser currentUser) : IInventoryService
 {
-    private const string NextReceiptNumberSql =
-        "SELECT NEXT VALUE FOR [dbo].[" + StockReceiptConfiguration.NumberSequence + "] AS [Value]";
-
     private static readonly SortMap<Product> LevelSorts = new SortMap<Product>()
         .Add("name", p => p.Name)
         .Add("sku", p => p.Sku)
@@ -160,6 +156,8 @@ public sealed class InventoryService(
         {
             query = query.Where(r => r.Number.Contains(q) ||
                                      (r.SupplierName != null && r.SupplierName.Contains(q)) ||
+                                     (r.Supplier != null && r.Supplier.Name.Contains(q)) ||
+                                     (r.PurchaseOrder != null && r.PurchaseOrder.Number.Contains(q)) ||
                                      (r.SupplierReference != null && r.SupplierReference.Contains(q)));
         }
 
@@ -168,13 +166,10 @@ public sealed class InventoryService(
             .OrderByDescending(r => r.ReceiptDate)
             .ThenByDescending(r => r.Id)
             .Select(r => new StockReceiptListItemDto(
-                r.Id, r.Number, r.ReceiptDate, r.SupplierName, r.SupplierReference,
-                db.StockMovements.Count(m => m.ReferenceType == StockReferenceTypes.Receipt && m.ReferenceId == r.Id),
-                showCost
-                    ? db.StockMovements
-                        .Where(m => m.ReferenceType == StockReferenceTypes.Receipt && m.ReferenceId == r.Id && m.UnitCost != null)
-                        .Sum(m => (decimal?)(m.Quantity * m.UnitCost!.Value))
-                    : null,
+                r.Id, r.Number, r.ReceiptDate, r.PurchaseOrderId, r.PurchaseOrder != null ? r.PurchaseOrder.Number : null,
+                r.SupplierId, r.Supplier != null ? r.Supplier.Name : r.SupplierName, r.SupplierReference,
+                r.Lines.Count,
+                showCost ? r.Lines.Where(l => l.UnitCost != null).Sum(l => (decimal?)(l.Quantity * l.UnitCost!.Value)) : null,
                 r.CreatedBy!.FullName, r.CreatedAtUtc))
             .ToPagedResultAsync(request, cancellationToken);
     }
@@ -184,56 +179,25 @@ public sealed class InventoryService(
         var receipt = await db.StockReceipts
             .AsNoTracking()
             .Where(r => r.Id == id)
-            .Select(r => new { r.Id, r.Number, r.ReceiptDate, r.SupplierName, r.SupplierReference, r.Notes, CreatedBy = r.CreatedBy!.FullName, r.CreatedAtUtc })
+            .Select(r => new
+            {
+                r.Id, r.Number, r.ReceiptDate, r.PurchaseOrderId, OrderNumber = r.PurchaseOrder != null ? r.PurchaseOrder.Number : null,
+                r.SupplierId, SupplierName = r.Supplier != null ? r.Supplier.Name : r.SupplierName, r.SupplierReference, r.Notes,
+                CreatedBy = r.CreatedBy!.FullName, r.CreatedAtUtc,
+            })
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException($"Receipt {id} was not found.");
 
         var showCost = currentUser.Has(Permissions.CostPricesView);
-        var lines = await db.StockMovements
+        var lines = await db.StockReceiptLines
             .AsNoTracking()
-            .Where(m => m.ReferenceType == StockReferenceTypes.Receipt && m.ReferenceId == id)
-            .OrderBy(m => m.Id)
-            .Select(m => new StockReceiptLineDto(m.Id, m.ProductId, m.Product!.Sku, m.Product.Name, m.Product.Unit, m.Quantity, showCost ? m.UnitCost : null))
+            .Where(l => l.StockReceiptId == id)
+            .OrderBy(l => l.Id)
+            .Select(l => new StockReceiptLineDto(l.Id, l.ProductId, l.Product!.Sku, l.Product.Name, l.Product.Unit, l.Quantity, showCost ? l.UnitCost : null))
             .ToListAsync(cancellationToken);
 
-        return new StockReceiptDto(receipt.Id, receipt.Number, receipt.ReceiptDate, receipt.SupplierName, receipt.SupplierReference,
-            receipt.Notes, receipt.CreatedBy, receipt.CreatedAtUtc, lines);
-    }
-
-    public async Task<StockReceiptDto> CreateReceiptAsync(StockReceiptCreateRequest request, CancellationToken cancellationToken)
-    {
-        var receiptDate = ValidateDate(request.ReceiptDate, "receiptDate");
-        await ValidateReceiptLinesAsync(request.Lines, cancellationToken);
-
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-
-        var next = (await db.Database.SqlQueryRaw<int>(NextReceiptNumberSql).ToListAsync(cancellationToken)).Single();
-        var receipt = new StockReceipt
-        {
-            Number = $"GRN-{next:D5}",
-            ReceiptDate = receiptDate,
-            SupplierName = Text.NullIfBlank(request.SupplierName),
-            SupplierReference = Text.NullIfBlank(request.SupplierReference),
-            Notes = Text.NullIfBlank(request.Notes),
-            CreatedByUserId = currentUser.UserId,
-            CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime,
-        };
-        db.StockReceipts.Add(receipt);
-        await db.SaveChangesAsync(cancellationToken);
-
-        foreach (var line in request.Lines)
-        {
-            await ledger.PostAsync(new StockPosting(
-                line.ProductId, StockMovementType.Receipt, line.Quantity, receiptDate,
-                UnitCost: line.UnitCost,
-                ReferenceType: StockReferenceTypes.Receipt,
-                ReferenceId: receipt.Id,
-                ReferenceNumber: receipt.Number,
-                Notes: receipt.SupplierReference is null ? null : $"Supplier ref {receipt.SupplierReference}"), cancellationToken);
-        }
-
-        await transaction.CommitAsync(cancellationToken);
-        return await GetReceiptAsync(receipt.Id, cancellationToken);
+        return new StockReceiptDto(receipt.Id, receipt.Number, receipt.ReceiptDate, receipt.PurchaseOrderId, receipt.OrderNumber,
+            receipt.SupplierId, receipt.SupplierName, receipt.SupplierReference, receipt.Notes, receipt.CreatedBy, receipt.CreatedAtUtc, lines);
     }
 
     public async Task<StockMovementDto> AdjustAsync(StockAdjustmentRequest request, CancellationToken cancellationToken)
@@ -301,30 +265,5 @@ public sealed class InventoryService(
         }
 
         return date;
-    }
-
-    private async Task ValidateReceiptLinesAsync(List<StockReceiptLineInput> lines, CancellationToken cancellationToken)
-    {
-        var ids = lines.Select(l => l.ProductId).Distinct().ToList();
-        var active = await db.Products.Where(p => ids.Contains(p.Id) && p.IsActive).Select(p => p.Id).ToListAsync(cancellationToken);
-
-        var errors = new Dictionary<string, string[]>();
-        var seen = new HashSet<int>();
-        for (var i = 0; i < lines.Count; i++)
-        {
-            if (!active.Contains(lines[i].ProductId))
-            {
-                errors[$"lines[{i}].productId"] = ["Choose an active product."];
-            }
-            else if (!seen.Add(lines[i].ProductId))
-            {
-                errors[$"lines[{i}].productId"] = ["This product is already on the receipt. Combine the quantities into one line."];
-            }
-        }
-
-        if (errors.Count > 0)
-        {
-            throw new ValidationException("Some lines need attention.", errors);
-        }
     }
 }

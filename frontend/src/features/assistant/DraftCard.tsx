@@ -13,6 +13,8 @@ const purposes: Record<string, string> = {
   quotation: 'Quotation',
   order_confirmation: 'Order confirmation',
   thank_you: 'Thank-you',
+  delivery_follow_up: 'Delivery follow-up',
+  bill_query: 'Bill query',
   other: 'Message',
 }
 
@@ -46,7 +48,7 @@ export function DraftCard({ draft }: { draft: AssistantDraft }) {
           </p>
           <p className="text-muted-foreground">
             To {draft.contactPerson ? `${draft.contactPerson}, ` : ''}
-            {draft.customerName}
+            {draft.recipientName}
             {recipient ? <span className="break-all"> ({recipient})</span> : <span> — no {email ? 'email address' : 'phone number'} on file</span>}
           </p>
         </div>

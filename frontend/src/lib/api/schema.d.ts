@@ -172,6 +172,85 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/supplier-bills/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        File?: components["schemas"]["IFormFile"];
+                        /** Format: int32 */
+                        PurchaseOrderId?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BillExtractionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Unprocessable Entity */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Too Many Requests */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/ai-usage/summary": {
         parameters: {
             query?: never;
@@ -1633,6 +1712,1191 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suppliers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    stateCode?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfSupplierListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierSaveRequest"];
+                    "text/json": components["schemas"]["SupplierSaveRequest"];
+                    "application/*+json": components["schemas"]["SupplierSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suppliers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierSaveRequest"];
+                    "text/json": components["schemas"]["SupplierSaveRequest"];
+                    "application/*+json": components["schemas"]["SupplierSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: components["schemas"]["PurchaseOrderStatus"];
+                    supplierId?: number;
+                    from?: string;
+                    to?: string;
+                    /** @description Only orders with goods still to come (Ordered or PartlyReceived). */
+                    openOnly?: boolean;
+                    /** @description Only open orders past their expected date. */
+                    lateOnly?: boolean;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfPurchaseOrderListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Creates a draft order. Prices default to the last price paid to the supplier. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderSaveRequest"];
+                    "text/json": components["schemas"]["PurchaseOrderSaveRequest"];
+                    "application/*+json": components["schemas"]["PurchaseOrderSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        /** Edits a draft order. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderSaveRequest"];
+                    "text/json": components["schemas"]["PurchaseOrderSaveRequest"];
+                    "application/*+json": components["schemas"]["PurchaseOrderSaveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}/place": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draft → Ordered, or → PendingApproval when above the approval limit and the user can't approve. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderActionRequest"];
+                    "text/json": components["schemas"]["PurchaseOrderActionRequest"];
+                    "application/*+json": components["schemas"]["PurchaseOrderActionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderActionRequest"];
+                    "text/json": components["schemas"]["PurchaseOrderActionRequest"];
+                    "application/*+json": components["schemas"]["PurchaseOrderActionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sends an order waiting for approval back to draft, with the reason. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderReasonRequest"];
+                    "text/json": components["schemas"]["PurchaseOrderReasonRequest"];
+                    "application/*+json": components["schemas"]["PurchaseOrderReasonRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderReasonRequest"];
+                    "text/json": components["schemas"]["PurchaseOrderReasonRequest"];
+                    "application/*+json": components["schemas"]["PurchaseOrderReasonRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Closes a part-received order: nothing more will come. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrderReasonRequest"];
+                    "text/json": components["schemas"]["PurchaseOrderReasonRequest"];
+                    "application/*+json": components["schemas"]["PurchaseOrderReasonRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderDto"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/{id}/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Records goods received against the order (a GRN): stock in at the order's price. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GoodsReceiptCreateRequest"];
+                    "text/json": components["schemas"]["GoodsReceiptCreateRequest"];
+                    "application/*+json": components["schemas"]["GoodsReceiptCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["StockReceiptDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/reorder-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Products at or below their reorder level that open orders don't cover, with what to order, their preferred
+         *     supplier and the last price paid. With productIds, exactly those products (the AI insights' suggestions).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    productIds?: number[];
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReorderCandidateDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/purchase-orders/reorder-drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Turns chosen products into draft orders, one per preferred supplier. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReorderDraftRequest"];
+                    "text/json": components["schemas"]["ReorderDraftRequest"];
+                    "application/*+json": components["schemas"]["ReorderDraftRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PurchaseOrderListItemDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-bills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    status?: components["schemas"]["SupplierBillStatus"];
+                    matchStatus?: components["schemas"]["BillMatchStatus"];
+                    supplierId?: number;
+                    purchaseOrderId?: number;
+                    from?: string;
+                    to?: string;
+                    /** @description Only bills with money still owed after their due date. */
+                    overdueOnly?: boolean;
+                    /** @description Only bills with money still owed. */
+                    unpaidOnly?: boolean;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfSupplierBillListItemDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Enters a supplier's bill against a purchase order and runs the three-way check. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierBillCreateRequest"];
+                    "text/json": components["schemas"]["SupplierBillCreateRequest"];
+                    "application/*+json": components["schemas"]["SupplierBillCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierBillDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-bills/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payables at a glance: owed, overdue, due in the next week, waiting for approval, paid this month. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierBillSummaryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-bills/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierBillDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-bills/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepts a bill's differences from its order, so it can be paid. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierBillApproveRequest"];
+                    "text/json": components["schemas"]["SupplierBillApproveRequest"];
+                    "application/*+json": components["schemas"]["SupplierBillApproveRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierBillDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-bills/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancels an unpaid bill: it stays on record and its quantities count as unbilled again. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierBillCancelRequest"];
+                    "text/json": components["schemas"]["SupplierBillCancelRequest"];
+                    "application/*+json": components["schemas"]["SupplierBillCancelRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierBillDto"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/supplier-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    mode?: components["schemas"]["PaymentMode"];
+                    supplierId?: number;
+                    from?: string;
+                    to?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfSupplierPaymentDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupplierPaymentCreateRequest"];
+                    "text/json": components["schemas"]["SupplierPaymentCreateRequest"];
+                    "application/*+json": components["schemas"]["SupplierPaymentCreateRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupplierPaymentDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3245,51 +4509,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Records a goods receipt (GRN): stock in for one or more products. */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["StockReceiptCreateRequest"];
-                    "text/json": components["schemas"]["StockReceiptCreateRequest"];
-                    "application/*+json": components["schemas"]["StockReceiptCreateRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["StockReceiptDto"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ApiError"];
-                    };
-                };
-            };
-        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3746,6 +4966,7 @@ export interface components {
             orderEntry: boolean;
             askData: boolean;
             assistant: boolean;
+            billReading: boolean;
         };
         AiUsageDto: {
             model: string;
@@ -3887,16 +5108,19 @@ export interface components {
             updatedAtUtc: string;
         };
         /**
-         * @description A drafted email or WhatsApp message. Email and phone come from the customer record. Warnings list invoice
-         *     numbers that aren't this customer's and amounts that weren't in the data the assistant looked up.
+         * @description A drafted email or WhatsApp message to one customer or one supplier (CustomerId or SupplierId is set). Email and
+         *     phone come from their record. Warnings list document numbers that aren't theirs and amounts that weren't in the
+         *     data the assistant looked up.
          */
         AssistantDraftDto: {
             toolUseId: string;
             kind: components["schemas"]["AiDraftKind"];
             purpose: string;
             /** Format: int32 */
-            customerId: number;
-            customerName: string;
+            customerId: null | number;
+            /** Format: int32 */
+            supplierId: null | number;
+            recipientName: string;
             contactPerson: null | string;
             email: null | string;
             phone: null | string;
@@ -3965,6 +5189,73 @@ export interface components {
             /** Format: double */
             meanAbsolutePercentError: number;
         };
+        /**
+         * @description One line read from a supplier's bill, matched to a line of the purchase order when Claude could. The quantity,
+         *     price and GST rate are as printed on the bill; OrderedPrice is the order's, for comparison.
+         */
+        BillExtractedLineDto: {
+            sourceText: string;
+            /** Format: int32 */
+            purchaseOrderLineId: null | number;
+            /** Format: int32 */
+            productId: null | number;
+            sku: null | string;
+            productName: null | string;
+            unit: null | components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantity: null | number;
+            /** Format: double */
+            unitPrice: null | number;
+            /** Format: double */
+            gstRate: null | number;
+            /** Format: double */
+            orderedPrice: null | number;
+            confidence: components["schemas"]["ExtractionConfidence"];
+            note: null | string;
+        };
+        /**
+         * @description A bill read from a PDF or photo, ready for the user to check before saving it. Nothing has been saved. Warnings
+         *     are what the checks found: a GSTIN that isn't the supplier's, an invoice number already entered, totals that don't
+         *     add up.
+         */
+        BillExtractionDto: {
+            source: components["schemas"]["BillSource"];
+            looksLikeInvoice: boolean;
+            supplierName: null | string;
+            supplierGstin: null | string;
+            supplierInvoiceNumber: null | string;
+            /** Format: date */
+            billDate: null | string;
+            /** Format: date */
+            dueDate: null | string;
+            purchaseOrderNumber: null | string;
+            lines: components["schemas"]["BillExtractedLineDto"][];
+            /** Format: double */
+            chargesAmount: number;
+            /** Format: double */
+            chargesGstRate: number;
+            chargesDescription: null | string;
+            /** Format: double */
+            statedTaxableValue: null | number;
+            /** Format: double */
+            statedTaxAmount: null | number;
+            /** Format: double */
+            statedTotal: null | number;
+            warnings: string[];
+            unmatched: string[];
+            notes: null | string;
+            usage: components["schemas"]["AiUsageDto"];
+        };
+        /**
+         * @description The three-way check of a bill against its order (price) and what was received (quantity).
+         * @enum {unknown}
+         */
+        BillMatchStatus: "Matched" | "NeedsApproval" | "Approved";
+        /**
+         * @description How the bill was entered.
+         * @enum {unknown}
+         */
+        BillSource: "Manual" | "AiPdf" | "AiImage";
         CategoryDto: {
             /** Format: int32 */
             id: number;
@@ -3998,6 +5289,13 @@ export interface components {
             invoicePrefix: string;
             quotationPrefix: string;
             invoiceTerms: null | string;
+            purchaseOrderTerms: null | string;
+            /** Format: double */
+            purchaseApprovalLimit: null | number;
+            /** Format: double */
+            overReceiptTolerancePercent: number;
+            /** Format: double */
+            billPriceTolerancePercent: number;
             rowVersion: string;
         };
         CompanySettingsSaveRequest: {
@@ -4019,6 +5317,16 @@ export interface components {
             invoicePrefix: string;
             quotationPrefix: string;
             invoiceTerms?: null | string;
+            purchaseOrderTerms?: null | string;
+            /**
+             * Format: double
+             * @description Purchase orders above this total (with GST) need approval. Leave empty for no approvals.
+             */
+            purchaseApprovalLimit?: null | number;
+            /** Format: double */
+            overReceiptTolerancePercent?: number;
+            /** Format: double */
+            billPriceTolerancePercent?: number;
             rowVersion: string;
         };
         /**
@@ -4267,6 +5575,26 @@ export interface components {
             high: number;
             /** Format: double */
             sameMonthLastYear: null | number;
+        };
+        /** @description Goods that arrived against a purchase order. They're costed at the order's price. */
+        GoodsReceiptCreateRequest: {
+            /**
+             * Format: date
+             * @description Defaults to today (India time). Can't be in the future or before the order date.
+             */
+            receiptDate?: null | string;
+            /** @description The supplier's delivery challan or invoice number. */
+            supplierReference?: null | string;
+            notes?: null | string;
+            lines: components["schemas"]["GoodsReceiptLineInput"][];
+            /** @description The order's row version, so a receipt never lands on an order that changed meanwhile. */
+            rowVersion: string;
+        };
+        GoodsReceiptLineInput: {
+            /** Format: int32 */
+            purchaseOrderLineId?: number;
+            /** Format: double */
+            quantity?: number;
         };
         HsnCodeDto: {
             /** Format: int32 */
@@ -4799,6 +6127,17 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        PagedResultOfPurchaseOrderListItemDto: {
+            items: components["schemas"]["PurchaseOrderListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
         PagedResultOfStockLevelDto: {
             items: components["schemas"]["StockLevelDto"][];
             /** Format: int32 */
@@ -4823,6 +6162,39 @@ export interface components {
         };
         PagedResultOfStockReceiptListItemDto: {
             items: components["schemas"]["StockReceiptListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfSupplierBillListItemDto: {
+            items: components["schemas"]["SupplierBillListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfSupplierListItemDto: {
+            items: components["schemas"]["SupplierListItemDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfSupplierPaymentDto: {
+            items: components["schemas"]["SupplierPaymentDto"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -4928,6 +6300,9 @@ export interface components {
             reorderQuantity: number;
             /** Format: int32 */
             leadTimeDays: number;
+            /** Format: int32 */
+            preferredSupplierId: null | number;
+            preferredSupplierName: null | string;
             /** Format: double */
             quantityOnHand: number;
             isActive: boolean;
@@ -5006,12 +6381,212 @@ export interface components {
             reorderQuantity?: number;
             /** Format: int32 */
             leadTimeDays?: number;
+            /**
+             * Format: int32
+             * @description Who reorder suggestions buy from. Optional.
+             */
+            preferredSupplierId?: null | number;
             isActive?: boolean;
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
         };
         /** @enum {unknown} */
         ProductUnit: "Kg" | "Metre" | "Piece" | "Cone" | "Bale" | "Box" | "Roll" | "Set";
+        /** @description A bill entered against the order. */
+        PurchaseBillSummaryDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            supplierInvoiceNumber: string;
+            /** Format: date */
+            billDate: string;
+            /** Format: double */
+            grandTotal: number;
+            status: components["schemas"]["SupplierBillStatus"];
+            matchStatus: components["schemas"]["BillMatchStatus"];
+        };
+        /** @description Status changes carry the row version the user was looking at, so nobody acts on a stale screen. */
+        PurchaseOrderActionRequest: {
+            rowVersion: string;
+        };
+        /**
+         * @description A purchase order as printed, with its progress. NeedsApproval: the total is above the company's approval limit,
+         *     so placing it waits for someone with the approve right (unless the person placing it has that right). The
+         *     company's details are included for the printed order.
+         */
+        PurchaseOrderDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            status: components["schemas"]["PurchaseOrderStatus"];
+            /** Format: date */
+            orderDate: string;
+            /** Format: date */
+            expectedDate: null | string;
+            /** Format: int32 */
+            supplierId: number;
+            supplierCode: string;
+            supplierName: string;
+            supplierGstin: null | string;
+            supplierAddress: components["schemas"]["AddressDto"];
+            supplierContactPerson: null | string;
+            isInterState: boolean;
+            supplierReference: null | string;
+            notes: null | string;
+            lines: components["schemas"]["PurchaseOrderLineDto"][];
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            roundOff: number;
+            /** Format: double */
+            grandTotal: number;
+            amountInWords: string;
+            needsApproval: boolean;
+            /** Format: double */
+            approvalLimit: null | number;
+            /** Format: date-time */
+            submittedAtUtc: null | string;
+            approvedByName: null | string;
+            /** Format: date-time */
+            approvedAtUtc: null | string;
+            rejectionReason: null | string;
+            /** Format: date-time */
+            orderedAtUtc: null | string;
+            /** Format: date-time */
+            closedAtUtc: null | string;
+            closeReason: null | string;
+            /** Format: date-time */
+            cancelledAtUtc: null | string;
+            cancellationReason: null | string;
+            isLate: boolean;
+            receipts: components["schemas"]["PurchaseReceiptSummaryDto"][];
+            bills: components["schemas"]["PurchaseBillSummaryDto"][];
+            companyName: string;
+            companyGstin: string;
+            companyAddress: string;
+            terms: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            /** Format: date-time */
+            updatedAtUtc: string;
+            rowVersion: string;
+        };
+        /**
+         * @description An order line with its progress. QuantityPending is what's still to come; MaxReceivable is how much more can be
+         *     received, allowing the company's over-receipt tolerance.
+         */
+        PurchaseOrderLineDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            lineNumber: number;
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            hsnCode: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            unitPrice: number;
+            /** Format: double */
+            gstRate: number;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            taxAmount: number;
+            /** Format: double */
+            lineTotal: number;
+            /** Format: double */
+            quantityReceived: number;
+            /** Format: double */
+            quantityBilled: number;
+            /** Format: double */
+            quantityPending: number;
+            /** Format: double */
+            maxReceivable: number;
+            /** Format: double */
+            quantityOnHand: number;
+        };
+        PurchaseOrderLineInput: {
+            /** Format: int32 */
+            productId?: number;
+            /** Format: double */
+            quantity?: number;
+            /**
+             * Format: double
+             * @description Price per unit before GST. Defaults to the last price paid to this supplier, else the product's cost.
+             */
+            unitPrice?: null | number;
+        };
+        PurchaseOrderListItemDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            status: components["schemas"]["PurchaseOrderStatus"];
+            /** Format: date */
+            orderDate: string;
+            /** Format: date */
+            expectedDate: null | string;
+            /** Format: int32 */
+            supplierId: number;
+            supplierName: string;
+            /** Format: int32 */
+            lineCount: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            receivedPercent: number;
+            isLate: boolean;
+            createdByName: string;
+        };
+        /** @description Rejecting, cancelling or closing an order needs a reason, which is kept with it. */
+        PurchaseOrderReasonRequest: {
+            reason: string;
+            rowVersion: string;
+        };
+        PurchaseOrderSaveRequest: {
+            /** Format: int32 */
+            supplierId?: number;
+            /**
+             * Format: date
+             * @description Defaults to today (India time).
+             */
+            orderDate?: null | string;
+            /** Format: date */
+            expectedDate?: null | string;
+            supplierReference?: null | string;
+            notes?: null | string;
+            lines: components["schemas"]["PurchaseOrderLineInput"][];
+            /** @description Required when updating. */
+            rowVersion?: null | string;
+        };
+        /**
+         * @description Draft → Ordered (straight away, or after approval when above the company's limit) → PartlyReceived → Received.
+         *     An order can be cancelled before anything arrives, or closed short once part of it has.
+         * @enum {unknown}
+         */
+        PurchaseOrderStatus: "Draft" | "PendingApproval" | "Ordered" | "PartlyReceived" | "Received" | "Closed" | "Cancelled";
+        /** @description A delivery against the order. */
+        PurchaseReceiptSummaryDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            /** Format: date */
+            receiptDate: string;
+            supplierReference: null | string;
+            /** Format: int32 */
+            lineCount: number;
+            createdByName: string;
+        };
         RankedItemDto: {
             label: string;
             /** Format: double */
@@ -5097,6 +6672,40 @@ export interface components {
             overdueInvoices: number;
             /** Format: int32 */
             customersOverdue: number;
+        };
+        /**
+         * @description A product at or below its reorder level that open orders don't already cover, with a quantity to order, its
+         *     preferred supplier and the last price paid to them.
+         */
+        ReorderCandidateDto: {
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            name: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantityOnHand: number;
+            /** Format: double */
+            reorderLevel: number;
+            /** Format: double */
+            onOrder: number;
+            /** Format: double */
+            suggestedQuantity: number;
+            /** Format: int32 */
+            supplierId: null | number;
+            supplierName: null | string;
+            /** Format: double */
+            lastPrice: null | number;
+        };
+        ReorderDraftLineInput: {
+            /** Format: int32 */
+            productId?: number;
+            /** Format: double */
+            quantity?: number;
+        };
+        /** @description Products to reorder; each becomes a line on a draft order to its preferred supplier. */
+        ReorderDraftRequest: {
+            lines: components["schemas"]["ReorderDraftLineInput"][];
         };
         /** @description A product at or below its suggested reorder point, with the quantity to order. */
         ReorderSuggestionDto: {
@@ -5279,23 +6888,17 @@ export interface components {
         };
         /** @enum {unknown} */
         StockMovementType: "Opening" | "Receipt" | "Adjustment" | "Sale" | "SaleReversal";
-        StockReceiptCreateRequest: {
-            /**
-             * Format: date
-             * @description Defaults to today (India time). Can't be in the future.
-             */
-            receiptDate?: null | string;
-            supplierName?: null | string;
-            supplierReference?: null | string;
-            notes?: null | string;
-            lines: components["schemas"]["StockReceiptLineInput"][];
-        };
         StockReceiptDto: {
             /** Format: int32 */
             id: number;
             number: string;
             /** Format: date */
             receiptDate: string;
+            /** Format: int32 */
+            purchaseOrderId: null | number;
+            purchaseOrderNumber: null | string;
+            /** Format: int32 */
+            supplierId: null | number;
             supplierName: null | string;
             supplierReference: null | string;
             notes: null | string;
@@ -5305,8 +6908,8 @@ export interface components {
             lines: components["schemas"]["StockReceiptLineDto"][];
         };
         StockReceiptLineDto: {
-            /** Format: int64 */
-            movementId: number;
+            /** Format: int32 */
+            id: number;
             /** Format: int32 */
             productId: number;
             sku: string;
@@ -5317,20 +6920,18 @@ export interface components {
             /** Format: double */
             unitCost: null | number;
         };
-        StockReceiptLineInput: {
-            /** Format: int32 */
-            productId?: number;
-            /** Format: double */
-            quantity?: number;
-            /** Format: double */
-            unitCost?: null | number;
-        };
+        /** @description A goods receipt in a list. Receipts are recorded against purchase orders; older ones may have none. */
         StockReceiptListItemDto: {
             /** Format: int32 */
             id: number;
             number: string;
             /** Format: date */
             receiptDate: string;
+            /** Format: int32 */
+            purchaseOrderId: null | number;
+            purchaseOrderNumber: null | string;
+            /** Format: int32 */
+            supplierId: null | number;
             supplierName: null | string;
             supplierReference: null | string;
             /** Format: int32 */
@@ -5362,6 +6963,311 @@ export interface components {
             length?: number;
             value?: null | string;
             hasValue?: boolean;
+        };
+        SupplierBillApproveRequest: {
+            rowVersion: string;
+            /** @description Why the differences are acceptable; kept with the bill. */
+            note: string;
+        };
+        SupplierBillCancelRequest: {
+            reason: string;
+        };
+        /** @description A supplier's invoice, entered against one of our purchase orders. */
+        SupplierBillCreateRequest: {
+            /** Format: int32 */
+            purchaseOrderId?: number;
+            supplierInvoiceNumber: string;
+            /**
+             * Format: date
+             * @description The date on the supplier's invoice. Defaults to today.
+             */
+            billDate?: null | string;
+            /**
+             * Format: date
+             * @description Defaults to the bill date plus the supplier's payment terms.
+             */
+            dueDate?: null | string;
+            /**
+             * Format: double
+             * @description Freight, loading, packing and the like, before GST.
+             */
+            chargesAmount?: number;
+            /** Format: double */
+            chargesGstRate?: number;
+            chargesDescription?: null | string;
+            /**
+             * Format: double
+             * @description The grand total printed on the supplier's invoice, to check ours against.
+             */
+            supplierTotal?: null | number;
+            notes?: null | string;
+            /** @description Manual, or AiPdf / AiImage when the bill was read by AI. */
+            source?: components["schemas"]["BillSource"];
+            lines: components["schemas"]["SupplierBillLineInput"][];
+        };
+        /**
+         * @description A supplier bill. MatchIssues are the bill-level problems the three-way check found (lines carry their own); a bill
+         *     that needs approval can't be paid until someone with the right approves it.
+         */
+        SupplierBillDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            financialYear: string;
+            supplierInvoiceNumber: string;
+            /** Format: date */
+            billDate: string;
+            /** Format: date */
+            dueDate: string;
+            status: components["schemas"]["SupplierBillStatus"];
+            matchStatus: components["schemas"]["BillMatchStatus"];
+            source: components["schemas"]["BillSource"];
+            /** Format: int32 */
+            supplierId: number;
+            supplierName: string;
+            supplierGstin: null | string;
+            supplierStateCode: string;
+            supplierStateName: string;
+            isInterState: boolean;
+            /** Format: int32 */
+            purchaseOrderId: number;
+            purchaseOrderNumber: string;
+            lines: components["schemas"]["SupplierBillLineDto"][];
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            chargesAmount: number;
+            /** Format: double */
+            chargesGstRate: number;
+            chargesDescription: null | string;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            roundOff: number;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            supplierTotal: null | number;
+            /** Format: double */
+            amountPaid: number;
+            /** Format: double */
+            balance: number;
+            /** Format: int32 */
+            daysOverdue: null | number;
+            matchIssues: string[];
+            approvedByName: null | string;
+            /** Format: date-time */
+            approvedAtUtc: null | string;
+            approvalNote: null | string;
+            notes: null | string;
+            payments: components["schemas"]["SupplierPaymentDto"][];
+            /** Format: date-time */
+            cancelledAtUtc: null | string;
+            cancellationReason: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            rowVersion: string;
+        };
+        /** @description A bill line. Issue is what the three-way check found wrong with it. */
+        SupplierBillLineDto: {
+            /** Format: int32 */
+            lineNumber: number;
+            /** Format: int32 */
+            purchaseOrderLineId: number;
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            hsnCode: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            quantity: number;
+            /** Format: double */
+            unitPrice: number;
+            /** Format: double */
+            orderedPrice: number;
+            /** Format: double */
+            taxableValue: number;
+            /** Format: double */
+            gstRate: number;
+            /** Format: double */
+            cgstAmount: number;
+            /** Format: double */
+            sgstAmount: number;
+            /** Format: double */
+            igstAmount: number;
+            /** Format: double */
+            lineTotal: number;
+            issue: null | string;
+        };
+        SupplierBillLineInput: {
+            /** Format: int32 */
+            purchaseOrderLineId?: number;
+            /** Format: double */
+            quantity?: number;
+            /** Format: double */
+            unitPrice?: number;
+            /**
+             * Format: double
+             * @description The GST rate printed on the bill. Defaults to the order line's rate.
+             */
+            gstRate?: null | number;
+        };
+        SupplierBillListItemDto: {
+            /** Format: int32 */
+            id: number;
+            number: string;
+            supplierInvoiceNumber: string;
+            /** Format: date */
+            billDate: string;
+            /** Format: date */
+            dueDate: string;
+            /** Format: int32 */
+            supplierId: number;
+            supplierName: string;
+            /** Format: int32 */
+            purchaseOrderId: number;
+            purchaseOrderNumber: string;
+            /** Format: double */
+            grandTotal: number;
+            /** Format: double */
+            amountPaid: number;
+            /** Format: double */
+            balance: number;
+            status: components["schemas"]["SupplierBillStatus"];
+            matchStatus: components["schemas"]["BillMatchStatus"];
+            /** Format: int32 */
+            daysOverdue: null | number;
+        };
+        /** @enum {unknown} */
+        SupplierBillStatus: "Unpaid" | "PartiallyPaid" | "Paid" | "Cancelled";
+        /** @description Payables at a glance. */
+        SupplierBillSummaryDto: {
+            /** Format: double */
+            payable: number;
+            /** Format: int32 */
+            openBills: number;
+            /** Format: double */
+            overdue: number;
+            /** Format: int32 */
+            overdueBills: number;
+            /** Format: double */
+            dueNextSevenDays: number;
+            /** Format: int32 */
+            needsApproval: number;
+            /** Format: double */
+            paidThisMonth: number;
+        };
+        /** @description A supplier in full. IsInterState: their bills carry IGST (they're in another state from the company). */
+        SupplierDto: {
+            /** Format: int32 */
+            id: number;
+            code: string;
+            name: string;
+            tradeName: null | string;
+            gstin: null | string;
+            pan: null | string;
+            contactPerson: null | string;
+            phone: null | string;
+            email: null | string;
+            address: components["schemas"]["AddressDto"];
+            /** Format: int32 */
+            paymentTermsDays: number;
+            bankName: null | string;
+            bankAccountNumber: null | string;
+            bankIfsc: null | string;
+            notes: null | string;
+            isActive: boolean;
+            isInterState: boolean;
+            /** Format: double */
+            payable: number;
+            /** Format: double */
+            overdue: number;
+            /** Format: int32 */
+            openOrders: number;
+            /** Format: date-time */
+            createdAtUtc: string;
+            /** Format: date-time */
+            updatedAtUtc: string;
+            rowVersion: string;
+        };
+        /** @description A supplier in a list, with what we owe them and how many orders are still open. */
+        SupplierListItemDto: {
+            /** Format: int32 */
+            id: number;
+            code: string;
+            name: string;
+            gstin: null | string;
+            city: string;
+            stateName: string;
+            phone: null | string;
+            /** Format: double */
+            payable: number;
+            /** Format: double */
+            overdue: number;
+            /** Format: int32 */
+            openOrders: number;
+            isActive: boolean;
+        };
+        SupplierPaymentCreateRequest: {
+            /** Format: int32 */
+            supplierBillId?: number;
+            /**
+             * Format: date
+             * @description Defaults to today (India time).
+             */
+            paymentDate?: null | string;
+            /** Format: double */
+            amount?: number;
+            mode?: components["schemas"]["PaymentMode"];
+            reference?: null | string;
+            notes?: null | string;
+        };
+        SupplierPaymentDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            supplierBillId: number;
+            billNumber: string;
+            supplierInvoiceNumber: string;
+            /** Format: int32 */
+            supplierId: number;
+            supplierName: string;
+            /** Format: date */
+            paymentDate: string;
+            /** Format: double */
+            amount: number;
+            mode: components["schemas"]["PaymentMode"];
+            reference: null | string;
+            notes: null | string;
+            createdByName: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+        };
+        SupplierSaveRequest: {
+            /** @description Optional on create (generated when blank); ignored on update because codes are permanent. */
+            code?: null | string;
+            name: string;
+            tradeName?: null | string;
+            gstin?: null | string;
+            contactPerson?: null | string;
+            phone?: null | string;
+            email?: null | string;
+            address: components["schemas"]["AddressInput"];
+            /** Format: int32 */
+            paymentTermsDays?: number;
+            bankName?: null | string;
+            bankAccountNumber?: null | string;
+            bankIfsc?: null | string;
+            notes?: null | string;
+            isActive?: boolean;
+            /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
+            rowVersion?: null | string;
         };
         UserCreateRequest: {
             email: string;

@@ -1,16 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { FormInput, FormSelect, FormSwitch, FormTextarea, type SelectOption } from '@/components/form/fields'
 import { UnsavedChangesGuard } from '@/components/form/UnsavedChangesGuard'
 import { PageHeader } from '@/components/PageHeader'
+import { SupplierPicker } from '@/components/SupplierPicker'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FieldGroup } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { RecordHistory } from '@/features/audit/RecordHistory'
@@ -77,7 +78,11 @@ export function ProductFormPage() {
       setSaved(true)
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 409) setConflict(true)
-      else if (!applyFieldErrors(error, form.setError, productFieldPaths)) toast.error(errorMessage(error))
+      else {
+        const supplierError = error instanceof ApiRequestError ? error.body.errors?.preferredSupplierId?.[0] : undefined
+        if (supplierError) form.setError('preferredSupplier', { type: 'server', message: supplierError })
+        if (!applyFieldErrors(error, form.setError, productFieldPaths) && !supplierError) toast.error(errorMessage(error))
+      }
     }
   })
 
@@ -185,7 +190,7 @@ export function ProductFormPage() {
                   </Link>
                 </>
               ) : (
-                'After saving, add opening stock from Stock → Adjust stock (reason: opening balance) or record a goods receipt.'
+                'After saving, add opening stock from Stock → Adjust stock (reason: opening balance), or buy it with a purchase order.'
               )}
             </CardDescription>
           </CardHeader>
@@ -194,6 +199,22 @@ export function ProductFormPage() {
               <FormInput control={control} name="reorderLevel" label="Reorder level" inputMode="decimal" description="Flag as low stock at or below this." disabled={readOnly} />
               <FormInput control={control} name="reorderQuantity" label="Reorder quantity" inputMode="decimal" disabled={readOnly} />
               <FormInput control={control} name="leadTimeDays" label="Lead time (days)" inputMode="numeric" disabled={readOnly} />
+              <Controller
+                control={control}
+                name="preferredSupplier"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid} className="sm:col-span-3">
+                    <FieldLabel htmlFor="preferred-supplier">Preferred supplier</FieldLabel>
+                    {can(Permissions.SuppliersView) ? (
+                      <SupplierPicker id="preferred-supplier" value={field.value} onChange={field.onChange} disabled={readOnly} invalid={fieldState.invalid} allowNone />
+                    ) : (
+                      <p className="text-sm">{field.value?.name ?? 'None'}</p>
+                    )}
+                    <FieldDescription>Reordering low stock drafts the purchase order with this supplier.</FieldDescription>
+                    <FieldError errors={[fieldState.error]} />
+                  </Field>
+                )}
+              />
             </FieldGroup>
             <FormSwitch control={control} name="isActive" label="Active" description="Inactive products can't be added to new orders." disabled={readOnly} />
           </CardContent>

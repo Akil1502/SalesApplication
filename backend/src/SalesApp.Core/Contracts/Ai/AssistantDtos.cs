@@ -27,15 +27,17 @@ public enum AssistantItemKind
 public sealed record AssistantToolDto(string Id, string Name, string Label, bool? Succeeded, string? Detail);
 
 /// <summary>
-/// A drafted email or WhatsApp message. Email and phone come from the customer record. Warnings list invoice
-/// numbers that aren't this customer's and amounts that weren't in the data the assistant looked up.
+/// A drafted email or WhatsApp message to one customer or one supplier (CustomerId or SupplierId is set). Email and
+/// phone come from their record. Warnings list document numbers that aren't theirs and amounts that weren't in the
+/// data the assistant looked up.
 /// </summary>
 public sealed record AssistantDraftDto(
     string ToolUseId,
     AiDraftKind Kind,
     string Purpose,
-    int CustomerId,
-    string CustomerName,
+    int? CustomerId,
+    int? SupplierId,
+    string RecipientName,
     string? ContactPerson,
     string? Email,
     string? Phone,

@@ -254,4 +254,6 @@ public static class DocumentTypes
     public const string SalesOrder = "SalesOrder";
     public const string Quotation = "Quotation";
     public const string Invoice = "Invoice";
+    public const string PurchaseOrder = "PurchaseOrder";
+    public const string SupplierBill = "SupplierBill";
 }

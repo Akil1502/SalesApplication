@@ -6,6 +6,7 @@ using SalesApp.Api.Errors;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Inventory;
 using SalesApp.Core.Contracts.Masters;
+using SalesApp.Core.Contracts.Purchasing;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Data;
@@ -15,13 +16,6 @@ namespace SalesApp.IntegrationTests;
 public sealed class InventoryEndpointsTests(SalesAppFactory factory)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-    private static StockReceiptCreateRequest Receipt(params (int ProductId, decimal Quantity, decimal? Cost)[] lines) => new()
-    {
-        SupplierName = "Lakshmi Spinning Mills",
-        SupplierReference = "LSM/2026/0412",
-        Lines = [.. lines.Select(l => new StockReceiptLineInput { ProductId = l.ProductId, Quantity = l.Quantity, UnitCost = l.Cost })],
-    };
 
     private static StockAdjustmentRequest Adjust(int productId, decimal quantity, AdjustmentMode mode = AdjustmentMode.Change,
         AdjustmentReason reason = AdjustmentReason.Damaged) =>
@@ -47,12 +41,21 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
         var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
         var yarn = await TestData.CreateProductAsync(manager);
         var fabric = await TestData.CreateProductAsync(manager);
+        var supplier = await TestData.CreateSupplierAsync(manager);
+        var order = await TestData.PlaceAsync(manager, await TestData.CreatePurchaseOrderAsync(manager, supplier.Id, (yarn.Id, 1250.5m, 262m), (fabric.Id, 40m, 90m)));
 
-        var response = await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((yarn.Id, 1250.5m, 262m), (fabric.Id, 40m, null)), TestClients.Json, Ct);
+        var response = await manager.PostAsJsonAsync($"/api/purchase-orders/{order.Id}/receipts", new GoodsReceiptCreateRequest
+        {
+            RowVersion = order.RowVersion,
+            SupplierReference = "LSM/2026/0412",
+            Lines = [.. order.Lines.Select(l => new GoodsReceiptLineInput { PurchaseOrderLineId = l.Id, Quantity = l.Quantity })],
+        }, TestClients.Json, Ct);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var receipt = await response.ReadAsync<StockReceiptDto>();
         Assert.Matches("^GRN-[0-9]{5}$", receipt.Number);
+        Assert.Equal(order.Number, receipt.PurchaseOrderNumber);
+        Assert.Equal(supplier.Name, receipt.SupplierName);
         Assert.Equal(2, receipt.Lines.Count);
         Assert.Equal(1250.5m, await OnHandAsync(yarn.Id));
 
@@ -74,9 +77,9 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
         var product = await TestData.CreateProductAsync(manager);
 
         (await manager.PostAsJsonAsync("/api/stock/adjustments", Adjust(product.Id, 300m, reason: AdjustmentReason.OpeningBalance), TestClients.Json, Ct)).EnsureSuccessStatusCode();
-        (await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 500m, 250m)), TestClients.Json, Ct)).EnsureSuccessStatusCode();
+        await TestData.BuyAsync(manager, (product.Id, 500m, 250m));
         (await manager.PostAsJsonAsync("/api/stock/adjustments", Adjust(product.Id, -12.25m), TestClients.Json, Ct)).EnsureSuccessStatusCode();
-        (await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 75.125m, 255m)), TestClients.Json, Ct)).EnsureSuccessStatusCode();
+        await TestData.BuyAsync(manager, (product.Id, 75.125m, 255m));
         (await manager.PostAsJsonAsync("/api/stock/adjustments", Adjust(product.Id, 850m, AdjustmentMode.SetCount, AdjustmentReason.StockCount), TestClients.Json, Ct)).EnsureSuccessStatusCode();
 
         Assert.Equal(850m, await OnHandAsync(product.Id));
@@ -93,7 +96,7 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
     {
         var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
         var product = await TestData.CreateProductAsync(manager);
-        (await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 10m, null)), TestClients.Json, Ct)).EnsureSuccessStatusCode();
+        await TestData.AddOpeningStockAsync(manager, product.Id, 10m);
 
         var response = await manager.PostAsJsonAsync("/api/stock/adjustments", Adjust(product.Id, -10.5m), TestClients.Json, Ct);
 
@@ -110,14 +113,19 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
         var product = await TestData.CreateProductAsync(manager);
 
         // Regression: raw-SQL decimal parameters used to default to scale 2 and store 75.13.
-        (await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 75.125m, 250.5m)), TestClients.Json, Ct)).EnsureSuccessStatusCode();
+        var supplier = await TestData.CreateSupplierAsync(manager);
+        var order = await TestData.PlaceAsync(manager, await TestData.CreatePurchaseOrderAsync(manager, supplier.Id, (product.Id, 100m, 250.5m)));
+        await TestData.ReceiveAsync(manager, order, 75.125m);
         Assert.Equal(75.125m, await OnHandAsync(product.Id));
 
-        var tooPrecise = await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 1.2345m, 250.555m)), TestClients.Json, Ct);
+        order = await (await manager.GetAsync($"/api/purchase-orders/{order.Id}", Ct)).ReadAsync<PurchaseOrderDto>();
+        var tooPrecise = await manager.PostAsJsonAsync($"/api/purchase-orders/{order.Id}/receipts", new GoodsReceiptCreateRequest
+        {
+            RowVersion = order.RowVersion,
+            Lines = [new GoodsReceiptLineInput { PurchaseOrderLineId = order.Lines[0].Id, Quantity = 1.2345m }],
+        }, TestClients.Json, Ct);
         Assert.Equal(HttpStatusCode.BadRequest, tooPrecise.StatusCode);
-        var errors = (await tooPrecise.ReadAsync<ApiError>()).Errors!;
-        Assert.Contains("lines[0].quantity", errors.Keys);
-        Assert.Contains("lines[0].unitCost", errors.Keys);
+        Assert.Contains("lines[0].quantity", (await tooPrecise.ReadAsync<ApiError>()).Errors!.Keys);
         Assert.Equal(75.125m, await OnHandAsync(product.Id));
     }
 
@@ -143,7 +151,7 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
     {
         var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
         var product = await TestData.CreateProductAsync(manager);
-        (await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 5m, null)), TestClients.Json, Ct)).EnsureSuccessStatusCode();
+        await TestData.BuyAsync(manager, (product.Id, 5m, 250m));
 
         var sameCount = await manager.PostAsJsonAsync("/api/stock/adjustments", Adjust(product.Id, 5m, AdjustmentMode.SetCount, AdjustmentReason.StockCount), TestClients.Json, Ct);
         var lateOpening = await manager.PostAsJsonAsync("/api/stock/adjustments", Adjust(product.Id, 100m, reason: AdjustmentReason.OpeningBalance), TestClients.Json, Ct);
@@ -155,20 +163,41 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
     }
 
     [Fact]
-    public async Task Receipts_reject_future_dates_and_duplicate_products()
+    public async Task Receipts_reject_future_dates_and_a_line_listed_twice()
     {
         var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
         var product = await TestData.CreateProductAsync(manager);
+        var supplier = await TestData.CreateSupplierAsync(manager);
+        var order = await TestData.PlaceAsync(manager, await TestData.CreatePurchaseOrderAsync(manager, supplier.Id, (product.Id, 10m, 250m)));
+        var line = order.Lines[0].Id;
 
-        var future = await manager.PostAsJsonAsync("/api/stock/receipts",
-            Receipt((product.Id, 5m, null)) with { ReceiptDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(3) }, TestClients.Json, Ct);
-        var duplicate = await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 5m, null), (product.Id, 2m, null)), TestClients.Json, Ct);
+        var future = await manager.PostAsJsonAsync($"/api/purchase-orders/{order.Id}/receipts", new GoodsReceiptCreateRequest
+        {
+            RowVersion = order.RowVersion,
+            ReceiptDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(3),
+            Lines = [new GoodsReceiptLineInput { PurchaseOrderLineId = line, Quantity = 5m }],
+        }, TestClients.Json, Ct);
+        var duplicate = await manager.PostAsJsonAsync($"/api/purchase-orders/{order.Id}/receipts", new GoodsReceiptCreateRequest
+        {
+            RowVersion = order.RowVersion,
+            Lines = [new GoodsReceiptLineInput { PurchaseOrderLineId = line, Quantity = 5m }, new GoodsReceiptLineInput { PurchaseOrderLineId = line, Quantity = 2m }],
+        }, TestClients.Json, Ct);
 
         Assert.Equal(HttpStatusCode.BadRequest, future.StatusCode);
         Assert.Contains("receiptDate", (await future.ReadAsync<ApiError>()).Errors!.Keys);
         Assert.Equal(HttpStatusCode.BadRequest, duplicate.StatusCode);
-        Assert.Contains("lines[1].productId", (await duplicate.ReadAsync<ApiError>()).Errors!.Keys);
+        Assert.Contains("lines[1].purchaseOrderLineId", (await duplicate.ReadAsync<ApiError>()).Errors!.Keys);
         Assert.Equal(0m, await OnHandAsync(product.Id));
+    }
+
+    [Fact]
+    public async Task Goods_can_only_come_in_against_a_purchase_order()
+    {
+        var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
+
+        var response = await manager.PostAsJsonAsync("/api/stock/receipts", new { lines = new[] { new { productId = 1, quantity = 5 } } }, TestClients.Json, Ct);
+
+        Assert.Contains(response.StatusCode, new[] { HttpStatusCode.NotFound, HttpStatusCode.MethodNotAllowed });
     }
 
     [Fact]
@@ -177,7 +206,7 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
         var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
         var (rep, _) = await factory.CreateClientAsync(Roles.SalesRep);
         var product = await TestData.CreateProductAsync(manager, reorderLevel: 50m, costPrice: 200m);
-        (await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 20m, 200m)), TestClients.Json, Ct)).EnsureSuccessStatusCode();
+        var (order, _) = await TestData.BuyAsync(manager, (product.Id, 20m, 200m));
 
         var asRep = await (await rep.GetAsync($"/api/stock/levels?q={product.Sku}", Ct)).ReadAsync<PagedResult<StockLevelDto>>();
         var asManager = await (await manager.GetAsync($"/api/stock/levels?q={product.Sku}", Ct)).ReadAsync<PagedResult<StockLevelDto>>();
@@ -188,7 +217,8 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
         Assert.Equal(4000m, Assert.Single(asManager.Items).StockValue);
         Assert.Null((await (await rep.GetAsync("/api/stock/summary", Ct)).ReadAsync<StockSummaryDto>()).TotalStockValue);
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await rep.PostAsJsonAsync("/api/stock/receipts", Receipt((product.Id, 1m, null)), TestClients.Json, Ct)).StatusCode);
+        var receive = new GoodsReceiptCreateRequest { RowVersion = order.RowVersion, Lines = [new GoodsReceiptLineInput { PurchaseOrderLineId = order.Lines[0].Id, Quantity = 1m }] };
+        Assert.Equal(HttpStatusCode.Forbidden, (await rep.PostAsJsonAsync($"/api/purchase-orders/{order.Id}/receipts", receive, TestClients.Json, Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await rep.PostAsJsonAsync("/api/stock/adjustments", Adjust(product.Id, 1m), TestClients.Json, Ct)).StatusCode);
     }
 
@@ -199,7 +229,8 @@ public sealed class InventoryEndpointsTests(SalesAppFactory factory)
         var empty = await TestData.CreateProductAsync(manager, reorderLevel: 10m);
         var low = await TestData.CreateProductAsync(manager, reorderLevel: 10m);
         var healthy = await TestData.CreateProductAsync(manager, reorderLevel: 10m);
-        (await manager.PostAsJsonAsync("/api/stock/receipts", Receipt((low.Id, 4m, null), (healthy.Id, 40m, null)), TestClients.Json, Ct)).EnsureSuccessStatusCode();
+        await TestData.AddOpeningStockAsync(manager, low.Id, 4m);
+        await TestData.AddOpeningStockAsync(manager, healthy.Id, 40m);
 
         async Task<HashSet<int>> IdsWith(StockStatus status) =>
             [.. (await (await manager.GetAsync($"/api/stock/levels?status={status}&pageSize=100&q=T-", Ct)).ReadAsync<PagedResult<StockLevelDto>>())

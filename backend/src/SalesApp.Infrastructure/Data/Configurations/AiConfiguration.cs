@@ -95,6 +95,8 @@ internal sealed class AiDraftConfiguration : IEntityTypeConfiguration<AiDraft>
 
         builder.HasOne(d => d.Conversation).WithMany().HasForeignKey(d => d.ConversationId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(d => d.Customer).WithMany().HasForeignKey(d => d.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(d => d.Supplier).WithMany().HasForeignKey(d => d.SupplierId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(d => new { d.ConversationId, d.ToolUseId }).IsUnique();
+        builder.ToTable(t => t.HasCheckConstraint("CK_AiDrafts_Recipient", "([CustomerId] IS NOT NULL AND [SupplierId] IS NULL) OR ([CustomerId] IS NULL AND [SupplierId] IS NOT NULL)"));
     }
 }

@@ -5,7 +5,7 @@ using SalesApp.Core.Entities;
 namespace SalesApp.Core.Contracts.Ai;
 
 /// <summary>Whether the AI features can be used. The UI hides AI screens when <see cref="Enabled"/> is false.</summary>
-public sealed record AiStatusDto(bool Enabled, string? Reason, bool OrderEntry, bool AskData, bool Assistant);
+public sealed record AiStatusDto(bool Enabled, string? Reason, bool OrderEntry, bool AskData, bool Assistant, bool BillReading);
 
 public enum ExtractionConfidence
 {

@@ -4,10 +4,12 @@ using Microsoft.Extensions.Options;
 using SalesApp.AI;
 using SalesApp.AI.Claude;
 using SalesApp.AI.OrderEntry;
+using SalesApp.AI.Purchasing;
 using SalesApp.Api.Errors;
 using SalesApp.Api.Security;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Ai;
+using SalesApp.Core.Contracts.Purchasing;
 using SalesApp.Core.Contracts.Sales;
 using SalesApp.Core.Security;
 
@@ -23,11 +25,11 @@ public sealed class AiController(IClaudeGateway claude, IOptionsMonitor<AiOption
     {
         if (claude.IsAvailable)
         {
-            return new AiStatusDto(true, null, OrderEntry: true, AskData: true, Assistant: true);
+            return new AiStatusDto(true, null, OrderEntry: true, AskData: true, Assistant: true, BillReading: true);
         }
 
         var reason = options.CurrentValue.Enabled ? "No Claude API key is configured." : "AI features are switched off.";
-        return new AiStatusDto(false, reason, OrderEntry: false, AskData: false, Assistant: false);
+        return new AiStatusDto(false, reason, OrderEntry: false, AskData: false, Assistant: false, BillReading: false);
     }
 }
 
@@ -82,6 +84,23 @@ public sealed class SmartOrdersController(IOrderExtractionService extraction, IS
         return await extraction.ExtractAsync(new OrderExtractionInput(form.Text, file, form.CustomerId), cancellationToken);
     }
 
+    internal static async Task<byte[]?> ReadUploadAsync(IFormFile? upload, CancellationToken cancellationToken)
+    {
+        if (upload is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        if (upload.Length > OrderFile.MaxPdfBytes)
+        {
+            throw new ValidationException("file", "Files can be at most 10 MB.");
+        }
+
+        using var buffer = new MemoryStream((int)upload.Length);
+        await upload.CopyToAsync(buffer, cancellationToken);
+        return buffer.ToArray();
+    }
+
     /// <summary>Saves the reviewed order as a draft and learns product aliases from the user's corrections.</summary>
     [HttpPost]
     [RequirePermission(Permissions.OrdersEdit)]
@@ -91,5 +110,40 @@ public sealed class SmartOrdersController(IOrderExtractionService extraction, IS
     {
         var order = await smartOrders.ConfirmAsync(request, cancellationToken);
         return Created($"/api/orders/{order.Id}", order);
+    }
+}
+
+/// <summary>The form bill reading posts: the supplier's bill, and the purchase order it's for.</summary>
+public sealed class BillReadingForm
+{
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Attach the supplier's bill.")]
+    public IFormFile? File { get; init; }
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Choose the purchase order the bill is for.")]
+    public int? PurchaseOrderId { get; init; }
+}
+
+/// <summary>Reads a supplier's bill with Claude, to fill in the bill form. Nothing is saved.</summary>
+[Route("api/supplier-bills/read")]
+[RequirePermission(Permissions.BillReadingUse)]
+public sealed class BillReadingController(IBillReadingService reading) : ApiControllerBase
+{
+    private const int MaxUploadBytes = 12 * 1024 * 1024;
+
+    [HttpPost]
+    [Consumes("multipart/form-data")]
+    [EnableRateLimiting(RateLimits.Ai)]
+    [RequestSizeLimit(MaxUploadBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxUploadBytes)]
+    [ProducesResponseType<BillExtractionDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ApiError>(StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType<ApiError>(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType<ApiError>(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<BillExtractionDto> Read([FromForm] BillReadingForm form, CancellationToken cancellationToken)
+    {
+        var file = await SmartOrdersController.ReadUploadAsync(form.File, cancellationToken)
+            ?? throw new ValidationException("file", "Attach the supplier's bill: a PDF or a photo.");
+        return await reading.ReadAsync(form.PurchaseOrderId!.Value, file, cancellationToken);
     }
 }

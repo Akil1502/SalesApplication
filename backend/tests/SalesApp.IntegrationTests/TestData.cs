@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using SalesApp.Core.Contracts.Inventory;
 using SalesApp.Core.Contracts.Masters;
+using SalesApp.Core.Contracts.Purchasing;
 using SalesApp.Core.Contracts.Sales;
 using SalesApp.Core.Entities;
 
@@ -35,16 +36,81 @@ public static class TestData
         return await response.ReadAsync<ProductDto>();
     }
 
-    /// <summary>A product with stock already received.</summary>
+    /// <summary>A product with stock already on the shelf (an opening balance, so sales tests don't depend on purchasing).</summary>
     public static async Task<ProductDto> CreateStockedProductAsync(HttpClient managerClient, decimal quantity, decimal listPrice = 300m)
     {
         var product = await CreateProductAsync(managerClient, listPrice: listPrice);
-        var receipt = await managerClient.PostAsJsonAsync("/api/stock/receipts", new StockReceiptCreateRequest
-        {
-            Lines = [new StockReceiptLineInput { ProductId = product.Id, Quantity = quantity, UnitCost = 250m }],
-        }, TestClients.Json);
-        receipt.EnsureSuccessStatusCode();
+        await AddOpeningStockAsync(managerClient, product.Id, quantity);
         return product;
+    }
+
+    public static async Task AddOpeningStockAsync(HttpClient managerClient, int productId, decimal quantity)
+    {
+        var response = await managerClient.PostAsJsonAsync("/api/stock/adjustments", new StockAdjustmentRequest
+        {
+            ProductId = productId,
+            Mode = AdjustmentMode.Change,
+            Quantity = quantity,
+            Reason = AdjustmentReason.OpeningBalance,
+            Notes = "Opening stock for a test",
+        }, TestClients.Json);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public static async Task<SupplierDto> CreateSupplierAsync(HttpClient client, string stateCode = "33", string? gstin = TamilNaduGstin, int paymentTermsDays = 30)
+    {
+        var response = await client.PostAsJsonAsync("/api/suppliers", new SupplierSaveRequest
+        {
+            Name = $"Mill {Guid.NewGuid():N}"[..20],
+            Gstin = gstin,
+            Address = new AddressInput { Line1 = "5 Mill Road", City = "Mill Town", StateCode = stateCode, Pincode = "641014" },
+            PaymentTermsDays = paymentTermsDays,
+        }, TestClients.Json);
+        response.EnsureSuccessStatusCode();
+        return await response.ReadAsync<SupplierDto>();
+    }
+
+    /// <summary>A draft purchase order. Needs a client that may edit purchase orders.</summary>
+    public static async Task<PurchaseOrderDto> CreatePurchaseOrderAsync(HttpClient client, int supplierId, params (int ProductId, decimal Quantity, decimal Price)[] lines)
+    {
+        var response = await client.PostAsJsonAsync("/api/purchase-orders", new PurchaseOrderSaveRequest
+        {
+            SupplierId = supplierId,
+            Lines = [.. lines.Select(l => new PurchaseOrderLineInput { ProductId = l.ProductId, Quantity = l.Quantity, UnitPrice = l.Price })],
+        }, TestClients.Json);
+        response.EnsureSuccessStatusCode();
+        return await response.ReadAsync<PurchaseOrderDto>();
+    }
+
+    public static async Task<PurchaseOrderDto> PlaceAsync(HttpClient client, PurchaseOrderDto order)
+    {
+        var response = await client.PostAsJsonAsync($"/api/purchase-orders/{order.Id}/place", new PurchaseOrderActionRequest { RowVersion = order.RowVersion }, TestClients.Json);
+        response.EnsureSuccessStatusCode();
+        return await response.ReadAsync<PurchaseOrderDto>();
+    }
+
+    /// <summary>Receives the given quantities against the order's lines, in line order.</summary>
+    public static async Task<StockReceiptDto> ReceiveAsync(HttpClient client, PurchaseOrderDto order, params decimal[] quantities)
+    {
+        var response = await client.PostAsJsonAsync($"/api/purchase-orders/{order.Id}/receipts", new GoodsReceiptCreateRequest
+        {
+            RowVersion = order.RowVersion,
+            Lines = [.. order.Lines.Zip(quantities).Where(x => x.Second > 0).Select(x => new GoodsReceiptLineInput { PurchaseOrderLineId = x.First.Id, Quantity = x.Second })],
+        }, TestClients.Json);
+        response.EnsureSuccessStatusCode();
+        return await response.ReadAsync<StockReceiptDto>();
+    }
+
+    /// <summary>
+    /// Stock in the way the app now requires it: a supplier, a purchase order placed with them, and the goods received
+    /// in full against it. Keep the value under the approval limit (₹5,00,000 with GST) or use an admin client.
+    /// </summary>
+    public static async Task<(PurchaseOrderDto Order, StockReceiptDto Receipt)> BuyAsync(HttpClient client, params (int ProductId, decimal Quantity, decimal Price)[] lines)
+    {
+        var supplier = await CreateSupplierAsync(client);
+        var order = await PlaceAsync(client, await CreatePurchaseOrderAsync(client, supplier.Id, lines));
+        var receipt = await ReceiveAsync(client, order, [.. lines.Select(l => l.Quantity)]);
+        return (order, receipt);
     }
 
     public static async Task<CustomerDto> CreateCustomerAsync(HttpClient client, string stateCode = "33", string? gstin = TamilNaduGstin,

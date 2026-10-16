@@ -14,16 +14,19 @@ public sealed record ToolOutcome(string Content, bool IsError, string Label, str
 
 /// <summary>
 /// The assistant's read-only lookups. Each returns compact JSON for Claude (amounts as numbers, dates as
-/// yyyy-MM-dd) and never includes customers' phone numbers or emails. Errors are written for Claude to act on.
-/// Each lookup needs the permission for what it reads (customers, invoices, orders, products, or Ask your data for
-/// SQL), the same as the screens; without it the tool answers with an error Claude passes on. The tools stay in the
-/// request either way, because removing one would change the conversation's cached prefix. Cost prices are never
-/// returned.
+/// yyyy-MM-dd) and never includes customers' or suppliers' phone numbers or emails. Errors are written for Claude to
+/// act on. Each lookup needs the permission for what it reads (customers, suppliers, invoices, orders, purchase
+/// orders, bills, products, or Ask your data for SQL), the same as the screens; without it the tool answers with an
+/// error Claude passes on. The tools stay in the request either way, because removing one would change the
+/// conversation's cached prefix. Product cost prices are never returned.
 /// </summary>
 public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries, IBusinessClock clock, ICurrentUser currentUser)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly InvoiceStatus[] Open = [InvoiceStatus.Unpaid, InvoiceStatus.PartiallyPaid];
+    private static readonly SupplierBillStatus[] OpenBills = [SupplierBillStatus.Unpaid, SupplierBillStatus.PartiallyPaid];
+    private static readonly PurchaseOrderStatus[] Receivable = [PurchaseOrderStatus.Ordered, PurchaseOrderStatus.PartlyReceived];
+    private static readonly PurchaseOrderStatus[] OpenOrders = [PurchaseOrderStatus.PendingApproval, PurchaseOrderStatus.Ordered, PurchaseOrderStatus.PartlyReceived];
 
     /// <summary>The permission each lookup needs, and what to call the data when it's missing.</summary>
     private static readonly Dictionary<string, (string Permission, string What)> Needs = new()
@@ -32,13 +35,22 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         [AssistantPrompt.GetCustomer] = (Permissions.CustomersView, "customers"),
         [AssistantPrompt.ListInvoices] = (Permissions.InvoicesView, "invoices"),
         [AssistantPrompt.SearchProducts] = (Permissions.ProductsView, "products"),
+        [AssistantPrompt.SearchSuppliers] = (Permissions.SuppliersView, "suppliers"),
+        [AssistantPrompt.GetSupplier] = (Permissions.SuppliersView, "suppliers"),
         [AssistantPrompt.QuerySalesData] = (Permissions.AskDataUse, "sales data (Ask your data)"),
         [AssistantPrompt.CreateDraft] = (Permissions.CustomersView, "customers' contact details"),
     };
 
-    /// <summary>The refusal for a lookup the user isn't allowed, or null when they are.</summary>
-    public ToolOutcome? Refusal(string name) =>
-        Needs.TryGetValue(name, out var need) && !currentUser.Has(need.Permission) ? NoAccess(need.What) : null;
+    /// <summary>The refusal for a lookup the user isn't allowed, or null when they are. A draft to a supplier needs suppliers.</summary>
+    public ToolOutcome? Refusal(string name, IReadOnlyDictionary<string, JsonElement>? input = null)
+    {
+        if (name == AssistantPrompt.CreateDraft && input is not null && Number(input, "supplierId") > 0)
+        {
+            return currentUser.Has(Permissions.SuppliersView) ? null : NoAccess("suppliers' contact details");
+        }
+
+        return Needs.TryGetValue(name, out var need) && !currentUser.Has(need.Permission) ? NoAccess(need.What) : null;
+    }
 
     public static ToolOutcome NoAccess(string what) => new(
         $"This user doesn't have permission to see {what} in SalesApp, so you can't look that up for them. Tell them, " +
@@ -54,6 +66,8 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             AssistantPrompt.ListInvoices => await ListInvoicesAsync(Number(input, "customerId"), Text(input, "status"), cancellationToken),
             AssistantPrompt.GetDocument => await GetDocumentAsync(Text(input, "number"), cancellationToken),
             AssistantPrompt.SearchProducts => await SearchProductsAsync(Text(input, "query"), cancellationToken),
+            AssistantPrompt.SearchSuppliers => await SearchSuppliersAsync(Text(input, "query"), cancellationToken),
+            AssistantPrompt.GetSupplier => await GetSupplierAsync(Number(input, "supplierId"), cancellationToken),
             AssistantPrompt.QuerySalesData => await QueryAsync(conversationId, Text(input, "sql"), Text(input, "purpose"), cancellationToken),
             _ => new ToolOutcome($"There is no tool called {name}.", true, $"Unknown tool {name}"),
         };
@@ -66,6 +80,8 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         AssistantPrompt.ListInvoices => "Checking invoices",
         AssistantPrompt.GetDocument => $"Opening {Text(input, "number")}",
         AssistantPrompt.SearchProducts => $"Searching products for “{Text(input, "query")}”",
+        AssistantPrompt.SearchSuppliers => $"Searching suppliers for “{Text(input, "query")}”",
+        AssistantPrompt.GetSupplier => "Looking up the supplier",
         AssistantPrompt.QuerySalesData => Text(input, "purpose") is { Length: > 0 } purpose ? purpose : "Querying sales data",
         AssistantPrompt.CreateDraft => "Writing a draft",
         _ => name,
@@ -295,12 +311,17 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             }), false, $"Opened invoice {invoice.Number}");
         }
 
+        if (await GetPurchaseDocumentAsync(number, cancellationToken) is { } purchase)
+        {
+            return purchase;
+        }
+
         var order = await db.SalesOrders.AsNoTracking()
             .Include(o => o.Customer).Include(o => o.Lines).ThenInclude(l => l.Product)
             .SingleOrDefaultAsync(o => o.Number == number || o.QuotationNumber == number, cancellationToken);
         if (order is null)
         {
-            return new ToolOutcome($"No invoice, order or quotation is numbered {number}.", true, $"Looked for {number}");
+            return new ToolOutcome($"No invoice, order, quotation, purchase order or supplier bill is numbered {number}.", true, $"Looked for {number}");
         }
 
         if (!currentUser.Has(Permissions.OrdersView))
@@ -384,6 +405,208 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             { Result: { } result } => new ToolOutcome(QueryResultJson.ForClaude(null, result), false, label, sql),
             _ => new ToolOutcome($"The database returned an error: {outcome.Problem}", true, label, sql),
         };
+    }
+
+    private async Task<ToolOutcome> SearchSuppliersAsync(string query, CancellationToken cancellationToken)
+    {
+        if (query.Length < 2)
+        {
+            return new ToolOutcome("Give at least two characters to search for.", true, "Searched suppliers");
+        }
+
+        var today = clock.Today;
+        var upper = query.ToUpperInvariant();
+        var suppliers = await db.Suppliers.AsNoTracking()
+            .Where(s => s.Name.Contains(query) || (s.TradeName != null && s.TradeName.Contains(query)) || s.Code == upper
+                || s.Address.City.Contains(query) || s.Gstin == upper)
+            .OrderByDescending(s => s.IsActive).ThenBy(s => s.Name)
+            .Take(10)
+            .Select(s => new
+            {
+                id = s.Id, s.Code, s.Name, s.TradeName, city = s.Address.City, active = s.IsActive,
+                openOrders = db.PurchaseOrders.Count(o => o.SupplierId == s.Id && OpenOrders.Contains(o.Status)),
+                lateOrders = db.PurchaseOrders.Count(o => o.SupplierId == s.Id && Receivable.Contains(o.Status) && o.ExpectedDate < today),
+                payable = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status)).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid)) ?? 0m,
+                overdue = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status) && b.DueDate < today).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid)) ?? 0m,
+            })
+            .ToListAsync(cancellationToken);
+
+        var label = $"Searched suppliers for “{query}”";
+        return suppliers.Count == 0
+            ? new ToolOutcome(Serialize(new { matches = 0, note = "No supplier matches. Try part of the name, the city or the code." }), false, label)
+            : new ToolOutcome(Serialize(new { matches = suppliers.Count, suppliers }), false, label);
+    }
+
+    private async Task<ToolOutcome> GetSupplierAsync(int supplierId, CancellationToken cancellationToken)
+    {
+        var supplier = await db.Suppliers.AsNoTracking()
+            .Where(s => s.Id == supplierId)
+            .Select(s => new { s.Id, s.Code, s.Name, s.TradeName, s.ContactPerson, s.Gstin, City = s.Address.City, StateCode = s.Address.StateCode, s.PaymentTermsDays, s.Notes, s.IsActive })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (supplier is null)
+        {
+            return new ToolOutcome($"No supplier has id {supplierId}. Use {AssistantPrompt.SearchSuppliers} to find the right id.", true, "Looked up a supplier");
+        }
+
+        var today = clock.Today;
+        var thisYear = FinancialYear.StartYear(today);
+        var state = await db.States.Where(s => s.Code == supplier.StateCode).Select(s => s.Name).SingleOrDefaultAsync(cancellationToken);
+
+        object? orders = null;
+        if (currentUser.Has(Permissions.PurchaseOrdersView))
+        {
+            var open = await db.PurchaseOrders.AsNoTracking()
+                .Where(o => o.SupplierId == supplierId && OpenOrders.Contains(o.Status))
+                .OrderBy(o => o.ExpectedDate ?? o.OrderDate)
+                .Take(20)
+                .Select(o => new
+                {
+                    o.Number, Status = o.Status.ToString(), o.OrderDate, o.ExpectedDate, o.GrandTotal,
+                    Lines = o.Lines.Where(l => l.QuantityReceived < l.Quantity).OrderBy(l => l.LineNumber)
+                        .Select(l => new { sku = l.Product!.Sku, product = l.Product.Name, unit = l.Product.Unit.ToString(), ordered = l.Quantity, received = l.QuantityReceived })
+                        .ToList(),
+                })
+                .ToListAsync(cancellationToken);
+            orders = open.Select(o => new
+            {
+                number = o.Number,
+                status = o.Status,
+                orderDate = o.OrderDate,
+                expectedDate = o.ExpectedDate,
+                daysLate = o.Status != nameof(PurchaseOrderStatus.PendingApproval) && o.ExpectedDate is { } expected && expected < today ? today.DayNumber - expected.DayNumber : 0,
+                total = o.GrandTotal,
+                stillToCome = o.Lines.Select(l => new { l.sku, l.product, l.unit, l.ordered, l.received, pending = l.ordered - l.received }),
+            });
+        }
+
+        object? bills = null;
+        decimal? payable = null, overdue = null, purchasesThisYear = null;
+        DateOnly? lastBill = null;
+        if (currentUser.Has(Permissions.SupplierBillsView))
+        {
+            var all = db.SupplierBills.AsNoTracking().Where(b => b.SupplierId == supplierId && b.Status != SupplierBillStatus.Cancelled);
+            purchasesThisYear = await all.Where(b => b.FinancialYear == thisYear).SumAsync(b => (decimal?)(b.TaxableValue + b.ChargesAmount), cancellationToken) ?? 0m;
+            lastBill = await all.MaxAsync(b => (DateOnly?)b.BillDate, cancellationToken);
+            var unpaid = await all.Where(b => OpenBills.Contains(b.Status))
+                .OrderBy(b => b.DueDate)
+                .Take(30)
+                .Select(b => new { b.Number, b.SupplierInvoiceNumber, b.BillDate, b.DueDate, b.GrandTotal, b.AmountPaid, Match = b.MatchStatus.ToString() })
+                .ToListAsync(cancellationToken);
+            payable = unpaid.Sum(b => b.GrandTotal - b.AmountPaid);
+            overdue = unpaid.Where(b => b.DueDate < today).Sum(b => b.GrandTotal - b.AmountPaid);
+            bills = unpaid.Select(b => new
+            {
+                number = b.Number,
+                supplierInvoice = b.SupplierInvoiceNumber,
+                date = b.BillDate,
+                dueDate = b.DueDate,
+                total = b.GrandTotal,
+                outstanding = b.GrandTotal - b.AmountPaid,
+                daysOverdue = b.DueDate < today ? today.DayNumber - b.DueDate.DayNumber : 0,
+                match = b.Match,
+            });
+        }
+
+        return new ToolOutcome(Serialize(new
+        {
+            id = supplier.Id,
+            supplier.Code,
+            supplier.Name,
+            supplier.TradeName,
+            supplier.ContactPerson,
+            supplier.Gstin,
+            supplier.City,
+            state,
+            supplier.PaymentTermsDays,
+            active = supplier.IsActive,
+            supplier.Notes,
+            purchasesThisFinancialYear = purchasesThisYear,
+            lastBillDate = lastBill,
+            payable,
+            overdue,
+            openPurchaseOrders = orders ?? "No permission to see purchase orders.",
+            unpaidBills = bills ?? "No permission to see supplier bills.",
+        }), false, $"Looked up {supplier.Name}");
+    }
+
+    /// <summary>A purchase order or supplier bill by number (ours, or the supplier's invoice number), or null.</summary>
+    private async Task<ToolOutcome?> GetPurchaseDocumentAsync(string number, CancellationToken cancellationToken)
+    {
+        var order = await db.PurchaseOrders.AsNoTracking()
+            .Include(o => o.Supplier).Include(o => o.Lines).ThenInclude(l => l.Product)
+            .SingleOrDefaultAsync(o => o.Number == number, cancellationToken);
+        if (order is not null)
+        {
+            if (!currentUser.Has(Permissions.PurchaseOrdersView))
+            {
+                return NoAccess("purchase orders");
+            }
+
+            var today = clock.Today;
+            return new ToolOutcome(Serialize(new
+            {
+                type = "purchase order",
+                order.Number,
+                supplierId = order.SupplierId,
+                supplier = order.Supplier?.Name,
+                date = order.OrderDate,
+                order.ExpectedDate,
+                status = order.Status.ToString(),
+                daysLate = Receivable.Contains(order.Status) && order.ExpectedDate is { } expected && expected < today ? today.DayNumber - expected.DayNumber : 0,
+                order.SupplierReference,
+                order.Notes,
+                lines = order.Lines.OrderBy(l => l.LineNumber).Select(l => new
+                {
+                    sku = l.Product?.Sku, product = l.Product?.Name, unit = l.Product?.Unit.ToString(), ordered = l.Quantity, l.UnitPrice, l.GstRate,
+                    received = l.QuantityReceived, billed = l.QuantityBilled, stillToCome = Math.Max(0, l.Quantity - l.QuantityReceived),
+                }),
+                order.TaxableValue,
+                gst = order.TaxAmount,
+                order.GrandTotal,
+            }), false, $"Opened purchase order {order.Number}");
+        }
+
+        var bill = await db.SupplierBills.AsNoTracking()
+            .Include(b => b.Lines).Include(b => b.Payments).Include(b => b.PurchaseOrder)
+            .Where(b => b.Number == number || b.SupplierInvoiceNumber == number)
+            .OrderByDescending(b => b.Number == number)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (bill is null)
+        {
+            return null;
+        }
+
+        if (!currentUser.Has(Permissions.SupplierBillsView))
+        {
+            return NoAccess("supplier bills");
+        }
+
+        var day = clock.Today;
+        return new ToolOutcome(Serialize(new
+        {
+            type = "supplier bill",
+            bill.Number,
+            supplierInvoice = bill.SupplierInvoiceNumber,
+            supplierId = bill.SupplierId,
+            supplier = bill.SupplierName,
+            purchaseOrder = bill.PurchaseOrder?.Number,
+            date = bill.BillDate,
+            bill.DueDate,
+            status = bill.Status.ToString(),
+            match = bill.MatchStatus.ToString(),
+            lines = bill.Lines.OrderBy(l => l.LineNumber).Select(l => new
+            {
+                sku = l.ProductSku, product = l.ProductName, l.Quantity, unit = l.Unit.ToString(), l.UnitPrice, orderedPrice = l.OrderedPrice, l.TaxableValue, l.GstRate, l.LineTotal, issue = l.Issue,
+            }),
+            bill.TaxableValue,
+            charges = bill.ChargesAmount,
+            gst = bill.CgstAmount + bill.SgstAmount + bill.IgstAmount,
+            bill.GrandTotal,
+            bill.AmountPaid,
+            outstanding = bill.Status == SupplierBillStatus.Cancelled ? 0 : bill.GrandTotal - bill.AmountPaid,
+            daysOverdue = OpenBills.Contains(bill.Status) && bill.DueDate < day ? day.DayNumber - bill.DueDate.DayNumber : 0,
+            payments = bill.Payments.OrderBy(p => p.PaymentDate).Select(p => new { date = p.PaymentDate, p.Amount, mode = p.Mode.ToString(), p.Reference }),
+        }), false, $"Opened supplier bill {bill.Number}");
     }
 
     /// <summary>Outstanding and overdue amounts for each customer.</summary>

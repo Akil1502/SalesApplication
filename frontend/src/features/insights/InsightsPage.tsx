@@ -16,7 +16,7 @@ import {
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
@@ -28,7 +28,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAuth } from '@/features/auth/auth-context'
+import { Permissions } from '@/features/auth/permissions'
 import { StatTile } from '@/features/dashboard/StatTile'
+import { ReorderDialog } from '@/features/purchasing/ReorderDialog'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatINRCompact } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -164,12 +167,27 @@ function TrendTable({ rows, empty }: { rows: CustomerTrend[]; empty: string }) {
   )
 }
 
-function Section({ title, description, children, className }: { title: string; description?: string; children: ReactNode; className?: string }) {
+function Section({
+  title,
+  description,
+  children,
+  className,
+  action,
+}: {
+  title: string
+  description?: string
+  children: ReactNode
+  className?: string
+  action?: ReactNode
+}) {
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+      <CardHeader className={action ? 'flex flex-row flex-wrap items-start justify-between gap-4' : undefined}>
+        <div className="flex flex-col gap-1.5">
+          <CardTitle className="text-base">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
+        </div>
+        {action}
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
@@ -179,6 +197,8 @@ function Section({ title, description, children, className }: { title: string; d
 export function InsightsPage() {
   const insights = useInsights()
   const refresh = useRefreshInsights()
+  const { can } = useAuth()
+  const [reorderOpen, setReorderOpen] = useState(false)
 
   function recompute() {
     refresh.mutate(undefined, {
@@ -287,6 +307,22 @@ export function InsightsPage() {
           <Section
             title="Reorder suggestions"
             description="Products at or below their reorder point: expected demand over the supplier's lead time plus safety stock for about a 95% chance of not running out. Demand counts only days the product was in stock and allows for the season ahead."
+            action={
+              metrics.reorder.length > 0 &&
+              can(Permissions.PurchaseOrdersEdit) && (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => setReorderOpen(true)}>
+                    Draft purchase orders
+                  </Button>
+                  <ReorderDialog
+                    open={reorderOpen}
+                    onOpenChange={setReorderOpen}
+                    productIds={metrics.reorder.map((r) => r.productId)}
+                    quantities={Object.fromEntries(metrics.reorder.map((r) => [r.productId, r.suggestedQuantity]))}
+                  />
+                </>
+              )
+            }
           >
             {metrics.reorder.length === 0 ? (
               <p className="text-sm text-muted-foreground">No product needs reordering yet.</p>

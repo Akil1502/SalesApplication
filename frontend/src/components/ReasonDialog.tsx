@@ -12,9 +12,16 @@ interface ReasonDialogProps {
   description: string
   confirmLabel: string
   onConfirm: (reason: string) => Promise<void>
+  /** What the text box is for; "Reason" unless given. */
+  label?: string
+  /** Shown when the box is left empty. */
+  requiredMessage?: string
+  cancelLabel?: string
+  /** False for an action that isn't destructive (approving), so the button isn't red. */
+  destructive?: boolean
 }
 
-/** Asks for a reason before a destructive action (cancelling an order or invoice). */
+/** Asks for a reason before a destructive action (cancelling an order or invoice), or a note with an approval. */
 export function ReasonDialog({ open, onOpenChange, ...props }: ReasonDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -26,7 +33,17 @@ export function ReasonDialog({ open, onOpenChange, ...props }: ReasonDialogProps
   )
 }
 
-function ReasonForm({ title, description, confirmLabel, onConfirm, onCancel }: Omit<ReasonDialogProps, 'open' | 'onOpenChange'> & { onCancel: () => void }) {
+function ReasonForm({
+  title,
+  description,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  label = 'Reason',
+  requiredMessage = 'Give a reason.',
+  cancelLabel = 'Keep it',
+  destructive = true,
+}: Omit<ReasonDialogProps, 'open' | 'onOpenChange'> & { onCancel: () => void }) {
   const id = useId()
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +54,7 @@ function ReasonForm({ title, description, confirmLabel, onConfirm, onCancel }: O
     // Dialogs render in a portal, but React still bubbles events to the parent component tree.
     e.stopPropagation()
     if (!reason.trim()) {
-      setError('Give a reason.')
+      setError(requiredMessage)
       return
     }
     setBusy(true)
@@ -55,15 +72,15 @@ function ReasonForm({ title, description, confirmLabel, onConfirm, onCancel }: O
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <Field data-invalid={!!error} className="py-4">
-        <FieldLabel htmlFor={id}>Reason</FieldLabel>
+        <FieldLabel htmlFor={id}>{label}</FieldLabel>
         <Textarea id={id} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} aria-invalid={!!error} autoFocus />
         <FieldError errors={error ? [{ message: error }] : []} />
       </Field>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onCancel}>
-          Keep it
+          {cancelLabel}
         </Button>
-        <Button type="submit" variant="destructive" disabled={busy}>
+        <Button type="submit" variant={destructive ? 'destructive' : 'default'} disabled={busy}>
           {busy && <Spinner />}
           {confirmLabel}
         </Button>

@@ -52,6 +52,10 @@ public sealed class CompanySettingsService(AppDbContext db, ILookupService looku
         settings.InvoicePrefix = request.InvoicePrefix;
         settings.QuotationPrefix = request.QuotationPrefix;
         settings.InvoiceTerms = Text.NullIfBlank(request.InvoiceTerms);
+        settings.PurchaseOrderTerms = Text.NullIfBlank(request.PurchaseOrderTerms);
+        settings.PurchaseApprovalLimit = request.PurchaseApprovalLimit;
+        settings.OverReceiptTolerancePercent = request.OverReceiptTolerancePercent;
+        settings.BillPriceTolerancePercent = request.BillPriceTolerancePercent;
 
         await db.SaveChangesAsync(cancellationToken);
         return await ToDtoAsync(settings, cancellationToken);
@@ -64,6 +68,7 @@ public sealed class CompanySettingsService(AppDbContext db, ILookupService looku
             s.LegalName, s.TradeName, s.Gstin, s.StateCode, states.GetValueOrDefault(s.StateCode)?.Name ?? s.StateCode,
             s.AddressLine1, s.AddressLine2, s.City, s.Pincode, s.Phone, s.Email,
             s.BankName, s.BankAccountNumber, s.BankIfsc, s.BankBranch,
-            s.InvoicePrefix, s.QuotationPrefix, s.InvoiceTerms, RowVersions.ToToken(s.RowVersion));
+            s.InvoicePrefix, s.QuotationPrefix, s.InvoiceTerms, s.PurchaseOrderTerms, s.PurchaseApprovalLimit,
+            s.OverReceiptTolerancePercent, s.BillPriceTolerancePercent, RowVersions.ToToken(s.RowVersion));
     }
 }

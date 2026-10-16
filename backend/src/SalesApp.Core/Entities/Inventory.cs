@@ -83,9 +83,9 @@ public sealed class StockMovement
 }
 
 /// <summary>
-/// A goods receipt note (GRN): one delivery of stock, possibly several products. Its lines are the
-/// stock movements with ReferenceType "Receipt" and ReferenceId = this Id. There's deliberately no
-/// foreign key: ReferenceId also points at invoices, so it can't be constrained to one table.
+/// A goods receipt note (GRN): one delivery against a purchase order, possibly several products. Each line is also a
+/// stock movement with ReferenceType "Receipt" and ReferenceId = this Id. There's deliberately no foreign key on the
+/// movement: ReferenceId also points at invoices, so it can't be constrained to one table.
 /// </summary>
 public sealed class StockReceipt
 {
@@ -96,6 +96,14 @@ public sealed class StockReceipt
 
     public DateOnly ReceiptDate { get; set; }
 
+    /// <summary>The order the goods came in against. Null only for receipts recorded before purchase orders existed.</summary>
+    public int? PurchaseOrderId { get; set; }
+    public PurchaseOrder? PurchaseOrder { get; set; }
+
+    public int? SupplierId { get; set; }
+    public Supplier? Supplier { get; set; }
+
+    /// <summary>The supplier's name as it was on the day (older receipts have only this).</summary>
     public string? SupplierName { get; set; }
 
     /// <summary>The supplier's invoice or delivery challan number.</summary>
@@ -106,6 +114,8 @@ public sealed class StockReceipt
     public Guid CreatedByUserId { get; set; }
     public AppUser? CreatedBy { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+
+    public List<StockReceiptLine> Lines { get; set; } = [];
 }
 
 /// <summary>Values for <see cref="StockMovement.ReferenceType"/>.</summary>

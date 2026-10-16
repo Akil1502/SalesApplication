@@ -77,6 +77,11 @@ public static class DependencyInjection
         services.AddScoped<IInvoiceService, InvoiceService>();
         services.AddScoped<IPaymentService, PaymentService>();
 
+        services.AddScoped<ISupplierService, SupplierService>();
+        services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+        services.AddScoped<ISupplierBillService, SupplierBillService>();
+        services.AddScoped<ISupplierPaymentService, SupplierPaymentService>();
+
         services.AddScoped<Reporting.IReportService, Reporting.ReportService>();
         services.AddScoped<Reporting.IDashboardService, Reporting.DashboardService>();
         services.AddScoped<Insights.IInsightMetricsService, Insights.InsightMetricsService>();

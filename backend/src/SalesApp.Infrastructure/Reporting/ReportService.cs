@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Reports;
+using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Data;
 
@@ -15,7 +16,8 @@ public interface IReportService
 
 /// <summary>
 /// The standard reports, all computed from the rpt.* views so they agree with the dashboard and with each
-/// other. Margin and stock-value columns appear for managers and admins only.
+/// other. Margin and stock-value columns appear for managers and admins only; the purchase reports need the right to
+/// see supplier bills as well.
 /// </summary>
 public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurrentUser currentUser) : IReportService
 {
@@ -28,15 +30,33 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
         new("hsn-summary", "HSN summary", "Quantity, taxable value and tax per HSN code (GSTR-1 table 12).", true),
         new("receivables-ageing", "Receivables ageing", "What each customer owes today, by how overdue it is.", false),
         new("stock", "Stock position", "Stock on hand and status per product; value at cost for managers.", false),
+        new("purchase-register", "Purchase register", "Supplier bills with their taxable value and input GST, for GST returns.", true),
+        new("payables-ageing", "Payables ageing", "What we owe each supplier today, by how overdue it is.", false),
+        new("gst-net", "GST payable", "Output GST on sales less input credit on supplier bills, by month (before set-off rules).", true),
     ];
+
+    /// <summary>Reports that need more than the reports right.</summary>
+    private static readonly Dictionary<string, string> Needs = new()
+    {
+        ["purchase-register"] = Permissions.SupplierBillsView,
+        ["payables-ageing"] = Permissions.SupplierBillsView,
+        ["gst-net"] = Permissions.SupplierBillsView,
+    };
+
+    private static readonly SupplierBillStatus[] OpenBills = [SupplierBillStatus.Unpaid, SupplierBillStatus.PartiallyPaid];
 
     private static readonly CultureInfo India = CultureInfo.GetCultureInfo("en-IN");
 
-    public IReadOnlyList<ReportDefinitionDto> List() => Definitions;
+    public IReadOnlyList<ReportDefinitionDto> List() => [.. Definitions.Where(d => Allowed(d.Key))];
 
     public Task<ReportResult> RunAsync(string key, ReportRequest request, CancellationToken cancellationToken)
     {
         var definition = Definitions.FirstOrDefault(d => d.Key == key) ?? throw new NotFoundException($"There's no report called '{key}'.");
+        if (!Allowed(key))
+        {
+            throw new ForbiddenException($"The {definition.Title} report needs the right to see supplier bills.");
+        }
+
         var (from, to) = Range(request);
         return key switch
         {
@@ -46,9 +66,14 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
             "gst-summary" => GstSummaryAsync(definition, from, to, cancellationToken),
             "hsn-summary" => HsnSummaryAsync(definition, from, to, cancellationToken),
             "receivables-ageing" => AgeingAsync(definition, cancellationToken),
+            "purchase-register" => PurchaseRegisterAsync(definition, from, to, cancellationToken),
+            "payables-ageing" => PayablesAgeingAsync(definition, cancellationToken),
+            "gst-net" => GstNetAsync(definition, from, to, cancellationToken),
             _ => StockAsync(definition, cancellationToken),
         };
     }
+
+    private bool Allowed(string key) => !Needs.TryGetValue(key, out var permission) || currentUser.Has(permission);
 
     private (DateOnly From, DateOnly To) Range(ReportRequest request)
     {
@@ -334,6 +359,128 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
             totals["reorderLevel"] = null;
             totals["cost"] = null;
         });
+    }
+
+    private async Task<ReportResult> PurchaseRegisterAsync(ReportDefinitionDto d, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var rows = await db.SupplierBills.AsNoTracking()
+            .Where(b => b.Status != SupplierBillStatus.Cancelled && b.BillDate >= from && b.BillDate <= to)
+            .OrderBy(b => b.BillDate).ThenBy(b => b.Id)
+            .Select(b => new
+            {
+                b.BillDate, b.Number, b.SupplierInvoiceNumber, b.SupplierName, b.SupplierGstin, Order = b.PurchaseOrder!.Number,
+                Taxable = b.TaxableValue + b.ChargesAmount, b.CgstAmount, b.SgstAmount, b.IgstAmount, b.GrandTotal,
+            })
+            .ToListAsync(ct);
+
+        ReportColumn[] columns =
+        [
+            new("date", "Bill date", ReportColumnType.Date),
+            new("number", "Our ref", ReportColumnType.Text),
+            new("invoice", "Supplier's invoice", ReportColumnType.Text),
+            new("supplier", "Supplier", ReportColumnType.Text),
+            new("gstin", "GSTIN", ReportColumnType.Text),
+            new("order", "Purchase order", ReportColumnType.Text),
+            new("taxable", "Taxable value", ReportColumnType.Money),
+            new("cgst", "CGST", ReportColumnType.Money),
+            new("sgst", "SGST/UTGST", ReportColumnType.Money),
+            new("igst", "IGST", ReportColumnType.Money),
+            new("tax", "Input GST", ReportColumnType.Money),
+            new("total", "Bill total", ReportColumnType.Money),
+        ];
+
+        return Result(d, from, to, columns, rows.Select(r => Row(
+            ("date", r.BillDate), ("number", r.Number), ("invoice", r.SupplierInvoiceNumber), ("supplier", r.SupplierName), ("gstin", r.SupplierGstin),
+            ("order", r.Order), ("taxable", r.Taxable), ("cgst", r.CgstAmount), ("sgst", r.SgstAmount), ("igst", r.IgstAmount),
+            ("tax", r.CgstAmount + r.SgstAmount + r.IgstAmount), ("total", r.GrandTotal))).ToList());
+    }
+
+    private async Task<ReportResult> PayablesAgeingAsync(ReportDefinitionDto d, CancellationToken ct)
+    {
+        var today = clock.Today;
+        var bills = await db.SupplierBills.AsNoTracking()
+            .Where(b => OpenBills.Contains(b.Status))
+            .Select(b => new { b.SupplierId, b.SupplierName, b.DueDate, Outstanding = b.GrandTotal - b.AmountPaid })
+            .ToListAsync(ct);
+
+        var rows = bills
+            .Select(b => (b.SupplierId, b.SupplierName, b.Outstanding, Days: b.DueDate < today ? today.DayNumber - b.DueDate.DayNumber : 0))
+            .GroupBy(b => (b.SupplierId, b.SupplierName))
+            .Select(g => new
+            {
+                Supplier = g.Key.SupplierName,
+                Bills = g.Count(),
+                NotDue = g.Where(b => b.Days == 0).Sum(b => b.Outstanding),
+                D30 = g.Where(b => b.Days is >= 1 and <= 30).Sum(b => b.Outstanding),
+                D60 = g.Where(b => b.Days is >= 31 and <= 60).Sum(b => b.Outstanding),
+                D90 = g.Where(b => b.Days is >= 61 and <= 90).Sum(b => b.Outstanding),
+                Over90 = g.Where(b => b.Days > 90).Sum(b => b.Outstanding),
+                Total = g.Sum(b => b.Outstanding),
+                MaxDays = g.Max(b => b.Days),
+            })
+            .OrderByDescending(r => r.Total)
+            .ToList();
+
+        ReportColumn[] columns =
+        [
+            new("supplier", "Supplier", ReportColumnType.Text),
+            new("bills", "Open bills", ReportColumnType.Count),
+            new("notDue", "Not yet due", ReportColumnType.Money),
+            new("days1To30", "1–30 days", ReportColumnType.Money),
+            new("days31To60", "31–60 days", ReportColumnType.Money),
+            new("days61To90", "61–90 days", ReportColumnType.Money),
+            new("over90", "Over 90 days", ReportColumnType.Money),
+            new("total", "Total owed", ReportColumnType.Money),
+            new("oldest", "Most overdue (days)", ReportColumnType.Count),
+        ];
+
+        return Result(d with { Description = $"Owed as of {today.ToString("dd MMM yyyy", India)}." }, null, null, columns, rows.Select(r => Row(
+            ("supplier", r.Supplier), ("bills", r.Bills), ("notDue", r.NotDue), ("days1To30", r.D30), ("days31To60", r.D60),
+            ("days61To90", r.D90), ("over90", r.Over90), ("total", r.Total), ("oldest", r.MaxDays))).ToList(),
+            totals => totals["oldest"] = rows.Count == 0 ? null : rows.Max(r => r.MaxDays));
+    }
+
+    private async Task<ReportResult> GstNetAsync(ReportDefinitionDto d, DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        var output = await Lines(from, to)
+            .GroupBy(l => l.MonthStart)
+            .Select(g => new { Month = g.Key, Cgst = g.Sum(l => l.CgstAmount), Sgst = g.Sum(l => l.SgstAmount), Igst = g.Sum(l => l.IgstAmount) })
+            .ToListAsync(ct);
+        var input = (await db.SupplierBills.AsNoTracking()
+                .Where(b => b.Status != SupplierBillStatus.Cancelled && b.BillDate >= from && b.BillDate <= to)
+                .Select(b => new { b.BillDate, b.CgstAmount, b.SgstAmount, b.IgstAmount })
+                .ToListAsync(ct))
+            .GroupBy(b => new DateOnly(b.BillDate.Year, b.BillDate.Month, 1))
+            .ToDictionary(g => g.Key, g => (Cgst: g.Sum(b => b.CgstAmount), Sgst: g.Sum(b => b.SgstAmount), Igst: g.Sum(b => b.IgstAmount)));
+        var sales = output.ToDictionary(o => o.Month, o => (o.Cgst, o.Sgst, o.Igst));
+
+        ReportColumn[] columns =
+        [
+            new("month", "Month", ReportColumnType.Text),
+            new("outputCgst", "Output CGST", ReportColumnType.Money),
+            new("outputSgst", "Output SGST", ReportColumnType.Money),
+            new("outputIgst", "Output IGST", ReportColumnType.Money),
+            new("output", "Output GST", ReportColumnType.Money),
+            new("inputCgst", "Input CGST", ReportColumnType.Money),
+            new("inputSgst", "Input SGST", ReportColumnType.Money),
+            new("inputIgst", "Input IGST", ReportColumnType.Money),
+            new("input", "Input credit", ReportColumnType.Money),
+            new("net", "Net payable", ReportColumnType.Money),
+        ];
+
+        var rows = sales.Keys.Union(input.Keys).Order().Select(month =>
+        {
+            var o = sales.GetValueOrDefault(month);
+            var i = input.GetValueOrDefault(month);
+            var outputTax = o.Cgst + o.Sgst + o.Igst;
+            var inputTax = i.Cgst + i.Sgst + i.Igst;
+            return Row(("month", month.ToString("MMM yyyy", India)),
+                ("outputCgst", o.Cgst), ("outputSgst", o.Sgst), ("outputIgst", o.Igst), ("output", outputTax),
+                ("inputCgst", i.Cgst), ("inputSgst", i.Sgst), ("inputIgst", i.Igst), ("input", inputTax),
+                ("net", outputTax - inputTax));
+        }).ToList();
+
+        return Result(d, from, to, columns, rows);
     }
 
     // ---- Helpers ------------------------------------------------------------------------------------

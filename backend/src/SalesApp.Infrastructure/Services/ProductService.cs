@@ -75,6 +75,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
             .Include(p => p.Category)
             .Include(p => p.HsnCode)
             .Include(p => p.Stock)
+            .Include(p => p.PreferredSupplier)
             .SingleOrDefaultAsync(p => p.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Product {id} was not found.");
 
@@ -85,7 +86,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
     {
         var sku = request.Sku.Trim().ToUpperInvariant();
         await EnsureSkuIsFreeAsync(sku, excludeId: null, cancellationToken);
-        await EnsureReferencesAsync(request.CategoryId, request.HsnCodeId, current: null, cancellationToken);
+        await EnsureReferencesAsync(request, current: null, cancellationToken);
 
         // Every product gets its stock row up front; quantities then only change through the stock ledger.
         var product = new Product { Sku = sku, Name = request.Name.Trim(), Stock = new StockLevel() };
@@ -104,7 +105,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
 
         var sku = request.Sku.Trim().ToUpperInvariant();
         await EnsureSkuIsFreeAsync(sku, id, cancellationToken);
-        await EnsureReferencesAsync(request.CategoryId, request.HsnCodeId, product, cancellationToken);
+        await EnsureReferencesAsync(request, product, cancellationToken);
 
         product.Sku = sku;
         Apply(product, request);
@@ -133,6 +134,7 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
         product.ReorderLevel = request.ReorderLevel;
         product.ReorderQuantity = request.ReorderQuantity;
         product.LeadTimeDays = request.LeadTimeDays;
+        product.PreferredSupplierId = request.PreferredSupplierId;
         product.IsActive = request.IsActive;
     }
 
@@ -145,11 +147,12 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
     }
 
     /// <summary>
-    /// New products must point at an active category and HSN code. An existing product may keep a
-    /// reference that has since been deactivated, so editing its price doesn't force a reclassification.
+    /// New products must point at an active category, HSN code and (if any) preferred supplier. An existing product
+    /// may keep a reference that has since been deactivated, so editing its price doesn't force a reclassification.
     /// </summary>
-    private async Task EnsureReferencesAsync(int categoryId, int hsnCodeId, Product? current, CancellationToken cancellationToken)
+    private async Task EnsureReferencesAsync(ProductSaveRequest request, Product? current, CancellationToken cancellationToken)
     {
+        var (categoryId, hsnCodeId) = (request.CategoryId, request.HsnCodeId);
         var errors = new Dictionary<string, string[]>();
 
         var categoryActive = await db.Categories.Where(c => c.Id == categoryId).Select(c => (bool?)c.IsActive).SingleOrDefaultAsync(cancellationToken);
@@ -164,6 +167,15 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
             errors["hsnCodeId"] = ["Choose an active HSN code."];
         }
 
+        if (request.PreferredSupplierId is { } supplierId)
+        {
+            var supplierActive = await db.Suppliers.Where(s => s.Id == supplierId).Select(s => (bool?)s.IsActive).SingleOrDefaultAsync(cancellationToken);
+            if (supplierActive is null || (supplierActive == false && current?.PreferredSupplierId != supplierId))
+            {
+                errors["preferredSupplierId"] = ["Choose an active supplier."];
+            }
+        }
+
         if (errors.Count > 0)
         {
             throw new ValidationException("Some fields need attention.", errors);
@@ -176,6 +188,6 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
         p.HsnCodeId, p.HsnCode!.Code, p.HsnCode.GstRate,
         p.Unit, p.ListPrice,
         currentUser.Has(Permissions.CostPricesView) ? p.CostPrice : null,
-        p.ReorderLevel, p.ReorderQuantity, p.LeadTimeDays, p.Stock?.QuantityOnHand ?? 0m,
+        p.ReorderLevel, p.ReorderQuantity, p.LeadTimeDays, p.PreferredSupplierId, p.PreferredSupplier?.Name, p.Stock?.QuantityOnHand ?? 0m,
         p.IsActive, p.CreatedAtUtc, p.UpdatedAtUtc, RowVersions.ToToken(p.RowVersion));
 }
