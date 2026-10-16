@@ -26,6 +26,7 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasOne(p => p.Category).WithMany().HasForeignKey(p => p.CategoryId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(p => p.HsnCode).WithMany().HasForeignKey(p => p.HsnCodeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.PreferredSupplier).WithMany().HasForeignKey(p => p.PreferredSupplierId).OnDelete(DeleteBehavior.Restrict);
 
         builder.ToTable(t =>
         {

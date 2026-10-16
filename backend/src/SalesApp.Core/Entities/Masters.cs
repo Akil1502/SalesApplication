@@ -55,6 +55,18 @@ public sealed class CompanySettings
     /// <summary>Terms and conditions printed at the foot of invoices.</summary>
     public string? InvoiceTerms { get; set; }
 
+    /// <summary>Terms printed at the foot of purchase orders.</summary>
+    public string? PurchaseOrderTerms { get; set; }
+
+    /// <summary>Purchase orders above this total (with GST) need someone who can approve them. Null: no approvals.</summary>
+    public decimal? PurchaseApprovalLimit { get; set; }
+
+    /// <summary>How much more than ordered may be received, as a percentage (yarn and fabric rarely arrive exact).</summary>
+    public decimal OverReceiptTolerancePercent { get; set; }
+
+    /// <summary>How far a bill's price may differ from the order's before the bill needs approval, as a percentage.</summary>
+    public decimal BillPriceTolerancePercent { get; set; }
+
     public byte[] RowVersion { get; set; } = [];
 }
 
@@ -115,8 +127,15 @@ public sealed class Product : IAuditable
     /// <summary>Selling price per unit, excluding GST.</summary>
     public decimal ListPrice { get; set; }
 
-    /// <summary>Purchase/production cost per unit. Visible to managers only (margins).</summary>
+    /// <summary>
+    /// Cost per unit: the weighted average of what stock cost to bring in (receipts at the order price, then the bill's
+    /// price differences and freight). Can also be set by hand. Visible only with the cost prices right.
+    /// </summary>
     public decimal? CostPrice { get; set; }
+
+    /// <summary>Who to buy from by default: reorder suggestions become draft orders with this supplier.</summary>
+    public int? PreferredSupplierId { get; set; }
+    public Supplier? PreferredSupplier { get; set; }
 
     public decimal ReorderLevel { get; set; }
     public decimal ReorderQuantity { get; set; }

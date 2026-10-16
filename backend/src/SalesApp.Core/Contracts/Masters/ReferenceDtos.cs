@@ -56,6 +56,10 @@ public sealed record CompanySettingsDto(
     string InvoicePrefix,
     string QuotationPrefix,
     string? InvoiceTerms,
+    string? PurchaseOrderTerms,
+    decimal? PurchaseApprovalLimit,
+    decimal OverReceiptTolerancePercent,
+    decimal BillPriceTolerancePercent,
     string RowVersion);
 
 public sealed record CompanySettingsSaveRequest
@@ -111,6 +115,19 @@ public sealed record CompanySettingsSaveRequest
 
     [MaxLength(2000)]
     public string? InvoiceTerms { get; init; }
+
+    [MaxLength(2000)]
+    public string? PurchaseOrderTerms { get; init; }
+
+    /// <summary>Purchase orders above this total (with GST) need approval. Leave empty for no approvals.</summary>
+    [DecimalRange(0, 999999999, ErrorMessage = "The limit must be between 0 and 99,99,99,999."), DecimalPlaces(2)]
+    public decimal? PurchaseApprovalLimit { get; init; }
+
+    [DecimalRange(0, 50, ErrorMessage = "Use 0% to 50%."), DecimalPlaces(2)]
+    public decimal OverReceiptTolerancePercent { get; init; } = 5m;
+
+    [DecimalRange(0, 50, ErrorMessage = "Use 0% to 50%."), DecimalPlaces(2)]
+    public decimal BillPriceTolerancePercent { get; init; } = 2m;
 
     [Required]
     public string RowVersion { get; init; } = string.Empty;

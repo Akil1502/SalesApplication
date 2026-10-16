@@ -207,6 +207,15 @@ internal static class AuditedTypes
         [typeof(Payment)] = new("Payment", (e, l) =>
             $"{AuditFormat.Money(Value<decimal>(e, nameof(Payment.Amount)))} for {l.Name(nameof(Payment.InvoiceId), Value<int>(e, nameof(Payment.InvoiceId)))}"),
         [typeof(StockReceipt)] = new("Goods receipt", (e, _) => Value<string>(e, nameof(StockReceipt.Number))),
+        [typeof(Supplier)] = new("Supplier", (e, _) => Value<string>(e, nameof(Supplier.Name)), IncludeOwned: true),
+        [typeof(PurchaseOrder)] = new("Purchase order", (e, _) => Value<string>(e, nameof(PurchaseOrder.Number))),
+        [typeof(SupplierBill)] = new("Supplier bill", (e, _) =>
+            $"{Value<string>(e, nameof(SupplierBill.Number))} ({Value<string>(e, nameof(SupplierBill.SupplierName))} {Value<string>(e, nameof(SupplierBill.SupplierInvoiceNumber))})",
+            CreatedFields: [nameof(SupplierBill.SupplierInvoiceNumber), nameof(SupplierBill.BillDate), nameof(SupplierBill.DueDate), nameof(SupplierBill.SupplierId),
+                nameof(SupplierBill.PurchaseOrderId), nameof(SupplierBill.TaxableValue), nameof(SupplierBill.ChargesAmount), nameof(SupplierBill.GrandTotal),
+                nameof(SupplierBill.MatchStatus), nameof(SupplierBill.Source)]),
+        [typeof(SupplierPayment)] = new("Supplier payment", (e, l) =>
+            $"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierPayment.Amount)))} for {l.Name(nameof(SupplierPayment.SupplierBillId), Value<int>(e, nameof(SupplierPayment.SupplierBillId)))}"),
         [typeof(StockMovement)] = new("Stock adjustment", (e, l) => l.Name(nameof(StockMovement.ProductId), Value<int>(e, nameof(StockMovement.ProductId)))),
         [typeof(AppUser)] = new("User", (e, _) => $"{Value<string>(e, nameof(AppUser.FullName))} ({Value<string>(e, nameof(AppUser.Email))})"),
         [typeof(AppRole)] = new("Role", (e, _) => Value<string>(e, nameof(IdentityRole<Guid>.Name))),
@@ -218,7 +227,7 @@ internal static class AuditedTypes
         "Id", "RowVersion", "CreatedAtUtc", "UpdatedAtUtc", "CreatedByUserId", "UpdatedByUserId", "ConcurrencyStamp",
         "SecurityStamp", "PasswordHash", "NormalizedEmail", "NormalizedUserName", "NormalizedName", "UserName",
         "AccessFailedCount", "LockoutEnd", "LockoutEnabled", "EmailConfirmed", "PhoneNumberConfirmed", "TwoFactorEnabled",
-        "FinancialYear", "CgstAmount", "SgstAmount", "IgstAmount", "RoundOff", "BalanceAfter",
+        "FinancialYear", "CgstAmount", "SgstAmount", "IgstAmount", "RoundOff", "BalanceAfter", "MatchIssuesJson",
     ];
 
     /// <summary>Stock movements are audited only when someone made them by hand; sales and receipts are covered by their documents.</summary>

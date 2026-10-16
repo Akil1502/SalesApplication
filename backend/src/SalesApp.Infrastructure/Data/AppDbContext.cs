@@ -23,6 +23,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<StockLevel> StockLevels => Set<StockLevel>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<StockReceipt> StockReceipts => Set<StockReceipt>();
+    public DbSet<StockReceiptLine> StockReceiptLines => Set<StockReceiptLine>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+    public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
+    public DbSet<SupplierBill> SupplierBills => Set<SupplierBill>();
+    public DbSet<SupplierBillLine> SupplierBillLines => Set<SupplierBillLine>();
+    public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
@@ -51,6 +58,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
         builder.HasSequence<int>(CustomerConfiguration.CodeSequence).StartsAt(1).IncrementsBy(1);
         builder.HasSequence<int>(StockReceiptConfiguration.NumberSequence).StartsAt(1).IncrementsBy(1);
+        builder.HasSequence<int>(SupplierConfiguration.CodeSequence).StartsAt(1).IncrementsBy(1);
 
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 

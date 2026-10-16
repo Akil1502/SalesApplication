@@ -210,8 +210,9 @@ if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
     Console.WriteLine($"""
         Demo data generated in {summary.Elapsed.TotalSeconds:0.0}s for {summary.From:dd MMM yyyy} to {summary.To:dd MMM yyyy}:
           {summary.Customers} customers, {summary.Products} products, {summary.Orders} orders, {summary.Invoices} invoices,
-          {summary.Payments} payments, {summary.StockReceipts} goods receipts, {summary.StockMovements} stock movements,
-          taxable sales Rs {summary.TaxableSales:N0}
+          {summary.Payments} payments, {summary.Suppliers} suppliers, {summary.PurchaseOrders} purchase orders,
+          {summary.StockReceipts} goods receipts, {summary.SupplierBills} supplier bills, {summary.SupplierPayments} supplier payments,
+          {summary.StockMovements} stock movements, taxable sales Rs {summary.TaxableSales:N0}
         """);
     return;
 }

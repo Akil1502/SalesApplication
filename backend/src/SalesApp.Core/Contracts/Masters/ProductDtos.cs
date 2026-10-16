@@ -52,6 +52,8 @@ public sealed record ProductDto(
     decimal ReorderLevel,
     decimal ReorderQuantity,
     int LeadTimeDays,
+    int? PreferredSupplierId,
+    string? PreferredSupplierName,
     decimal QuantityOnHand,
     bool IsActive,
     DateTime CreatedAtUtc,
@@ -93,6 +95,9 @@ public sealed record ProductSaveRequest
 
     [Range(0, 365, ErrorMessage = "Lead time must be between 0 and 365 days.")]
     public int LeadTimeDays { get; init; }
+
+    /// <summary>Who reorder suggestions buy from. Optional.</summary>
+    public int? PreferredSupplierId { get; init; }
 
     public bool IsActive { get; init; } = true;
 

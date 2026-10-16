@@ -64,40 +64,14 @@ public sealed record StockMovementDto(
     string CreatedByName,
     DateTime CreatedAtUtc);
 
-public sealed record StockReceiptLineInput
-{
-    [Range(1, int.MaxValue, ErrorMessage = "Choose a product.")]
-    public int ProductId { get; init; }
-
-    [DecimalRange(0.001, 99999999, ErrorMessage = "Quantity must be more than zero."), DecimalPlaces(3)]
-    public decimal Quantity { get; init; }
-
-    [DecimalRange(0, 99999999, ErrorMessage = "Cost must be between 0 and 9,99,99,999."), DecimalPlaces(2)]
-    public decimal? UnitCost { get; init; }
-}
-
-public sealed record StockReceiptCreateRequest
-{
-    /// <summary>Defaults to today (India time). Can't be in the future.</summary>
-    public DateOnly? ReceiptDate { get; init; }
-
-    [MaxLength(150)]
-    public string? SupplierName { get; init; }
-
-    [MaxLength(50)]
-    public string? SupplierReference { get; init; }
-
-    [MaxLength(1000)]
-    public string? Notes { get; init; }
-
-    [Required, MinLength(1, ErrorMessage = "Add at least one product."), MaxLength(200)]
-    public List<StockReceiptLineInput> Lines { get; init; } = [];
-}
-
+/// <summary>A goods receipt in a list. Receipts are recorded against purchase orders; older ones may have none.</summary>
 public sealed record StockReceiptListItemDto(
     int Id,
     string Number,
     DateOnly ReceiptDate,
+    int? PurchaseOrderId,
+    string? PurchaseOrderNumber,
+    int? SupplierId,
     string? SupplierName,
     string? SupplierReference,
     int LineCount,
@@ -106,7 +80,7 @@ public sealed record StockReceiptListItemDto(
     DateTime CreatedAtUtc);
 
 public sealed record StockReceiptLineDto(
-    long MovementId,
+    int Id,
     int ProductId,
     string Sku,
     string ProductName,
@@ -118,6 +92,9 @@ public sealed record StockReceiptDto(
     int Id,
     string Number,
     DateOnly ReceiptDate,
+    int? PurchaseOrderId,
+    string? PurchaseOrderNumber,
+    int? SupplierId,
     string? SupplierName,
     string? SupplierReference,
     string? Notes,

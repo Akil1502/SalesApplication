@@ -6,6 +6,7 @@ using SalesApp.AI.Assistant;
 using SalesApp.AI.Claude;
 using SalesApp.AI.Insights;
 using SalesApp.AI.OrderEntry;
+using SalesApp.AI.Purchasing;
 using SalesApp.Core.Security;
 
 namespace SalesApp.AI;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<CustomerMatcher>();
         services.AddScoped<IOrderExtractionService, OrderExtractionService>();
         services.AddScoped<ISmartOrderService, SmartOrderService>();
+        services.AddScoped<IBillReadingService, BillReadingService>();
 
         services.Configure<AskDataOptions>(configuration.GetSection(AskDataOptions.SectionName));
         services.AddSingleton<IReadOnlySqlExecutor, ReadOnlySqlExecutor>();

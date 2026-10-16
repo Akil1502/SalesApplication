@@ -12,28 +12,33 @@ namespace SalesApp.AI.Assistant;
 public static class AssistantPrompt
 {
     /// <summary>Bump when a tool is added, removed or its description or schema changes.</summary>
-    public const int ToolsVersion = 1;
+    public const int ToolsVersion = 2;
 
     public const string SearchCustomers = "search_customers";
     public const string GetCustomer = "get_customer";
     public const string ListInvoices = "list_invoices";
     public const string GetDocument = "get_document";
     public const string SearchProducts = "search_products";
+    public const string SearchSuppliers = "search_suppliers";
+    public const string GetSupplier = "get_supplier";
     public const string QuerySalesData = "query_sales_data";
     public const string CreateDraft = "create_draft";
 
-    public static readonly string[] DraftPurposes = ["payment_reminder", "follow_up", "quotation", "order_confirmation", "thank_you", "other"];
+    public static readonly string[] DraftPurposes =
+        ["payment_reminder", "follow_up", "quotation", "order_confirmation", "thank_you", "delivery_follow_up", "bill_query", "other"];
 
     public static string System(string company, string userName, string roleName, bool manager) => $"""
-        You are the assistant inside SalesApp, the sales and GST billing system of {company}, an Indian textile and
-        yarn distributor. You help {userName} ({roleName}) with customers, orders, quotations, invoices, payments,
-        products and stock, and you draft emails and WhatsApp messages for them to send.
+        You are the assistant inside SalesApp, the sales, purchasing and GST billing system of {company}, an Indian
+        textile and yarn distributor. You help {userName} ({roleName}) with customers, orders, quotations, invoices,
+        payments, products and stock, and with suppliers, purchase orders and supplier bills, and you draft emails
+        and WhatsApp messages for them to send.
 
         How to work
         - Look things up with the tools before answering. Never guess names, numbers, dates or amounts: every figure
           you give must come from a tool result in this conversation.
         - When you only have a customer's name, use {SearchCustomers} first, then the customer's id with the other
           tools. If several customers match and the user's words don't settle it, list them briefly and ask which.
+          Suppliers work the same way with {SearchSuppliers} and {GetSupplier}.
         - For totals, rankings, trends and comparisons across many records, use {QuerySalesData} (one SELECT over the
           reporting views below). For one customer, invoice, order or product, the specific tools are quicker.
         - Keep replies short and easy to scan: a sentence or two, then a short list or a small table when it helps.
@@ -46,8 +51,11 @@ public static class AssistantPrompt
 
         Drafting messages
         - When the user wants a message for a customer (payment reminder, follow-up, quotation cover note, order
-          confirmation, thank-you), look up the facts first, then call {CreateDraft} once per message. Don't repeat the
+          confirmation, thank-you) or a supplier (chasing a late delivery, a query about their bill), look up the facts
+          first, then call {CreateDraft} once per message, with the customerId or the supplierId. Don't repeat the
           draft in your reply: the app shows it with Copy and Open buttons, and the user sends it themselves.
+        - A delivery follow-up names our purchase order number, what is still to come (product, quantity, unit) and
+          the date they promised, and asks for a firm delivery date.
         - Use only invoice numbers, amounts and dates from tool results. A payment reminder lists each overdue
           invoice with its number, date, amount outstanding and days overdue, then the total.
         - Address the customer's contact person by name when there is one, and sign off as {userName}, {company}.
@@ -63,7 +71,10 @@ public static class AssistantPrompt
         - Sales, revenue and turnover mean taxable value, excluding GST, unless the user asks for amounts with GST.
         - The financial year runs 1 April to 31 March; "this year" means the current financial year unless the user
           says calendar year. Invoice numbers look like INV/26-27/00042 (prefix, financial year, number).
-        - Outstanding means unpaid invoice amounts; overdue means past the due date and not fully paid.
+        - Outstanding means unpaid invoice amounts; overdue means past the due date and not fully paid. For
+          suppliers, payable means what we still owe on their bills, and a purchase order is late when goods are
+          still to come after the expected date. Purchase orders look like PO/26-27/00042 and our supplier bill
+          references like PB/26-27/00042.
         - Quantities are in each product's unit; never add quantities of different units together.
 
         {AskDataPrompt.Views}{(manager ? AskDataPrompt.ManagerViews : "")}
@@ -80,7 +91,8 @@ public static class AssistantPrompt
     private static readonly string[] InvoicesRequired = ["customerId", "status"];
     private static readonly string[] DocumentRequired = ["number"];
     private static readonly string[] SqlRequired = ["sql", "purpose"];
-    private static readonly string[] DraftRequired = ["kind", "purpose", "customerId", "subject", "body"];
+    private static readonly string[] SupplierRequired = ["supplierId"];
+    private static readonly string[] DraftRequired = ["kind", "purpose", "customerId", "supplierId", "subject", "body"];
     private static readonly string[] InvoiceStatuses = ["outstanding", "overdue", "all"];
     private static readonly string[] DraftKinds = ["email", "whatsapp"];
 
@@ -113,8 +125,9 @@ public static class AssistantPrompt
             },
             InvoicesRequired),
         new(GetDocument,
-            "One invoice, sales order or quotation by its number: customer, dates, status, lines (product, quantity, unit, " +
-            "price, discount, taxable value, GST rate), totals, and for invoices the payments received.",
+            "One invoice, sales order, quotation, purchase order or supplier bill by its number: customer or supplier, " +
+            "dates, status, lines (product, quantity, unit, price, taxable value, GST rate; for purchase orders also " +
+            "received and still to come), totals, and the payments made against invoices and bills.",
             new Dictionary<string, JsonElement>
             {
                 ["number"] = Schema(new { type = "string", description = "The document number, e.g. INV/26-27/00042." }),
@@ -128,6 +141,23 @@ public static class AssistantPrompt
                 ["query"] = Schema(new { type = "string", description = "Part of the product name, SKU, category or alias." }),
             },
             QueryRequired),
+        new(SearchSuppliers,
+            "Finds suppliers by name, trade name, code, city or GSTIN. Returns up to 10 with id, code, name, city, open " +
+            "purchase orders, late ones, what we owe them and how much of that is overdue.",
+            new Dictionary<string, JsonElement>
+            {
+                ["query"] = Schema(new { type = "string", description = "Part of the name, code, city or GSTIN." }),
+            },
+            QueryRequired),
+        new(GetSupplier,
+            "One supplier in full: contact person, city and state, GSTIN, payment terms, purchases this financial year, " +
+            "their open purchase orders with what is still to come and whether they're late, and their unpaid bills " +
+            "with due dates and days overdue. Phone and email aren't included; drafts get them from the supplier record.",
+            new Dictionary<string, JsonElement>
+            {
+                ["supplierId"] = Schema(new { type = "integer", description = "The supplier's id from search_suppliers." }),
+            },
+            SupplierRequired),
         new(QuerySalesData,
             "Runs one read-only T-SQL SELECT against the reporting views and returns the columns, the row count and up to " +
             $"{AskDataPrompt.RowsShownToClaude} rows. Queries that read anything other than the listed views are refused.",
@@ -138,13 +168,14 @@ public static class AssistantPrompt
             },
             SqlRequired),
         new(CreateDraft,
-            "Shows the user a drafted email or WhatsApp message to one customer, with buttons to copy it or open it in their " +
-            "email or WhatsApp. Nothing is sent. The recipient is taken from the customer record.",
+            "Shows the user a drafted email or WhatsApp message to one customer or one supplier, with buttons to copy it or " +
+            "open it in their email or WhatsApp. Nothing is sent. The recipient is taken from the customer or supplier record.",
             new Dictionary<string, JsonElement>
             {
                 ["kind"] = Schema(new { type = "string", @enum = DraftKinds }),
                 ["purpose"] = Schema(new { type = "string", @enum = DraftPurposes }),
-                ["customerId"] = Schema(new { type = "integer", description = "The customer the message is for." }),
+                ["customerId"] = Schema(new { type = "integer", description = "The customer the message is for, or 0 for a supplier." }),
+                ["supplierId"] = Schema(new { type = "integer", description = "The supplier the message is for, or 0 for a customer." }),
                 ["subject"] = Schema(new { type = "string", description = "Email subject line; \"\" for WhatsApp." }),
                 ["body"] = Schema(new { type = "string", description = "The full message, ready to send, in plain text." }),
             },

@@ -23,6 +23,17 @@ public static class AuditFormat
         ["ProductId"] = "Product",
         ["InvoiceId"] = "Invoice",
         ["SalesOrderId"] = "Order",
+        ["SupplierId"] = "Supplier",
+        ["PreferredSupplierId"] = "Preferred supplier",
+        ["PurchaseOrderId"] = "Purchase order",
+        ["SupplierBillId"] = "Bill",
+        ["ApprovedByUserId"] = "Approved by",
+        ["SupplierInvoiceNumber"] = "Supplier's invoice number",
+        ["PurchaseApprovalLimit"] = "Purchase approval limit",
+        ["OverReceiptTolerancePercent"] = "Over-receipt tolerance",
+        ["BillPriceTolerancePercent"] = "Bill price tolerance",
+        ["ChargesGstRate"] = "GST rate on charges",
+        ["BankIfsc"] = "Bank IFSC",
         ["Gstin"] = "GSTIN",
         ["Pan"] = "PAN",
         ["Ifsc"] = "IFSC",
@@ -92,7 +103,7 @@ public static class AuditFormat
 
     private static string? Decimal(decimal value, string property)
     {
-        if (property.EndsWith("Percent", StringComparison.Ordinal) || property == "GstRate")
+        if (property.EndsWith("Percent", StringComparison.Ordinal) || property.EndsWith("GstRate", StringComparison.Ordinal))
         {
             return value.ToString("0.##", CultureInfo.InvariantCulture) + "%";
         }

@@ -80,6 +80,9 @@ internal sealed class CompanySettingsConfiguration : IEntityTypeConfiguration<Co
         builder.Property(c => c.InvoicePrefix).HasMaxLength(5).IsUnicode(false);
         builder.Property(c => c.QuotationPrefix).HasMaxLength(5).IsUnicode(false);
         builder.Property(c => c.InvoiceTerms).HasMaxLength(2000);
+        builder.Property(c => c.PurchaseOrderTerms).HasMaxLength(2000);
+        builder.Property(c => c.OverReceiptTolerancePercent).HasPrecision(5, 2);
+        builder.Property(c => c.BillPriceTolerancePercent).HasPrecision(5, 2);
         builder.Property(c => c.RowVersion).IsRowVersion();
         builder.HasOne(c => c.State).WithMany().HasForeignKey(c => c.StateCode).OnDelete(DeleteBehavior.Restrict);
 
@@ -99,6 +102,10 @@ internal sealed class CompanySettingsConfiguration : IEntityTypeConfiguration<Co
             InvoicePrefix = "INV",
             QuotationPrefix = "QT",
             InvoiceTerms = "Goods once sold will not be taken back. Interest at 18% p.a. is charged on overdue bills. Subject to Coimbatore jurisdiction.",
+            PurchaseOrderTerms = "Please quote our PO number on your invoice and delivery challan. Goods are accepted subject to inspection. Deliveries more than 5% over the ordered quantity will be returned.",
+            PurchaseApprovalLimit = 500_000m,
+            OverReceiptTolerancePercent = 5m,
+            BillPriceTolerancePercent = 2m,
         });
     }
 }
