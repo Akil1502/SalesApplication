@@ -6,7 +6,7 @@ vi.mock('./api', () => api)
 
 const usage = { model: 'claude-opus-5-5', inputTokens: 5, outputTokens: 400, cacheReadTokens: 6000, cacheWriteTokens: 300, costUsd: 0.012, costInr: 1.06, durationMs: 5200 }
 const draft: AssistantDraft = {
-  toolUseId: 'tu_2', kind: 'Email', purpose: 'payment_reminder', customerId: 7, customerName: 'Kavya Traders', contactPerson: 'Kavya Raman',
+  toolUseId: 'tu_2', kind: 'Email', purpose: 'payment_reminder', customerId: 7, supplierId: null, recipientName: 'Kavya Traders', contactPerson: 'Kavya Raman',
   email: 'accounts@kavya.example', phone: null, subject: 'Payment reminder', body: 'Dear Kavya Raman, …', warnings: [],
 }
 

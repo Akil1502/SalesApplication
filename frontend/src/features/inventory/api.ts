@@ -86,14 +86,6 @@ function useInvalidateStock() {
   }
 }
 
-export function useCreateReceipt() {
-  const invalidate = useInvalidateStock()
-  return useMutation({
-    mutationFn: (body: Schemas['StockReceiptCreateRequest']) => unwrap(api.POST('/api/stock/receipts', { body })),
-    onSuccess: invalidate,
-  })
-}
-
 export function useAdjustStock() {
   const invalidate = useInvalidateStock()
   return useMutation({

@@ -134,12 +134,15 @@ public sealed class PurchaseOrdersController(IPurchaseOrderService orders) : Api
         return Created($"/api/stock/receipts/{receipt.Id}", receipt);
     }
 
-    /// <summary>Products at or below their reorder level that open orders don't cover, with what to order.</summary>
+    /// <summary>
+    /// Products at or below their reorder level that open orders don't cover, with what to order, their preferred
+    /// supplier and the last price paid. With productIds, exactly those products (the AI insights' suggestions).
+    /// </summary>
     [HttpGet("reorder-candidates")]
     [RequirePermission(Permissions.PurchaseOrdersEdit)]
     [ProducesResponseType<IReadOnlyList<ReorderCandidateDto>>(StatusCodes.Status200OK)]
-    public Task<IReadOnlyList<ReorderCandidateDto>> ReorderCandidates(CancellationToken cancellationToken) =>
-        orders.ReorderCandidatesAsync(cancellationToken);
+    public Task<IReadOnlyList<ReorderCandidateDto>> ReorderCandidates([FromQuery] int[]? productIds, CancellationToken cancellationToken) =>
+        orders.ReorderCandidatesAsync(productIds, cancellationToken);
 
     /// <summary>Turns chosen products into draft orders, one per preferred supplier.</summary>
     [HttpPost("reorder-drafts")]

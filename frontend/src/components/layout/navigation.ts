@@ -1,6 +1,10 @@
 import {
   BadgeIndianRupee,
+  Banknote,
   Boxes,
+  ClipboardList,
+  Factory,
+  FileSpreadsheet,
   ChartColumn,
   FileText,
   History,
@@ -51,9 +55,18 @@ export const navigation: NavGroup[] = [
     ],
   },
   {
+    label: 'Purchases',
+    items: [
+      { title: 'Purchase orders', to: '/purchase-orders', icon: ClipboardList, permission: Permissions.PurchaseOrdersView },
+      { title: 'Supplier bills', to: '/supplier-bills', icon: FileSpreadsheet, permission: Permissions.SupplierBillsView },
+      { title: 'Supplier payments', to: '/supplier-payments', icon: Banknote, permission: Permissions.SupplierPaymentsView },
+    ],
+  },
+  {
     label: 'Masters',
     items: [
       { title: 'Customers', to: '/customers', icon: Users, permission: Permissions.CustomersView },
+      { title: 'Suppliers', to: '/suppliers', icon: Factory, permission: Permissions.SuppliersView },
       { title: 'Products', to: '/products', icon: Package, permission: Permissions.ProductsView },
       { title: 'Rate updates', to: '/rates', icon: BadgeIndianRupee, permission: Permissions.RatesView },
       { title: 'Categories & HSN', to: '/catalog', icon: Tags, permission: Permissions.CatalogView },

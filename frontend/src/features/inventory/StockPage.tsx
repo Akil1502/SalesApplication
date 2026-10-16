@@ -1,4 +1,4 @@
-import { Boxes, PackagePlus, SlidersHorizontal, TriangleAlert, Wallet, X } from 'lucide-react'
+import { Boxes, PackagePlus, PackageSearch, SlidersHorizontal, TriangleAlert, Wallet, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
@@ -31,6 +31,7 @@ import {
   type StockReceiptListItem,
   type StockStatus,
 } from './api'
+import { ReorderDialog } from '@/features/purchasing/ReorderDialog'
 import { AdjustStockDialog } from './AdjustStockDialog'
 import { MovementTypeBadge, SignedQuantity, StockStatusBadge } from './StockBadges'
 
@@ -267,8 +268,9 @@ function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolea
   const columns: Column<StockReceiptListItem>[] = [
     { key: 'number', header: 'GRN', cell: (r) => <span className="font-mono text-xs">{r.number}</span>, className: 'w-28' },
     { key: 'date', header: 'Date', cell: (r) => formatBusinessDate(r.receiptDate) },
+    { key: 'order', header: 'Purchase order', cell: (r) => (r.purchaseOrderNumber ? <span className="font-mono text-xs">{r.purchaseOrderNumber}</span> : '—') },
     { key: 'supplier', header: 'Supplier', cell: (r) => r.supplierName ?? '—' },
-    { key: 'ref', header: 'Supplier ref', cell: (r) => r.supplierReference ?? '—' },
+    { key: 'ref', header: 'Their ref', cell: (r) => r.supplierReference ?? '—' },
     { key: 'lines', header: 'Lines', align: 'right', cell: (r) => r.lineCount },
     ...(showCost ? [{ key: 'cost', header: 'Total cost', align: 'right' as const, cell: (r: StockReceiptListItem) => formatINR(r.totalCost) }] : []),
     { key: 'by', header: 'Received by', cell: (r) => r.createdByName },
@@ -276,7 +278,7 @@ function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolea
 
   return (
     <>
-      <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search GRN, supplier or supplier ref" />
+      <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search GRN, order no., supplier or their ref" />
       <DataTable
         columns={columns}
         rows={receipts.data?.items}
@@ -285,7 +287,7 @@ function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolea
         error={receipts.error}
         onRowClick={(r) => navigate(`/stock/receipts/${r.id}`)}
         emptyTitle="No goods receipts yet"
-        emptyDescription={canEdit ? 'Use "Receive stock" when goods arrive.' : undefined}
+        emptyDescription={canEdit ? 'Goods are received against purchase orders: open the order and choose "Receive goods".' : undefined}
       />
       {receipts.data && (
         <Pagination
@@ -307,6 +309,7 @@ export function StockPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = (searchParams.get('tab') as Tab | null) ?? 'levels'
   const [adjusting, setAdjusting] = useState<{ open: boolean; product: PickedProduct | null }>({ open: false, product: null })
+  const [reorderOpen, setReorderOpen] = useState(false)
 
   return (
     <>
@@ -314,20 +317,28 @@ export function StockPage() {
         title="Stock"
         description="Every change is recorded in the stock ledger, so on-hand figures can always be explained."
         actions={
-          canEdit && (
-            <>
+          <>
+            {canEdit && (
               <Button variant="outline" onClick={() => setAdjusting({ open: true, product: null })}>
                 <SlidersHorizontal />
                 Adjust stock
               </Button>
+            )}
+            {can(Permissions.PurchaseOrdersEdit) && (
+              <Button variant="outline" onClick={() => setReorderOpen(true)}>
+                <PackageSearch />
+                Reorder low stock
+              </Button>
+            )}
+            {canEdit && can(Permissions.PurchaseOrdersView) && (
               <Button asChild>
-                <Link to="/stock/receipts/new">
+                <Link to="/purchase-orders?view=open">
                   <PackagePlus />
-                  Receive stock
+                  Receive goods
                 </Link>
               </Button>
-            </>
-          )
+            )}
+          </>
         }
       />
 
@@ -354,6 +365,7 @@ export function StockPage() {
       {canEdit && (
         <AdjustStockDialog open={adjusting.open} product={adjusting.product} onOpenChange={(open) => setAdjusting((a) => ({ ...a, open }))} />
       )}
+      {can(Permissions.PurchaseOrdersEdit) && <ReorderDialog open={reorderOpen} onOpenChange={setReorderOpen} />}
     </>
   )
 }

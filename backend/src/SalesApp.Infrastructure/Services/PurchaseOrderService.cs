@@ -25,7 +25,7 @@ public interface IPurchaseOrderService
     Task<PurchaseOrderDto> CancelAsync(int id, PurchaseOrderReasonRequest request, CancellationToken cancellationToken);
     Task<PurchaseOrderDto> CloseAsync(int id, PurchaseOrderReasonRequest request, CancellationToken cancellationToken);
     Task<StockReceiptDto> ReceiveAsync(int id, GoodsReceiptCreateRequest request, CancellationToken cancellationToken);
-    Task<IReadOnlyList<ReorderCandidateDto>> ReorderCandidatesAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<ReorderCandidateDto>> ReorderCandidatesAsync(IReadOnlyCollection<int>? productIds, CancellationToken cancellationToken);
     Task<IReadOnlyList<PurchaseOrderListItemDto>> CreateReorderDraftsAsync(ReorderDraftRequest request, CancellationToken cancellationToken);
 }
 
@@ -426,10 +426,16 @@ public sealed class PurchaseOrderService(
         return await inventory.GetReceiptAsync(receipt.Id, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ReorderCandidateDto>> ReorderCandidatesAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Products at or below their reorder level that unfinished orders don't cover; or, given product ids (from the AI
+    /// insights' own suggestions), exactly those products, whatever their level.
+    /// </summary>
+    public async Task<IReadOnlyList<ReorderCandidateDto>> ReorderCandidatesAsync(IReadOnlyCollection<int>? productIds, CancellationToken cancellationToken)
     {
-        var rows = await db.Products.AsNoTracking()
-            .Where(p => p.IsActive && p.ReorderLevel > 0)
+        var chosen = productIds is { Count: > 0 };
+        var products = db.Products.AsNoTracking().Where(p => p.IsActive);
+        products = chosen ? products.Where(p => productIds!.Contains(p.Id)) : products.Where(p => p.ReorderLevel > 0);
+        var rows = await products
             .Select(p => new
             {
                 p.Id, p.Sku, p.Name, p.Unit, p.ReorderLevel, p.ReorderQuantity, p.CostPrice,
@@ -443,7 +449,7 @@ public sealed class PurchaseOrderService(
             })
             .ToListAsync(cancellationToken);
 
-        var due = rows.Where(r => r.OnHand <= r.ReorderLevel && r.OnHand + r.OnOrder <= r.ReorderLevel).ToList();
+        var due = chosen ? rows : rows.Where(r => r.OnHand <= r.ReorderLevel && r.OnHand + r.OnOrder <= r.ReorderLevel).ToList();
         var prices = new Dictionary<int, decimal?>();
         foreach (var group in due.Where(r => r.SupplierId is not null).GroupBy(r => r.SupplierId!.Value))
         {

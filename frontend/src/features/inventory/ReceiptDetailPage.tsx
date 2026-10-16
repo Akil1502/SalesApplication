@@ -56,10 +56,22 @@ export function ReceiptDetailPage() {
 
       <Card>
         <CardContent>
-          <dl className="grid gap-4 sm:grid-cols-4">
+          <dl className="grid gap-4 sm:grid-cols-5">
             <Detail label="Received on" value={formatBusinessDate(r.receiptDate)} />
+            <div className="space-y-1">
+              <dt className="text-sm text-muted-foreground">Purchase order</dt>
+              <dd className="font-medium">
+                {r.purchaseOrderId ? (
+                  <Link to={`/purchase-orders/${r.purchaseOrderId}`} className="font-mono underline underline-offset-4">
+                    {r.purchaseOrderNumber}
+                  </Link>
+                ) : (
+                  '— (before purchase orders)'
+                )}
+              </dd>
+            </div>
             <Detail label="Supplier" value={r.supplierName} />
-            <Detail label="Supplier ref" value={r.supplierReference} />
+            <Detail label="Their challan / invoice" value={r.supplierReference} />
             <Detail label="Notes" value={r.notes} />
           </dl>
         </CardContent>
@@ -83,7 +95,7 @@ export function ReceiptDetailPage() {
               </TableHeader>
               <TableBody>
                 {r.lines.map((line) => (
-                  <TableRow key={line.movementId}>
+                  <TableRow key={line.id}>
                     <TableCell className="font-mono text-xs">{line.sku}</TableCell>
                     <TableCell>{line.productName}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatQuantity(line.quantity, line.unit)}</TableCell>

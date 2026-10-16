@@ -52,6 +52,17 @@ public static class AuditFormat
         ["Type"] = "Type",
     };
 
+    /// <summary>Enum values that aren't plain words: payment modes are acronyms, sources say what AI read.</summary>
+    private static readonly Dictionary<string, string> EnumWords = new(StringComparer.Ordinal)
+    {
+        ["Upi"] = "UPI",
+        ["Neft"] = "NEFT",
+        ["Rtgs"] = "RTGS",
+        ["AiText"] = "AI (text)",
+        ["AiPdf"] = "AI (PDF)",
+        ["AiImage"] = "AI (photo)",
+    };
+
     /// <summary>"CreditLimit" → "Credit limit", "BillingAddress" + "City" → "Billing address: city".</summary>
     public static string Label(string property, string? ownerNavigation = null)
     {
@@ -75,7 +86,7 @@ public static class AuditFormat
         decimal m => Decimal(m, property),
         double or float => Decimal(Convert.ToDecimal(value, CultureInfo.InvariantCulture), property),
         int or long or short => Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("N0", India),
-        Enum e => Words(e.ToString()),
+        Enum e => EnumWords.TryGetValue(e.ToString(), out var words) ? words : Words(e.ToString()),
         Guid g => g.ToString(),
         _ => Convert.ToString(value, CultureInfo.InvariantCulture),
     };
