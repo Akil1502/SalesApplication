@@ -17,6 +17,7 @@ internal sealed class AuditLookups(Dictionary<(string Property, string Id), stri
     [
         "AssignedRepId", "ApprovedByUserId", "CategoryId", "HsnCodeId", "CustomerId", "ProductId", "InvoiceId", "SalesOrderId", "StateCode",
         "PlaceOfSupplyStateCode", "SupplierStateCode", "SupplierId", "PreferredSupplierId", "PurchaseOrderId", "SupplierBillId",
+        "CreditNoteId", "SupplierReturnId",
     ];
 
     public string? Name(string property, object? id) =>
@@ -95,6 +96,16 @@ internal sealed class AuditLookups(Dictionary<(string Property, string Id), stri
         if (Of<int>("SupplierBillId") is { Count: > 0 } bills)
         {
             Add("SupplierBillId", (await db.SupplierBills.AsNoTracking().Where(b => bills.Contains(b.Id)).Select(b => new { b.Id, b.Number }).ToListAsync(cancellationToken)).Select(b => (b.Id, b.Number)));
+        }
+
+        if (Of<int>("CreditNoteId") is { Count: > 0 } creditNotes)
+        {
+            Add("CreditNoteId", (await db.CreditNotes.AsNoTracking().Where(c => creditNotes.Contains(c.Id)).Select(c => new { c.Id, c.Number }).ToListAsync(cancellationToken)).Select(c => (c.Id, c.Number)));
+        }
+
+        if (Of<int>("SupplierReturnId") is { Count: > 0 } returns)
+        {
+            Add("SupplierReturnId", (await db.SupplierReturns.AsNoTracking().Where(r => returns.Contains(r.Id)).Select(r => new { r.Id, r.Number }).ToListAsync(cancellationToken)).Select(r => (r.Id, r.Number)));
         }
 
         if (Of<string>("StateCode") is { Count: > 0 } states)

@@ -38,6 +38,7 @@ export function ReceiptDetailPage() {
 
   const r = receipt.data
   const total = r.lines.reduce((sum, l) => sum + (l.unitCost ?? 0) * l.quantity, 0)
+  const anyRejected = r.lines.some((l) => l.quantityRejected > 0)
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
@@ -88,7 +89,8 @@ export function ReceiptDetailPage() {
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Quantity</TableHead>
+                  <TableHead className="text-right">{anyRejected ? 'Accepted' : 'Quantity'}</TableHead>
+                  {anyRejected && <TableHead>Rejected at the door</TableHead>}
                   {showCost && <TableHead className="text-right">Cost per unit</TableHead>}
                   {showCost && <TableHead className="text-right">Line total</TableHead>}
                 </TableRow>
@@ -99,6 +101,18 @@ export function ReceiptDetailPage() {
                     <TableCell className="font-mono text-xs">{line.sku}</TableCell>
                     <TableCell>{line.productName}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatQuantity(line.quantity, line.unit)}</TableCell>
+                    {anyRejected && (
+                      <TableCell>
+                        {line.quantityRejected > 0 ? (
+                          <>
+                            <span className="tabular-nums">{formatQuantity(line.quantityRejected, line.unit)}</span>
+                            <span className="block text-xs text-muted-foreground">{line.rejectionReason}</span>
+                          </>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                    )}
                     {showCost && <TableCell className="text-right tabular-nums">{formatINR(line.unitCost)}</TableCell>}
                     {showCost && (
                       <TableCell className="text-right tabular-nums">{line.unitCost == null ? '—' : formatINR(line.unitCost * line.quantity)}</TableCell>
@@ -109,7 +123,7 @@ export function ReceiptDetailPage() {
               {showCost && (
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-right">
+                    <TableCell colSpan={anyRejected ? 5 : 4} className="text-right">
                       Total cost
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatINR(total)}</TableCell>

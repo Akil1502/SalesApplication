@@ -154,9 +154,17 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             .GroupBy(i => i.FinancialYear)
             .Select(g => new { Year = g.Key, Sales = g.Sum(i => i.TaxableValue), Invoices = g.Count() })
             .ToListAsync(cancellationToken);
+        // Sales are net of credit notes, each counted in its own financial year.
+        var creditNotes = db.CreditNotes.AsNoTracking().Where(c => c.CustomerId == customerId && c.Status == ReturnDocumentStatus.Issued);
+        var returnsByYear = await creditNotes
+            .Where(c => c.FinancialYear >= thisYear - 1)
+            .GroupBy(c => c.FinancialYear)
+            .Select(g => new { Year = g.Key, Value = g.Sum(c => c.TaxableValue) })
+            .ToDictionaryAsync(r => r.Year, r => r.Value, cancellationToken);
+        var unusedCredit = await creditNotes.SumAsync(c => (decimal?)(c.GrandTotal - c.AmountAdjusted - c.AmountRefunded), cancellationToken) ?? 0m;
         var lastInvoice = await invoices.MaxAsync(i => (DateOnly?)i.InvoiceDate, cancellationToken);
         var open = await invoices.Where(i => Open.Contains(i.Status))
-            .Select(i => new { Outstanding = i.GrandTotal - i.AmountPaid, i.DueDate })
+            .Select(i => new { Outstanding = i.GrandTotal - i.AmountPaid - i.AmountCredited, i.DueDate })
             .ToListAsync(cancellationToken);
         var overdue = open.Where(i => i.DueDate < today).ToList();
 
@@ -192,14 +200,16 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             customer.SalesRep,
             active = customer.IsActive,
             customer.Notes,
-            salesThisFinancialYear = salesByYear.FirstOrDefault(s => s.Year == thisYear)?.Sales ?? 0m,
+            salesThisFinancialYear = (salesByYear.FirstOrDefault(s => s.Year == thisYear)?.Sales ?? 0m) - returnsByYear.GetValueOrDefault(thisYear),
             invoicesThisFinancialYear = salesByYear.FirstOrDefault(s => s.Year == thisYear)?.Invoices ?? 0,
-            salesLastFinancialYear = salesByYear.FirstOrDefault(s => s.Year == thisYear - 1)?.Sales ?? 0m,
+            returnsThisFinancialYear = returnsByYear.GetValueOrDefault(thisYear),
+            salesLastFinancialYear = (salesByYear.FirstOrDefault(s => s.Year == thisYear - 1)?.Sales ?? 0m) - returnsByYear.GetValueOrDefault(thisYear - 1),
             lastInvoiceDate = lastInvoice,
             outstanding = open.Sum(i => i.Outstanding),
             openInvoices = open.Count,
             overdue = overdue.Sum(i => i.Outstanding),
             overdueInvoices = overdue.Count,
+            unusedCredit,
             recentOrders = recentOrders.Select(o => new { number = o.QuotationNumber ?? o.Number, o.Status, date = o.OrderDate, o.GrandTotal }),
             topProductsThisFinancialYear = topProducts.Select(p => new { sku = p.ProductSku, name = p.ProductName, unit = p.Unit.ToString(), p.Quantity, p.Sales }),
         }), false, $"Looked up {customer.Name}");
@@ -237,13 +247,13 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
 
         var count = await query.CountAsync(cancellationToken);
         var totalAmount = await query.SumAsync(i => i.GrandTotal, cancellationToken);
-        var totalOutstanding = await query.SumAsync(i => i.GrandTotal - i.AmountPaid, cancellationToken);
+        var totalOutstanding = await query.SumAsync(i => i.GrandTotal - i.AmountPaid - i.AmountCredited, cancellationToken);
         var ordered = status == "all"
             ? query.OrderByDescending(i => i.InvoiceDate).ThenByDescending(i => i.Id)
             : query.OrderBy(i => i.DueDate).ThenBy(i => i.Id);
         var invoices = await ordered
             .Take(50)
-            .Select(i => new { i.Number, i.CustomerId, i.CustomerName, i.InvoiceDate, i.DueDate, i.GrandTotal, i.AmountPaid, i.Status })
+            .Select(i => new { i.Number, i.CustomerId, i.CustomerName, i.InvoiceDate, i.DueDate, i.GrandTotal, i.AmountPaid, i.AmountCredited, i.Status })
             .ToListAsync(cancellationToken);
 
         var which = status switch { "overdue" => "overdue invoices", "all" => "invoices", _ => "outstanding invoices" };
@@ -264,8 +274,9 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 dueDate = i.DueDate,
                 total = i.GrandTotal,
                 paid = i.AmountPaid,
-                outstanding = i.GrandTotal - i.AmountPaid,
-                daysOverdue = i.Status != InvoiceStatus.Paid && i.DueDate < today ? today.DayNumber - i.DueDate.DayNumber : 0,
+                credited = i.AmountCredited,
+                outstanding = i.GrandTotal - i.AmountPaid - i.AmountCredited,
+                daysOverdue = Open.Contains(i.Status) && i.DueDate < today ? today.DayNumber - i.DueDate.DayNumber : 0,
                 status = i.Status.ToString(),
             }),
         }), false, customerName is null ? $"Listed {which}" : $"Listed {which} for {customerName}");
@@ -285,6 +296,11 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             }
 
             var today = clock.Today;
+            var credits = await db.CreditNotes.AsNoTracking()
+                .Where(c => c.InvoiceId == invoice.Id && c.Status == ReturnDocumentStatus.Issued)
+                .OrderBy(c => c.CreditNoteDate)
+                .Select(c => new { number = c.Number, date = c.CreditNoteDate, kind = c.Kind.ToString(), reason = c.Reason.ToString(), total = c.GrandTotal })
+                .ToListAsync(cancellationToken);
             return new ToolOutcome(Serialize(new
             {
                 type = "invoice",
@@ -305,10 +321,17 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 invoice.RoundOff,
                 invoice.GrandTotal,
                 invoice.AmountPaid,
-                outstanding = invoice.Status == InvoiceStatus.Cancelled ? 0 : invoice.GrandTotal - invoice.AmountPaid,
+                credited = invoice.AmountCredited,
+                outstanding = invoice.Status == InvoiceStatus.Cancelled ? 0 : invoice.GrandTotal - invoice.AmountPaid - invoice.AmountCredited,
                 daysOverdue = Open.Contains(invoice.Status) && invoice.DueDate < today ? today.DayNumber - invoice.DueDate.DayNumber : 0,
                 payments = invoice.Payments.OrderBy(p => p.PaymentDate).Select(p => new { date = p.PaymentDate, p.Amount, mode = p.Mode.ToString(), p.Reference }),
+                creditNotes = credits,
             }), false, $"Opened invoice {invoice.Number}");
+        }
+
+        if (await GetCreditNoteAsync(number, cancellationToken) is { } creditNote)
+        {
+            return creditNote;
         }
 
         if (await GetPurchaseDocumentAsync(number, cancellationToken) is { } purchase)
@@ -321,7 +344,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             .SingleOrDefaultAsync(o => o.Number == number || o.QuotationNumber == number, cancellationToken);
         if (order is null)
         {
-            return new ToolOutcome($"No invoice, order, quotation, purchase order or supplier bill is numbered {number}.", true, $"Looked for {number}");
+            return new ToolOutcome($"No invoice, credit note, order, quotation, purchase order, supplier bill or supplier return is numbered {number}.", true, $"Looked for {number}");
         }
 
         if (!currentUser.Has(Permissions.OrdersView))
@@ -426,8 +449,8 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 id = s.Id, s.Code, s.Name, s.TradeName, city = s.Address.City, active = s.IsActive,
                 openOrders = db.PurchaseOrders.Count(o => o.SupplierId == s.Id && OpenOrders.Contains(o.Status)),
                 lateOrders = db.PurchaseOrders.Count(o => o.SupplierId == s.Id && Receivable.Contains(o.Status) && o.ExpectedDate < today),
-                payable = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status)).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid)) ?? 0m,
-                overdue = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status) && b.DueDate < today).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid)) ?? 0m,
+                payable = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status)).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited)) ?? 0m,
+                overdue = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status) && b.DueDate < today).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited)) ?? 0m,
             })
             .ToListAsync(cancellationToken);
 
@@ -480,20 +503,25 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         }
 
         object? bills = null;
-        decimal? payable = null, overdue = null, purchasesThisYear = null;
+        decimal? payable = null, overdue = null, purchasesThisYear = null, unusedCredit = null;
         DateOnly? lastBill = null;
         if (currentUser.Has(Permissions.SupplierBillsView))
         {
             var all = db.SupplierBills.AsNoTracking().Where(b => b.SupplierId == supplierId && b.Status != SupplierBillStatus.Cancelled);
-            purchasesThisYear = await all.Where(b => b.FinancialYear == thisYear).SumAsync(b => (decimal?)(b.TaxableValue + b.ChargesAmount), cancellationToken) ?? 0m;
+            var returns = db.SupplierReturns.AsNoTracking().Where(r => r.SupplierId == supplierId && r.Status == ReturnDocumentStatus.Issued);
+            purchasesThisYear = (await all.Where(b => b.FinancialYear == thisYear).SumAsync(b => (decimal?)(b.TaxableValue + b.ChargesAmount), cancellationToken) ?? 0m)
+                - (await returns.Where(r => r.FinancialYear == thisYear).SumAsync(r => (decimal?)r.TaxableValue, cancellationToken) ?? 0m);
+            unusedCredit = await returns.SumAsync(r => (decimal?)(r.GrandTotal - r.AmountAdjusted - r.AmountRefunded), cancellationToken) ?? 0m;
             lastBill = await all.MaxAsync(b => (DateOnly?)b.BillDate, cancellationToken);
-            var unpaid = await all.Where(b => OpenBills.Contains(b.Status))
+            var open = all.Where(b => OpenBills.Contains(b.Status));
+            // Totals over every unpaid bill, not just the ones listed.
+            payable = await open.SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited), cancellationToken) ?? 0m;
+            overdue = await open.Where(b => b.DueDate < today).SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited), cancellationToken) ?? 0m;
+            var unpaid = await open
                 .OrderBy(b => b.DueDate)
                 .Take(30)
-                .Select(b => new { b.Number, b.SupplierInvoiceNumber, b.BillDate, b.DueDate, b.GrandTotal, b.AmountPaid, Match = b.MatchStatus.ToString() })
+                .Select(b => new { b.Number, b.SupplierInvoiceNumber, b.BillDate, b.DueDate, b.GrandTotal, b.AmountPaid, b.AmountCredited, Match = b.MatchStatus.ToString() })
                 .ToListAsync(cancellationToken);
-            payable = unpaid.Sum(b => b.GrandTotal - b.AmountPaid);
-            overdue = unpaid.Where(b => b.DueDate < today).Sum(b => b.GrandTotal - b.AmountPaid);
             bills = unpaid.Select(b => new
             {
                 number = b.Number,
@@ -501,7 +529,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 date = b.BillDate,
                 dueDate = b.DueDate,
                 total = b.GrandTotal,
-                outstanding = b.GrandTotal - b.AmountPaid,
+                outstanding = b.GrandTotal - b.AmountPaid - b.AmountCredited,
                 daysOverdue = b.DueDate < today ? today.DayNumber - b.DueDate.DayNumber : 0,
                 match = b.Match,
             });
@@ -524,6 +552,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             lastBillDate = lastBill,
             payable,
             overdue,
+            unusedCredit,
             openPurchaseOrders = orders ?? "No permission to see purchase orders.",
             unpaidBills = bills ?? "No permission to see supplier bills.",
         }), false, $"Looked up {supplier.Name}");
@@ -582,6 +611,11 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         }
 
         var day = clock.Today;
+        var billReturns = await db.SupplierReturns.AsNoTracking()
+            .Where(r => r.SupplierBillId == bill.Id && r.Status == ReturnDocumentStatus.Issued)
+            .OrderBy(r => r.ReturnDate)
+            .Select(r => new { number = r.Number, date = r.ReturnDate, reason = r.Reason.ToString(), total = r.GrandTotal, supplierCreditNote = r.SupplierCreditNoteNumber })
+            .ToListAsync(cancellationToken);
         return new ToolOutcome(Serialize(new
         {
             type = "supplier bill",
@@ -603,10 +637,87 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             gst = bill.CgstAmount + bill.SgstAmount + bill.IgstAmount,
             bill.GrandTotal,
             bill.AmountPaid,
-            outstanding = bill.Status == SupplierBillStatus.Cancelled ? 0 : bill.GrandTotal - bill.AmountPaid,
+            credited = bill.AmountCredited,
+            outstanding = bill.Status == SupplierBillStatus.Cancelled ? 0 : bill.GrandTotal - bill.AmountPaid - bill.AmountCredited,
             daysOverdue = OpenBills.Contains(bill.Status) && bill.DueDate < day ? day.DayNumber - bill.DueDate.DayNumber : 0,
             payments = bill.Payments.OrderBy(p => p.PaymentDate).Select(p => new { date = p.PaymentDate, p.Amount, mode = p.Mode.ToString(), p.Reference }),
+            returns = billReturns,
         }), false, $"Opened supplier bill {bill.Number}");
+    }
+
+    /// <summary>A credit note or supplier return (debit note) by number, or null.</summary>
+    private async Task<ToolOutcome?> GetCreditNoteAsync(string number, CancellationToken cancellationToken)
+    {
+        var note = await db.CreditNotes.AsNoTracking()
+            .Include(c => c.Lines).Include(c => c.Invoice)
+            .SingleOrDefaultAsync(c => c.Number == number, cancellationToken);
+        if (note is not null)
+        {
+            if (!currentUser.Has(Permissions.CreditNotesView))
+            {
+                return NoAccess("credit notes");
+            }
+
+            return new ToolOutcome(Serialize(new
+            {
+                type = "credit note",
+                note.Number,
+                invoice = note.Invoice?.Number,
+                customerId = note.CustomerId,
+                customer = note.CustomerName,
+                date = note.CreditNoteDate,
+                status = note.Status.ToString(),
+                kind = note.Kind.ToString(),
+                reason = note.Reason.ToString(),
+                details = note.ReasonNote,
+                reducesGst = note.WithGst,
+                lines = note.Lines.OrderBy(l => l.LineNumber).Select(l => new
+                {
+                    sku = l.ProductSku, product = l.ProductName, quantity = l.Quantity, unit = l.Unit.ToString(), returnedTo = l.Disposition?.ToString(), l.TaxableValue, l.LineTotal,
+                }),
+                note.TaxableValue,
+                gst = note.CgstAmount + note.SgstAmount + note.IgstAmount,
+                note.GrandTotal,
+                setAgainstInvoices = note.AmountAdjusted,
+                refunded = note.AmountRefunded,
+                creditLeft = note.Status == ReturnDocumentStatus.Issued ? note.GrandTotal - note.AmountAdjusted - note.AmountRefunded : 0m,
+            }), false, $"Opened credit note {note.Number}");
+        }
+
+        var ret = await db.SupplierReturns.AsNoTracking()
+            .Include(r => r.Lines).Include(r => r.SupplierBill)
+            .SingleOrDefaultAsync(r => r.Number == number, cancellationToken);
+        if (ret is null)
+        {
+            return null;
+        }
+
+        if (!currentUser.Has(Permissions.SupplierReturnsView))
+        {
+            return NoAccess("supplier returns");
+        }
+
+        return new ToolOutcome(Serialize(new
+        {
+            type = "supplier return (debit note)",
+            ret.Number,
+            bill = ret.SupplierBill?.Number,
+            supplierInvoice = ret.SupplierBill?.SupplierInvoiceNumber,
+            supplierId = ret.SupplierId,
+            supplier = ret.SupplierName,
+            date = ret.ReturnDate,
+            status = ret.Status.ToString(),
+            reason = ret.Reason.ToString(),
+            details = ret.ReasonNote,
+            supplierCreditNote = ret.SupplierCreditNoteNumber,
+            lines = ret.Lines.OrderBy(l => l.LineNumber).Select(l => new { sku = l.ProductSku, product = l.ProductName, l.Quantity, unit = l.Unit.ToString(), l.UnitPrice, l.TaxableValue, l.LineTotal }),
+            ret.TaxableValue,
+            gst = ret.CgstAmount + ret.SgstAmount + ret.IgstAmount,
+            ret.GrandTotal,
+            setAgainstBills = ret.AmountAdjusted,
+            refunded = ret.AmountRefunded,
+            creditLeft = ret.Status == ReturnDocumentStatus.Issued ? ret.GrandTotal - ret.AmountAdjusted - ret.AmountRefunded : 0m,
+        }), false, $"Opened supplier return {ret.Number}");
     }
 
     /// <summary>Outstanding and overdue amounts for each customer.</summary>
@@ -619,8 +730,8 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             .Select(g => new
             {
                 CustomerId = g.Key,
-                Outstanding = g.Sum(i => i.GrandTotal - i.AmountPaid),
-                Overdue = g.Where(i => i.DueDate < today).Sum(i => (decimal?)(i.GrandTotal - i.AmountPaid)) ?? 0m,
+                Outstanding = g.Sum(i => i.GrandTotal - i.AmountPaid - i.AmountCredited),
+                Overdue = g.Where(i => i.DueDate < today).Sum(i => (decimal?)(i.GrandTotal - i.AmountPaid - i.AmountCredited)) ?? 0m,
             })
             .ToListAsync(cancellationToken);
         return rows.ToDictionary(r => r.CustomerId, r => (r.Outstanding, r.Overdue));

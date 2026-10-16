@@ -42,6 +42,13 @@ const featureRoutes: RouteObject[] = [
   guarded([P.SupplierPaymentsView], [
     { path: '/supplier-payments', lazy: () => import('@/features/purchasing/SupplierPaymentsPage').then((m) => ({ Component: m.SupplierPaymentsPage })) },
   ]),
+  guarded([P.SupplierReturnsView], [
+    { path: '/supplier-returns', lazy: () => import('@/features/returns/SupplierReturnsPage').then((m) => ({ Component: m.SupplierReturnsPage })) },
+    { path: '/supplier-returns/:id', lazy: () => import('@/features/returns/SupplierReturnDetailPage').then((m) => ({ Component: m.SupplierReturnDetailPage })) },
+  ]),
+  guarded([P.SupplierReturnsEdit], [
+    { path: '/supplier-bills/:id/return', lazy: () => import('@/features/returns/SupplierReturnFormPage').then((m) => ({ Component: m.SupplierReturnFormPage })) },
+  ]),
   guarded([P.ProductsView], [
     { path: '/products', lazy: () => import('@/features/products/ProductsPage').then((m) => ({ Component: m.ProductsPage })) },
     { path: '/products/:id', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
@@ -64,6 +71,13 @@ const featureRoutes: RouteObject[] = [
     { path: '/invoices/:id', lazy: () => import('@/features/sales/InvoiceDetailPage').then((m) => ({ Component: m.InvoiceDetailPage })) },
   ]),
   guarded([P.PaymentsView], [{ path: '/payments', lazy: () => import('@/features/sales/PaymentsPage').then((m) => ({ Component: m.PaymentsPage })) }]),
+  guarded([P.CreditNotesView], [
+    { path: '/credit-notes', lazy: () => import('@/features/returns/CreditNotesPage').then((m) => ({ Component: m.CreditNotesPage })) },
+    { path: '/credit-notes/:id', lazy: () => import('@/features/returns/CreditNoteDetailPage').then((m) => ({ Component: m.CreditNoteDetailPage })) },
+  ]),
+  guarded([P.CreditNotesEdit], [
+    { path: '/invoices/:id/credit-note', lazy: () => import('@/features/returns/CreditNoteFormPage').then((m) => ({ Component: m.CreditNoteFormPage })) },
+  ]),
   guarded([P.StockView], [
     { path: '/stock', lazy: () => import('@/features/inventory/StockPage').then((m) => ({ Component: m.StockPage })) },
     { path: '/stock/receipts/:id', lazy: () => import('@/features/inventory/ReceiptDetailPage').then((m) => ({ Component: m.ReceiptDetailPage })) },
@@ -119,6 +133,12 @@ export const routes: RouteObject[] = [
       ]),
       guarded([P.PurchaseOrdersView], [
         { path: '/purchase-orders/:id/print', lazy: () => import('@/features/purchasing/PurchaseOrderPrintPage').then((m) => ({ Component: m.PurchaseOrderPrintPage })) },
+      ]),
+      guarded([P.CreditNotesView], [
+        { path: '/credit-notes/:id/print', lazy: () => import('@/features/returns/CreditNotePrintPage').then((m) => ({ Component: m.CreditNotePrintPage })) },
+      ]),
+      guarded([P.SupplierReturnsView], [
+        { path: '/supplier-returns/:id/print', lazy: () => import('@/features/returns/DebitNotePrintPage').then((m) => ({ Component: m.DebitNotePrintPage })) },
       ]),
     ],
   },

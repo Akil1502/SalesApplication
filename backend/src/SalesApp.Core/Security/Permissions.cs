@@ -17,12 +17,16 @@ public static class Permissions
     public const string InvoicesEdit = "invoices.edit";
     public const string PaymentsView = "payments.view";
     public const string PaymentsEdit = "payments.edit";
+    public const string CreditNotesView = "credit-notes.view";
+    public const string CreditNotesEdit = "credit-notes.edit";
     public const string PurchaseOrdersView = "purchase-orders.view";
     public const string PurchaseOrdersEdit = "purchase-orders.edit";
     public const string SupplierBillsView = "supplier-bills.view";
     public const string SupplierBillsEdit = "supplier-bills.edit";
     public const string SupplierPaymentsView = "supplier-payments.view";
     public const string SupplierPaymentsEdit = "supplier-payments.edit";
+    public const string SupplierReturnsView = "supplier-returns.view";
+    public const string SupplierReturnsEdit = "supplier-returns.edit";
     public const string CustomersView = "customers.view";
     public const string CustomersEdit = "customers.edit";
     public const string SuppliersView = "suppliers.view";
@@ -62,9 +66,13 @@ public static class Permissions
         new("Sales", "Smart order entry", SmartEntryUse, "Read orders from email, WhatsApp, a PDF or a photo with AI. Needs Orders: Add & change.", null, null),
         new("Sales", "Invoices", InvoicesView, "See and print invoices.", InvoicesEdit, "Raise invoices from confirmed orders, and cancel them. Needs Orders: View."),
         new("Sales", "Payments", PaymentsView, "See payments received.", PaymentsEdit, "Record payments, from the invoice. Needs Invoices: View."),
+        new("Sales", "Credit notes", CreditNotesView, "See and print credit notes, and the credit customers have with us.", CreditNotesEdit,
+            "Issue credit notes from invoices for returns and price corrections, set credit against invoices, record refunds and cancel credit notes. Needs Invoices: View."),
         new("Purchases", "Purchase orders", PurchaseOrdersView, "See and print purchase orders and what has arrived against them.", PurchaseOrdersEdit, "Create and change orders, place them with suppliers, close and cancel them. Needs Suppliers and Products: View."),
         new("Purchases", "Supplier bills", SupplierBillsView, "See supplier bills, what we owe and the price and quantity checks.", SupplierBillsEdit, "Enter bills against purchase orders, and cancel them. Needs Purchase orders: View."),
         new("Purchases", "Supplier payments", SupplierPaymentsView, "See payments made to suppliers.", SupplierPaymentsEdit, "Record payments to suppliers, from the bill. Needs Supplier bills: View."),
+        new("Purchases", "Supplier returns", SupplierReturnsView, "See goods returned to suppliers (debit notes) and the credit we have with them.", SupplierReturnsEdit,
+            "Return goods against supplier bills, set credit against their bills, record refunds and cancel returns. Needs Supplier bills: View."),
         new("Masters", "Customers", CustomersView, "See customers and what they owe.", CustomersEdit, "Add and change customers. Credit terms need their own right."),
         new("Masters", "Suppliers", SuppliersView, "See suppliers and what we owe them.", SuppliersEdit, "Add and change suppliers."),
         new("Masters", "Products", ProductsView, "See products and selling prices.", ProductsEdit, "Add and change products."),
@@ -109,11 +117,13 @@ public static class Permissions
             (SmartEntryUse, [OrdersEdit]),
             (InvoicesEdit, [OrdersView]),
             (PaymentsEdit, [InvoicesView]),
+            (CreditNotesEdit, [InvoicesView]),
             (CreditTermsEdit, [CustomersEdit]),
             (CreditLimitOverride, [OrdersEdit]),
             (PurchaseOrdersEdit, [SuppliersView, ProductsView]),
             (SupplierBillsEdit, [PurchaseOrdersView]),
             (SupplierPaymentsEdit, [SupplierBillsView]),
+            (SupplierReturnsEdit, [SupplierBillsView]),
             (StockEdit, [PurchaseOrdersView]),
             (PurchaseOrdersApprove, [PurchaseOrdersView]),
             (SupplierBillsApprove, [SupplierBillsView]),
@@ -180,7 +190,7 @@ public static class Permissions
     /// <summary>What the built-in Sales representative role starts with: day-to-day order and customer work.</summary>
     public static readonly IReadOnlySet<string> SalesRepDefaults = WithNeeds(
     [
-        DashboardView, OrdersEdit, SmartEntryUse, InvoicesView, PaymentsView, CustomersEdit, ProductsView, StockView,
+        DashboardView, OrdersEdit, SmartEntryUse, InvoicesView, PaymentsView, CreditNotesView, CustomersEdit, ProductsView, StockView,
         ReportsView, AskDataUse, AssistantUse, SalesRepAssignable,
     ]);
 }

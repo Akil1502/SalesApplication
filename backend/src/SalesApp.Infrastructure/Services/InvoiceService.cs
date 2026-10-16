@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Common;
+using SalesApp.Core.Contracts.Returns;
 using SalesApp.Core.Contracts.Sales;
 using SalesApp.Core.Entities;
+using SalesApp.Core.Returns;
 using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data;
@@ -73,12 +75,12 @@ public sealed class InvoiceService(
         var page = await query
             .OrderByDescending(i => i.InvoiceDate)
             .ThenByDescending(i => i.Id)
-            .Select(i => new { i.Id, i.Number, i.InvoiceDate, i.DueDate, i.CustomerId, i.CustomerName, i.GrandTotal, i.AmountPaid, i.Status })
+            .Select(i => new { i.Id, i.Number, i.InvoiceDate, i.DueDate, i.CustomerId, i.CustomerName, i.GrandTotal, i.AmountPaid, i.AmountCredited, i.Status })
             .ToPagedResultAsync(request, cancellationToken);
 
         var items = page.Items
             .Select(i => new InvoiceListItemDto(i.Id, i.Number, i.InvoiceDate, i.DueDate, i.CustomerId, i.CustomerName,
-                i.GrandTotal, i.AmountPaid, i.Status == InvoiceStatus.Cancelled ? 0m : i.GrandTotal - i.AmountPaid, i.Status,
+                i.GrandTotal, i.AmountPaid, i.AmountCredited, i.Status == InvoiceStatus.Cancelled ? 0m : i.GrandTotal - i.AmountPaid - i.AmountCredited, i.Status,
                 DaysOverdue(i.Status, i.DueDate, today)))
             .ToList();
         return new PagedResult<InvoiceListItemDto>(items, page.Page, page.PageSize, page.TotalCount);
@@ -90,13 +92,17 @@ public sealed class InvoiceService(
         var monthStart = new DateOnly(today.Year, today.Month, 1);
         var open = db.Invoices.AsNoTracking().Where(i => Open.Contains(i.Status));
 
-        var outstanding = await open.SumAsync(i => (decimal?)(i.GrandTotal - i.AmountPaid), cancellationToken) ?? 0m;
+        var outstanding = await open.SumAsync(i => (decimal?)(i.GrandTotal - i.AmountPaid - i.AmountCredited), cancellationToken) ?? 0m;
         var outstandingCount = await open.CountAsync(cancellationToken);
         var overdue = open.Where(i => i.DueDate < today);
-        var overdueAmount = await overdue.SumAsync(i => (decimal?)(i.GrandTotal - i.AmountPaid), cancellationToken) ?? 0m;
+        var overdueAmount = await overdue.SumAsync(i => (decimal?)(i.GrandTotal - i.AmountPaid - i.AmountCredited), cancellationToken) ?? 0m;
         var overdueCount = await overdue.CountAsync(cancellationToken);
+
+        // Net of credit notes issued this month, like every other sales figure.
         var invoiced = await db.Invoices.Where(i => i.Status != InvoiceStatus.Cancelled && i.InvoiceDate >= monthStart && i.InvoiceDate <= today)
             .SumAsync(i => (decimal?)i.GrandTotal, cancellationToken) ?? 0m;
+        invoiced -= await db.CreditNotes.Where(c => c.Status == ReturnDocumentStatus.Issued && c.CreditNoteDate >= monthStart && c.CreditNoteDate <= today)
+            .SumAsync(c => (decimal?)c.GrandTotal, cancellationToken) ?? 0m;
         var collected = await db.Payments.Where(p => p.PaymentDate >= monthStart && p.PaymentDate <= today)
             .SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
 
@@ -130,6 +136,21 @@ public sealed class InvoiceService(
                 p.Reference, p.Notes, p.CreatedBy!.FullName, p.CreatedAtUtc))
             .ToList();
 
+        var credited = await Credits.CreditedSoFarAsync(db, invoice.Id, cancellationToken);
+        var creditNotes = await db.CreditNotes.AsNoTracking()
+            .Where(c => c.InvoiceId == invoice.Id)
+            .OrderBy(c => c.CreditNoteDate).ThenBy(c => c.Id)
+            .Select(c => new ReturnSummaryDto(c.Id, c.Number, c.CreditNoteDate, c.Kind.ToString(), c.Reason, c.Status, c.WithGst, c.GrandTotal))
+            .ToListAsync(cancellationToken);
+        var creditsApplied = await db.CreditAdjustments.AsNoTracking()
+            .Where(a => a.InvoiceId == invoice.Id)
+            .OrderBy(a => a.AdjustmentDate).ThenBy(a => a.Id)
+            .Select(a => new CreditUseDto(a.Id, a.CreditNoteId, a.CreditNote!.Number, invoice.Id, invoice.Number, a.AdjustmentDate, a.Amount,
+                a.CreditNote.Status == ReturnDocumentStatus.Cancelled, a.CreatedBy!.FullName, a.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
+        var customerCredit = await Credits.CustomerCreditAsync(db, invoice.CustomerId, cancellationToken);
+        var hasCreditNotes = creditNotes.Any(c => c.Status == ReturnDocumentStatus.Issued);
+
         static InvoiceAddressDto Address(InvoiceAddress a) => new(a.Line1, a.Line2, a.City, a.StateCode, a.StateName, a.Pincode);
 
         return new InvoiceDto(
@@ -139,15 +160,19 @@ public sealed class InvoiceService(
             invoice.CustomerId, invoice.CustomerName, invoice.CustomerGstin,
             Address(invoice.BillingAddress), invoice.ShippingAddress is null ? null : Address(invoice.ShippingAddress),
             invoice.PlaceOfSupplyStateCode, invoice.PlaceOfSupplyStateName, invoice.IsInterState, invoice.UsesUtgst, invoice.CustomerReference,
-            [.. lines.Select(l => new InvoiceLineDto(l.LineNumber, l.ProductId, l.ProductSku, l.ProductName, l.HsnCode, l.Unit,
+            [.. lines.Select(l => new InvoiceLineDto(l.Id, l.LineNumber, l.ProductId, l.ProductSku, l.ProductName, l.HsnCode, l.Unit,
                 l.Quantity, l.UnitPrice, l.DiscountPercent, l.GrossAmount, l.DiscountAmount, l.TaxableValue, l.GstRate,
-                l.CgstRate, l.CgstAmount, l.SgstRate, l.SgstAmount, l.IgstRate, l.IgstAmount, l.LineTotal))],
+                l.CgstRate, l.CgstAmount, l.SgstRate, l.SgstAmount, l.IgstRate, l.IgstAmount, l.LineTotal,
+                credited.GetValueOrDefault(l.Id)?.Quantity ?? 0m, credited.GetValueOrDefault(l.Id)?.TaxableValue ?? 0m))],
             hsnSummary,
             invoice.TaxableValue, invoice.CgstAmount, invoice.SgstAmount, invoice.IgstAmount, invoice.RoundOff, invoice.GrandTotal,
-            invoice.AmountPaid, invoice.Status == InvoiceStatus.Cancelled ? 0m : invoice.GrandTotal - invoice.AmountPaid,
+            invoice.AmountPaid, invoice.AmountCredited,
+            invoice.Status == InvoiceStatus.Cancelled ? 0m : invoice.GrandTotal - invoice.AmountPaid - invoice.AmountCredited,
             DaysOverdue(invoice.Status, invoice.DueDate, clock.Today),
             AmountInWords.Rupees(invoice.GrandTotal),
-            payments, invoice.CancelledAtUtc, invoice.CancellationReason,
+            payments, creditsApplied, creditNotes, customerCredit, ReturnRules.GstDeadline(invoice.InvoiceDate),
+            invoice.Status == InvoiceStatus.Cancelled ? null : Credits.InvoiceCancelBlockedReason(invoice, hasCreditNotes, clock.Today),
+            invoice.CancelledAtUtc, invoice.CancellationReason,
             settings.BankName, settings.BankAccountNumber, settings.BankIfsc, settings.BankBranch, settings.InvoiceTerms,
             invoice.CreatedBy!.FullName, invoice.CreatedAtUtc);
     }
@@ -289,14 +314,10 @@ public sealed class InvoiceService(
 
         var invoice = await db.Invoices.Include(i => i.Lines).SingleOrDefaultAsync(i => i.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Invoice {id} was not found.");
-        if (invoice.Status == InvoiceStatus.Cancelled)
+        var hasCreditNotes = await db.CreditNotes.AnyAsync(c => c.InvoiceId == invoice.Id && c.Status == ReturnDocumentStatus.Issued, cancellationToken);
+        if (Credits.InvoiceCancelBlockedReason(invoice, hasCreditNotes, clock.Today) is { } blocked)
         {
-            throw new ConflictException($"{invoice.Number} is already cancelled.");
-        }
-
-        if (invoice.AmountPaid > 0)
-        {
-            throw new ConflictException($"{invoice.Number} has payments recorded against it, so it can't be cancelled. A credit note is needed instead (not yet supported).");
+            throw new ConflictException(blocked);
         }
 
         invoice.Status = InvoiceStatus.Cancelled;
@@ -336,7 +357,7 @@ public sealed class InvoiceService(
         Pincode = address.Pincode,
     };
 
-    private static string SellerAddress(CompanySettings s, IReadOnlyDictionary<string, Core.Contracts.Masters.StateDto> states)
+    internal static string SellerAddress(CompanySettings s, IReadOnlyDictionary<string, Core.Contracts.Masters.StateDto> states)
     {
         var state = states.GetValueOrDefault(s.StateCode)?.Name ?? s.StateCode;
         var parts = new[] { s.AddressLine1, s.AddressLine2, $"{s.City} - {s.Pincode}", state }.Where(p => !string.IsNullOrWhiteSpace(p));

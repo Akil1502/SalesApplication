@@ -38,6 +38,13 @@ public sealed class RptSalesLine
     public decimal IgstAmount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal LineTotal { get; set; }
+
+    /// <summary>"Invoice", or "CreditNote" for a (negative) credit note line.</summary>
+    public string DocumentType { get; set; } = string.Empty;
+    public string DocumentNumber { get; set; } = string.Empty;
+
+    /// <summary>False for credit notes issued after the s.34 deadline: GST reports leave those out.</summary>
+    public bool AffectsGst { get; set; }
 }
 
 public sealed class RptInvoice
@@ -56,6 +63,7 @@ public sealed class RptInvoice
     public decimal TaxAmount { get; set; }
     public decimal GrandTotal { get; set; }
     public decimal AmountPaid { get; set; }
+    public decimal AmountCredited { get; set; }
     public decimal Outstanding { get; set; }
     public int DaysOverdue { get; set; }
 }

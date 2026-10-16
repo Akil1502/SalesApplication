@@ -3,7 +3,8 @@
 --
 -- Idempotent: run after every migration by DbObjectsInitializer. Batches are separated by GO lines.
 -- Conventions:
---   * Cancelled invoices are excluded everywhere: "sales" always means issued, non-cancelled invoices.
+--   * Cancelled invoices and credit notes are excluded everywhere: "sales" always means issued invoices less
+--     issued credit notes, each counted on its own date.
 --   * Sales value = taxable value (excluding GST) unless a column says otherwise.
 --   * Financial year runs April to March; FinancialYear is labelled like '2026-27'.
 --   * "Today" is the date in India.
@@ -13,7 +14,10 @@ GO
 IF SCHEMA_ID('rpt_mgr') IS NULL EXEC('CREATE SCHEMA rpt_mgr AUTHORIZATION dbo');
 GO
 
--- One row per invoice line: the grain for "sales by anything".
+-- One row per invoice line, plus a negative row per credit note line: the grain for "sales by anything", net of
+-- returns. A credit note row counts on the credit note's date (in InvoiceDate), carries the original invoice's id and
+-- number, and has a negative quantity (goods returned) or zero (a price correction). AffectsGst is 0 for credit notes
+-- issued after the s.34 deadline, which credit the value only: GST reports leave those rows out.
 CREATE OR ALTER VIEW rpt.SalesLines AS
 SELECT
     il.Id                                           AS InvoiceLineId,
@@ -47,17 +51,68 @@ SELECT
     il.SgstAmount,
     il.IgstAmount,
     il.CgstAmount + il.SgstAmount + il.IgstAmount   AS TaxAmount,
-    il.LineTotal
+    il.LineTotal,
+    CAST('Invoice' AS varchar(10))                  AS DocumentType,
+    i.Number                                        AS DocumentNumber,
+    CAST(1 AS bit)                                  AS AffectsGst,
+    CAST(NULL AS varchar(10))                       AS ReturnDisposition
 FROM dbo.InvoiceLines il
 JOIN dbo.Invoices i     ON i.Id = il.InvoiceId
 JOIN dbo.Customers c    ON c.Id = i.CustomerId
 JOIN dbo.Products p     ON p.Id = il.ProductId
 JOIN dbo.Categories cat ON cat.Id = p.CategoryId
 LEFT JOIN dbo.AspNetUsers rep ON rep.Id = c.AssignedRepId
-WHERE i.Status <> 'Cancelled';
+WHERE i.Status <> 'Cancelled'
+UNION ALL
+SELECT
+    cnl.InvoiceLineId,
+    i.Id,
+    i.Number,
+    cn.CreditNoteDate,
+    DATEFROMPARTS(YEAR(cn.CreditNoteDate), MONTH(cn.CreditNoteDate), 1),
+    cn.FinancialYear,
+    CONCAT(cn.FinancialYear, '-', RIGHT(CAST(cn.FinancialYear + 1 AS varchar(4)), 2)),
+    cn.CustomerId,
+    c.Code,
+    cn.CustomerName,
+    c.BillingCity,
+    cn.PlaceOfSupplyStateCode,
+    cn.PlaceOfSupplyStateName,
+    CASE WHEN cn.CustomerGstin IS NULL THEN 'B2C' ELSE 'B2B' END,
+    cn.IsInterState,
+    rep.FullName,
+    cnl.ProductId,
+    cnl.ProductSku,
+    cnl.ProductName,
+    cat.Name,
+    cnl.HsnCode,
+    cnl.Unit,
+    -ISNULL(cnl.Quantity, 0),
+    il.UnitPrice,
+    il.DiscountPercent,
+    -cnl.TaxableValue,
+    il.GstRate,
+    -cnl.CgstAmount,
+    -cnl.SgstAmount,
+    -cnl.IgstAmount,
+    -(cnl.CgstAmount + cnl.SgstAmount + cnl.IgstAmount),
+    -cnl.LineTotal,
+    'CreditNote',
+    cn.Number,
+    cn.WithGst,
+    cnl.Disposition
+FROM dbo.CreditNoteLines cnl
+JOIN dbo.CreditNotes cn  ON cn.Id = cnl.CreditNoteId
+JOIN dbo.InvoiceLines il ON il.Id = cnl.InvoiceLineId
+JOIN dbo.Invoices i      ON i.Id = cn.InvoiceId
+JOIN dbo.Customers c     ON c.Id = cn.CustomerId
+JOIN dbo.Products p      ON p.Id = cnl.ProductId
+JOIN dbo.Categories cat  ON cat.Id = p.CategoryId
+LEFT JOIN dbo.AspNetUsers rep ON rep.Id = c.AssignedRepId
+WHERE cn.Status = 'Issued';
 GO
 
--- One row per issued (non-cancelled) invoice, with what's still owed.
+-- One row per issued (non-cancelled) invoice, with what's still owed after payments and credit notes.
 CREATE OR ALTER VIEW rpt.Invoices AS
 SELECT
     i.Id                                            AS InvoiceId,
@@ -81,7 +136,8 @@ SELECT
     i.RoundOff,
     i.GrandTotal,
     i.AmountPaid,
-    i.GrandTotal - i.AmountPaid                     AS Outstanding,
+    i.AmountCredited,
+    i.GrandTotal - i.AmountPaid - i.AmountCredited  AS Outstanding,
     CASE WHEN i.Status IN ('Unpaid', 'PartiallyPaid') AND i.DueDate < t.Today
          THEN DATEDIFF(day, i.DueDate, t.Today) ELSE 0 END AS DaysOverdue
 FROM dbo.Invoices i
@@ -102,6 +158,49 @@ SELECT
     i.CustomerName
 FROM dbo.Payments p
 JOIN dbo.Invoices i ON i.Id = p.InvoiceId;
+GO
+
+-- One row per issued credit note, with how much of its credit is still unused (CreditAvailable).
+CREATE OR ALTER VIEW rpt.CreditNotes AS
+SELECT
+    cn.Id                                           AS CreditNoteId,
+    cn.Number                                       AS CreditNoteNumber,
+    cn.CreditNoteDate,
+    DATEFROMPARTS(YEAR(cn.CreditNoteDate), MONTH(cn.CreditNoteDate), 1) AS MonthStart,
+    cn.FinancialYear                                AS FinancialYearStart,
+    CONCAT(cn.FinancialYear, '-', RIGHT(CAST(cn.FinancialYear + 1 AS varchar(4)), 2)) AS FinancialYear,
+    cn.Kind,
+    cn.Reason,
+    cn.WithGst,
+    cn.InvoiceId,
+    i.Number                                        AS InvoiceNumber,
+    i.InvoiceDate,
+    cn.CustomerId,
+    cn.CustomerName,
+    cn.TaxableValue,
+    cn.CgstAmount + cn.SgstAmount + cn.IgstAmount   AS TaxAmount,
+    cn.GrandTotal,
+    cn.AmountAdjusted,
+    cn.AmountRefunded,
+    cn.GrandTotal - cn.AmountAdjusted - cn.AmountRefunded AS CreditAvailable
+FROM dbo.CreditNotes cn
+JOIN dbo.Invoices i ON i.Id = cn.InvoiceId
+WHERE cn.Status = 'Issued';
+GO
+
+-- Credit paid back to customers.
+CREATE OR ALTER VIEW rpt.CreditRefunds AS
+SELECT
+    r.Id                                            AS RefundId,
+    r.RefundDate,
+    DATEFROMPARTS(YEAR(r.RefundDate), MONTH(r.RefundDate), 1) AS MonthStart,
+    r.Amount,
+    r.Mode,
+    cn.Number                                       AS CreditNoteNumber,
+    cn.CustomerId,
+    cn.CustomerName
+FROM dbo.CreditRefunds r
+JOIN dbo.CreditNotes cn ON cn.Id = r.CreditNoteId;
 GO
 
 -- Customers without contact details (phone, email, notes are deliberately left out).
@@ -199,7 +298,8 @@ FROM dbo.SalesOrders o
 JOIN dbo.Customers c ON c.Id = o.CustomerId;
 GO
 
--- Managers only: margin per invoice line at the product's CURRENT cost price (invoices don't record cost).
+-- Managers only: margin per sales line at the product's CURRENT cost price (invoices don't record cost). Returned
+-- goods put back into stock take their cost back off; damaged ones were written off, so their cost stays a loss.
 CREATE OR ALTER VIEW rpt_mgr.Margins AS
 SELECT
     sl.InvoiceLineId,
@@ -217,10 +317,13 @@ SELECT
     sl.Quantity,
     sl.TaxableValue,
     p.CostPrice,
-    sl.Quantity * p.CostPrice                       AS CostValue,
-    sl.TaxableValue - sl.Quantity * p.CostPrice     AS GrossMargin
+    cost.CostValue,
+    sl.TaxableValue - cost.CostValue                AS GrossMargin,
+    sl.DocumentType,
+    sl.DocumentNumber
 FROM rpt.SalesLines sl
 JOIN dbo.Products p ON p.Id = sl.ProductId
+CROSS APPLY (SELECT CASE WHEN sl.ReturnDisposition = 'Damaged' THEN 0 ELSE sl.Quantity * p.CostPrice END AS CostValue) cost
 WHERE p.CostPrice IS NOT NULL;
 GO
 

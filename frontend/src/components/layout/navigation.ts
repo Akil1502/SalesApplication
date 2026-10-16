@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   Sparkles,
   Tags,
+  Undo2,
   Users,
   UserCog,
   Wallet,
@@ -52,6 +53,7 @@ export const navigation: NavGroup[] = [
       { title: 'Smart order entry', to: '/orders/smart-entry', icon: Sparkles, ai: true, permission: Permissions.SmartEntryUse },
       { title: 'Invoices', to: '/invoices', icon: ReceiptIndianRupee, permission: Permissions.InvoicesView },
       { title: 'Payments', to: '/payments', icon: Wallet, permission: Permissions.PaymentsView },
+      { title: 'Credit notes', to: '/credit-notes', icon: Undo2, permission: Permissions.CreditNotesView },
     ],
   },
   {
@@ -60,6 +62,7 @@ export const navigation: NavGroup[] = [
       { title: 'Purchase orders', to: '/purchase-orders', icon: ClipboardList, permission: Permissions.PurchaseOrdersView },
       { title: 'Supplier bills', to: '/supplier-bills', icon: FileSpreadsheet, permission: Permissions.SupplierBillsView },
       { title: 'Supplier payments', to: '/supplier-payments', icon: Banknote, permission: Permissions.SupplierPaymentsView },
+      { title: 'Supplier returns', to: '/supplier-returns', icon: Undo2, permission: Permissions.SupplierReturnsView },
     ],
   },
   {

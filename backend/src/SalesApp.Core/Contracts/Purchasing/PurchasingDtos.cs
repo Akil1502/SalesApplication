@@ -276,8 +276,16 @@ public sealed record GoodsReceiptLineInput
     [Range(1, int.MaxValue, ErrorMessage = "Choose an order line.")]
     public int PurchaseOrderLineId { get; init; }
 
-    [DecimalRange(0.001, 99999999, ErrorMessage = "Quantity must be more than zero."), DecimalPlaces(3)]
+    /// <summary>Accepted into stock. Zero when everything delivered on this line was rejected.</summary>
+    [DecimalRange(0, 99999999, ErrorMessage = "Quantity can't be negative."), DecimalPlaces(3)]
     public decimal Quantity { get; init; }
+
+    /// <summary>Refused on delivery: it doesn't enter stock, and the order still expects it.</summary>
+    [DecimalRange(0, 99999999, ErrorMessage = "Rejected quantity can't be negative."), DecimalPlaces(3)]
+    public decimal QuantityRejected { get; init; }
+
+    [MaxLength(200)]
+    public string? RejectionReason { get; init; }
 }
 
 /// <summary>Goods that arrived against a purchase order. They're costed at the order's price.</summary>
@@ -366,13 +374,15 @@ public sealed record SupplierBillListItemDto(
     string PurchaseOrderNumber,
     decimal GrandTotal,
     decimal AmountPaid,
+    decimal AmountCredited,
     decimal Balance,
     SupplierBillStatus Status,
     BillMatchStatus MatchStatus,
     int? DaysOverdue);
 
-/// <summary>A bill line. Issue is what the three-way check found wrong with it.</summary>
+/// <summary>A bill line. Issue is what the three-way check found wrong with it; QuantityReturned what went back since.</summary>
 public sealed record SupplierBillLineDto(
+    int Id,
     int LineNumber,
     int PurchaseOrderLineId,
     int ProductId,
@@ -389,7 +399,8 @@ public sealed record SupplierBillLineDto(
     decimal SgstAmount,
     decimal IgstAmount,
     decimal LineTotal,
-    string? Issue);
+    string? Issue,
+    decimal QuantityReturned);
 
 public sealed record SupplierPaymentDto(
     int Id,
@@ -440,6 +451,7 @@ public sealed record SupplierBillDto(
     decimal GrandTotal,
     decimal? SupplierTotal,
     decimal AmountPaid,
+    decimal AmountCredited,
     decimal Balance,
     int? DaysOverdue,
     IReadOnlyList<string> MatchIssues,
@@ -448,6 +460,10 @@ public sealed record SupplierBillDto(
     string? ApprovalNote,
     string? Notes,
     IReadOnlyList<SupplierPaymentDto> Payments,
+    IReadOnlyList<Returns.CreditUseDto> CreditsApplied,
+    IReadOnlyList<Returns.ReturnSummaryDto> Returns,
+    decimal SupplierCreditAvailable,
+    string? CancelBlockedReason,
     DateTime? CancelledAtUtc,
     string? CancellationReason,
     string CreatedByName,

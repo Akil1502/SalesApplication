@@ -116,7 +116,11 @@ public sealed class DemoDataTests(DemoDataFactory factory) : IClassFixture<DemoD
     [Fact]
     public async Task Invoices_are_numbered_without_gaps_and_paid_amounts_match_payments()
     {
-        var invoices = await WithDbAsync(db => db.Invoices.Select(i => new { i.FinancialYear, i.Number, i.AmountPaid, Paid = i.Payments.Sum(p => p.Amount), i.Status, i.GrandTotal }).ToListAsync(Ct));
+        var invoices = await WithDbAsync(db => db.Invoices.Select(i => new
+        {
+            i.FinancialYear, i.Number, i.AmountPaid, Paid = i.Payments.Sum(p => p.Amount), i.Status, i.GrandTotal, i.AmountCredited,
+            Credited = db.CreditAdjustments.Where(a => a.InvoiceId == i.Id && a.CreditNote!.Status == ReturnDocumentStatus.Issued).Sum(a => (decimal?)a.Amount) ?? 0m,
+        }).ToListAsync(Ct));
 
         foreach (var year in invoices.GroupBy(i => i.FinancialYear))
         {
@@ -125,7 +129,39 @@ public sealed class DemoDataTests(DemoDataFactory factory) : IClassFixture<DemoD
         }
 
         Assert.All(invoices, i => Assert.Equal(i.Paid, i.AmountPaid));
-        Assert.All(invoices.Where(i => i.Status == InvoiceStatus.Paid), i => Assert.Equal(i.GrandTotal, i.AmountPaid));
+        Assert.All(invoices, i => Assert.Equal(i.Credited, i.AmountCredited));
+        Assert.All(invoices.Where(i => i.Status == InvoiceStatus.Paid), i => Assert.Equal(i.GrandTotal, i.AmountPaid + i.AmountCredited));
+    }
+
+    [Fact]
+    public async Task Credit_notes_and_supplier_returns_are_numbered_without_gaps_and_their_credit_adds_up()
+    {
+        var notes = await WithDbAsync(db => db.CreditNotes.Select(c => new
+        {
+            c.FinancialYear, c.Number, c.GrandTotal, c.AmountAdjusted, c.AmountRefunded,
+            Adjusted = c.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m, Refunded = c.Refunds.Sum(r => (decimal?)r.Amount) ?? 0m,
+        }).ToListAsync(Ct));
+        var returns = await WithDbAsync(db => db.SupplierReturns.Select(r => new { r.FinancialYear, r.Number, r.AmountAdjusted, Adjusted = r.Adjustments.Sum(a => (decimal?)a.Amount) ?? 0m }).ToListAsync(Ct));
+
+        Assert.NotEmpty(notes);
+        Assert.NotEmpty(returns);
+        foreach (var year in notes.GroupBy(c => c.FinancialYear))
+        {
+            Assert.Equal(Enumerable.Range(1, year.Count()), year.Select(c => int.Parse(c.Number[^5..], System.Globalization.CultureInfo.InvariantCulture)).Order());
+        }
+
+        foreach (var year in returns.GroupBy(r => r.FinancialYear))
+        {
+            Assert.Equal(Enumerable.Range(1, year.Count()), year.Select(r => int.Parse(r.Number[^5..], System.Globalization.CultureInfo.InvariantCulture)).Order());
+        }
+
+        Assert.All(notes, c => Assert.Equal((c.Adjusted, c.Refunded), (c.AmountAdjusted, c.AmountRefunded)));
+        Assert.All(notes, c => Assert.True(c.AmountAdjusted + c.AmountRefunded <= c.GrandTotal));
+        Assert.All(returns, r => Assert.Equal(r.Adjusted, r.AmountAdjusted));
+        Assert.Contains(notes, c => c.AmountRefunded > 0);
+
+        // Part of some deliveries was refused at the door.
+        Assert.True(await WithDbAsync(db => db.StockReceiptLines.AnyAsync(l => l.QuantityRejected > 0 && l.RejectionReason != null, Ct)));
     }
 
     [Fact]
@@ -156,7 +192,11 @@ public sealed class DemoDataTests(DemoDataFactory factory) : IClassFixture<DemoD
         var fromInvoices = await WithDbAsync(db => db.Invoices
             .Where(i => i.Status != InvoiceStatus.Cancelled && i.InvoiceDate >= period.From && i.InvoiceDate <= period.To)
             .SumAsync(i => i.TaxableValue, Ct));
-        Assert.Equal(expected, fromInvoices);
+        var fromCreditNotes = await WithDbAsync(db => db.CreditNotes
+            .Where(c => c.Status == ReturnDocumentStatus.Issued && c.CreditNoteDate >= period.From && c.CreditNoteDate <= period.To)
+            .SumAsync(c => c.TaxableValue, Ct));
+        Assert.True(fromCreditNotes > 0);
+        Assert.Equal(expected, fromInvoices - fromCreditNotes);
     }
 
     [Fact]

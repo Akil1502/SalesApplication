@@ -166,6 +166,9 @@ public sealed class Invoice
     public decimal GrandTotal { get; set; }
     public decimal AmountPaid { get; set; }
 
+    /// <summary>Credit notes set against this invoice. What's due is GrandTotal - AmountPaid - AmountCredited.</summary>
+    public decimal AmountCredited { get; set; }
+
     public DateTime? CancelledAtUtc { get; set; }
     public string? CancellationReason { get; set; }
 
@@ -256,4 +259,6 @@ public static class DocumentTypes
     public const string Invoice = "Invoice";
     public const string PurchaseOrder = "PurchaseOrder";
     public const string SupplierBill = "SupplierBill";
+    public const string CreditNote = "CreditNote";
+    public const string DebitNote = "DebitNote";
 }

@@ -1,7 +1,7 @@
 # SalesApp
 
 A sales management application for an Indian trading business: customers, products, quotations and
-orders, GST invoices, payments, purchases from suppliers, stock, and reports, with Claude-powered AI
+orders, GST invoices, payments, returns and credit notes, purchases from suppliers, stock, and reports, with Claude-powered AI
 features built in.
 
 This is a ground-up rebuild of an ASP.NET MVC 5 application I wrote early in my career. The original
@@ -74,7 +74,10 @@ It runs in under 10 seconds and is repeatable (fixed random seed). The history h
 November peak, year-on-year growth, customers who stop buying, slow payers, a few stockouts and a bulk
 order, and a current pipeline of open orders and products due for reorder. The buying side matches it: suppliers
 (one in Gujarat, so its bills carry IGST), purchase orders delivered in parts and sometimes late, supplier bills (a
-couple waiting for approval of a price difference) and payments, with one supplier paid slowly. It also creates a demo team
+couple waiting for approval of a price difference) and payments, with one supplier paid slowly. Returns run through
+both: credit notes for goods sent back and price corrections (one fabric comes back far more often than the rest),
+credit set against later invoices or refunded, one customer still holding credit today, goods returned to suppliers
+and deliveries partly rejected at the door. It also creates a demo team
 to sign in as, each with the password `Seed:DemoUserPassword` from `appsettings.Development.json`:
 
 | User | Role |
@@ -106,19 +109,20 @@ All names, GSTINs and figures are made up. The command only runs in the Developm
 Administration → **Users & roles** decides who can do what.
 
 - **Permissions** follow the menus: each has **View**, and **Add & change** where the menu changes data (orders,
-  invoices, payments, customers, products, categories, stock, suppliers, purchase orders, supplier bills, supplier
-  payments, users). A few special rights sit beside them: see cost prices and margins, set credit terms, override
+  invoices, payments, credit notes, customers, products, categories, stock, suppliers, purchase orders, supplier
+  bills, supplier payments, supplier returns, users). A few special rights sit beside them: see cost prices and margins, set credit terms, override
   credit limits, can be a customer's sales rep, approve purchase orders above the limit, approve bill differences,
   and read supplier bills with AI.
 - **Roles** are sets of permissions. Three are built in: **Administrator** (everything, and it can't be changed),
   **Sales manager** (everything except administration, rate updates and the two purchase approvals) and **Sales representative** (orders, customers, smart order
-  entry, viewing invoices, payments, products and stock, reports, Ask your data and the assistant; no cost prices or
-  credit terms). Their permissions can be changed; add your own roles too, such as an accountant or a storekeeper.
+  entry, viewing invoices, payments, credit notes, products and stock, reports, Ask your data and the assistant; no
+  cost prices or credit terms). Their permissions can be changed; add your own roles too, such as an accountant or a storekeeper.
 - **Each user** has one role and can have permissions added or taken away just for them; the user list shows this as
   `+1 −1` beside the role.
 - Granting a permission grants what it needs (Add & change needs View; smart order entry needs Orders: Add & change;
-  recording a payment needs Invoices: View, because it's done from the invoice; receiving goods needs Purchase
-  orders: View), and taking one away takes away what depends on it.
+  recording a payment needs Invoices: View, because it's done from the invoice; so does issuing a credit note;
+  returning goods to a supplier needs Supplier bills: View; receiving goods needs Purchase orders: View), and taking
+  one away takes away what depends on it.
 - **Changes apply on the user's next request**, without signing in again. The API checks the permission on every
   request; the web app only hides menus and buttons the user can't use. A deactivated user's session stops working
   at once.
@@ -180,6 +184,43 @@ supplier bill → payment. Suppliers are under Masters.
 - **Earlier goods receipts.** Receipts from before purchase orders existed keep their lines, and the upgrade creates
   a supplier for each supplier name they used, marked "Address not recorded"; add the address and GSTIN in Suppliers.
 
+## Returns and credit notes
+
+**Credit notes** (Sales → Credit notes) correct an invoice after it's issued, as CGST Act s.34 provides; **supplier
+returns** (Purchases → Supplier returns) send goods back against a supplier's bill as our debit note.
+
+- **From the invoice.** Open the invoice and choose **Credit note**: either goods came back (enter the quantity per
+  line, and whether each line goes back into stock or was damaged), or no goods move and the value is corrected (a
+  wrong rate, short supply, a discount agreed later: enter the amount off each line, before GST). The screen shows the
+  credit note exactly as the server works it out, before anything is saved. Credit notes have their own gapless
+  series, CN/26-27/00001, and print like the invoice they correct.
+- **Never more than was invoiced.** Each line can give back at most what's left on it after earlier credit notes,
+  and the last piece takes exactly what's left, so a line returned in several goes adds up to the paisa. After a price
+  correction, each returned unit is credited at the lower value.
+- **Stock.** Goods fit to sell go back into stock at the product's cost; damaged ones are recorded as returned and
+  written off the same day, so the stock ledger shows both the return and the loss.
+- **Money.** The credit first comes off what's still due on that invoice. Anything left over (the invoice was
+  already paid) stays as credit on the customer's account: set it against another of their invoices (**Use credit**
+  on the invoice, or **Set against an invoice** on the credit note) or record a refund. Receivables ageing shows each
+  customer's unused credit, and the credit limit check counts it in their favour.
+- **The GST time limit.** A credit note can reduce GST only until 30 November after the end of the invoice's
+  financial year (the annual return date can come earlier; it isn't tracked). After that it credits the value only,
+  marked as such, and the GST reports leave it out.
+- **Cancelling.** An invoice can be cancelled only while it's unpaid, uncredited and still in its own month; after
+  that it has gone into that month's GSTR-1, so a credit note is the way to correct it. A credit note can be
+  cancelled in its own month if its credit hasn't been used on another invoice or refunded; returned goods leave
+  stock again and the invoice owes its full amount again.
+- **Supplier returns.** On a supplier bill choose **Return goods**: the goods leave stock at the bill's price (what
+  stays keeps its true average cost), the input GST on them is reversed, and the value comes off what we owe on the
+  bill. Anything beyond that is credit with the supplier, for their next bill or a refund to us. Debit notes have
+  their own series, DN/26-27/00001, and print for the supplier; note the supplier's own credit note number when it
+  arrives (the list shows which are still awaited). The same time limit and cancelling rules apply.
+- **Rejected on delivery.** In **Receive goods**, part of a delivery can be refused at the door with a reason: it
+  never enters stock, the order still expects it, and the goods receipt shows what was rejected and why.
+- **Reports.** Sales figures are net of credit notes everywhere (dashboard, reports, forecasts, Ask your data), each
+  counted in the month it was issued; the GST summary shows credit notes apart from invoices, and GST payable takes
+  supplier returns off the input credit. New registers: Credit notes and Supplier returns.
+
 ## Audit trail
 
 Administration → **Audit log** (administrators by default; anyone given the Audit log permission) shows who did what
@@ -187,7 +228,8 @@ and when.
 
 - **Every change, field by field.** Creating, changing or removing a customer (including its addresses), product,
   rate, category, HSN code, order (including its lines), invoice, payment, supplier, purchase order, goods receipt,
-  supplier bill, supplier payment, stock adjustment, user, role or the company settings is recorded with each field's old and new value, written as people read them
+  supplier bill, supplier payment, credit note, supplier return, credit used or refunded, stock adjustment, user, role
+  or the company settings is recorded with each field's old and new value, written as people read them
   ("Credit limit: ₹26,00,000 → ₹30,00,000", "Sales rep: Arun Kumar → Divya Rajan").
 - **Security events:** sign-ins, failed sign-ins (under the email that was tried, with the reason), lockouts,
   password resets, changes to a user's role or permissions and to a role's permissions, and Excel downloads.
@@ -256,7 +298,8 @@ form. Nothing is saved until the clerk reviews the form and saves it, and the th
 bill.
 
 **Ask your data** (Insights → Ask your data) answers questions such as "top 10 customers this financial year" or
-"who owes us the most" from the reporting views. Claude writes SQL and calls a `run_sql_query` tool; it answers by
+"who owes us the most" from the reporting views, where sales are net of credit notes and balances net of credit
+(`rpt.CreditNotes` lists credit notes with the credit left on each). Claude writes SQL and calls a `run_sql_query` tool; it answers by
 pointing at the result it wants shown, so the table, chart and Excel download are the database's own rows, never
 numbers retyped by the model. Progress streams to the browser as server-sent events, and the SQL is shown with every
 answer. A question keeps running if the user moves to another screen; a notification says when the answer is ready.
@@ -284,7 +327,9 @@ messages. It has read-only tools: find customers, a customer's full picture (sal
 and overdue, recent orders, top products), outstanding or overdue invoices, any invoice, order or quotation by
 number, product and stock search, and the same guarded SQL query as Ask your data for totals and trends. Users who may
 view suppliers can also find suppliers and see a supplier's open purchase orders and unpaid bills, and look up a
-purchase order or supplier bill by number; orders and bills each need their own View permission. Replies
+purchase order or supplier bill by number; orders and bills each need their own View permission. It knows credit
+notes and supplier returns too: a customer's sales are net of returns with their unused credit, and any credit note
+or debit note can be looked up by number (each needs its own View permission). Replies
 stream in as they're written; Stop ends the reply (and Anthropic's billing for it), and closing the panel doesn't.
 
 The two overlap on purpose but do different jobs. Ask your data is for figures: its table and chart come straight
@@ -323,8 +368,9 @@ the sales data, so the page works fully with AI switched off; Claude only writes
   product was in stock, so a stock-out doesn't look like a lack of demand, and allows for the season ahead.
 - **Worth a look.** Regular customers who have stopped buying (far longer than their usual gap between orders);
   invoices far larger than the customer's usual ones; products that sold far more or far less than usual for the
-  time of year; stock-outs of a week or more found in the stock ledger, with an estimate of the sales missed; and
-  customers with ₹10,000 or more over 60 days overdue.
+  time of year; stock-outs of a week or more found in the stock ledger, with an estimate of the sales missed;
+  customers with ₹10,000 or more over 60 days overdue; and products or customers with far more goods coming back
+  than usual (at least 5% returned, three times the usual rate, on several credit notes in the last 12 months).
 - **A summary you can trust.** Claude writes a headline, a short summary and a few cards from the computed figures.
   Every figure in them is checked against those figures, allowing for normal rounding (₹1,87,17,602 written as
   ₹1.87 crore). If any figure doesn't match, Claude gets one retry with the list of figures that didn't. Anything

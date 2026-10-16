@@ -1,4 +1,4 @@
-import { ArrowLeft, Ban, CheckCircle2, IndianRupee, Sparkles, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, FileCheck2, IndianRupee, Sparkles, TriangleAlert, Undo2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
@@ -12,11 +12,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { RecordHistory } from '@/features/audit/RecordHistory'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
+import { useApplySupplierCredit, useAvailableSupplierCredit } from '@/features/returns/api'
+import { ReturnStatusBadge } from '@/features/returns/badges'
+import { returnReasonLabels } from '@/features/returns/labels'
+import { SetCreditDialog } from '@/features/returns/SetCreditDialog'
 import { paymentModeLabel } from '@/features/sales/labels'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatPercent, formatQuantity } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { useApproveSupplierBill, useCancelSupplierBill, useSupplierBill } from './api'
+import { useApproveSupplierBill, useCancelSupplierBill, useSupplierBill, type SupplierBill } from './api'
 import { BillStatusBadge, MatchBadge } from './badges'
 import { RecordSupplierPaymentDialog } from './RecordSupplierPaymentDialog'
 
@@ -29,6 +33,7 @@ export function SupplierBillDetailPage() {
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [approveOpen, setApproveOpen] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [creditOpen, setCreditOpen] = useState(false)
 
   if (bill.isPending) return <Skeleton className="h-96 w-full max-w-6xl" />
   if (bill.error) {
@@ -44,6 +49,8 @@ export function SupplierBillDetailPage() {
   const needsApproval = b.matchStatus === 'NeedsApproval' && !cancelled
   const lineIssues = b.lines.filter((l) => l.issue)
   const canPay = can(Permissions.SupplierPaymentsEdit) && !cancelled && !needsApproval && b.balance > 0
+  const canReturn = can(Permissions.SupplierReturnsEdit) && !cancelled
+  const canUseCredit = canReturn && b.balance > 0 && b.supplierCreditAvailable > 0
 
   return (
     <div className="flex max-w-6xl flex-col gap-6">
@@ -75,10 +82,24 @@ export function SupplierBillDetailPage() {
                 Bills
               </Link>
             </Button>
-            {can(Permissions.SupplierBillsEdit) && !cancelled && b.amountPaid === 0 && (
+            {can(Permissions.SupplierBillsEdit) && !cancelled && !b.cancelBlockedReason && (
               <Button variant="outline" className="text-destructive" onClick={() => setCancelOpen(true)}>
                 <Ban />
                 Cancel bill
+              </Button>
+            )}
+            {canReturn && b.lines.some((l) => l.quantity > l.quantityReturned) && (
+              <Button variant="outline" asChild>
+                <Link to={`/supplier-bills/${b.id}/return`}>
+                  <Undo2 />
+                  Return goods
+                </Link>
+              </Button>
+            )}
+            {canUseCredit && (
+              <Button variant="outline" onClick={() => setCreditOpen(true)}>
+                <FileCheck2 />
+                Use credit ({formatINR(b.supplierCreditAvailable)})
               </Button>
             )}
             {needsApproval && can(Permissions.SupplierBillsApprove) && (
@@ -191,7 +212,10 @@ export function SupplierBillDetailPage() {
                         {l.issue && <span className="mt-1 text-xs text-amber-800 dark:text-amber-300">{l.issue}</span>}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatQuantity(l.quantity, l.unit)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatQuantity(l.quantity, l.unit)}
+                      {l.quantityReturned > 0 && <span className="block text-xs text-muted-foreground">{formatQuantity(l.quantityReturned)} returned</span>}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{formatINR(l.unitPrice)}</TableCell>
                     <TableCell className="text-right text-muted-foreground tabular-nums">{formatINR(l.orderedPrice)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatINR(l.taxableValue)}</TableCell>
@@ -240,6 +264,12 @@ export function SupplierBillDetailPage() {
               )}
               <dt className="text-muted-foreground">Paid</dt>
               <dd className="text-right">{formatINR(b.amountPaid)}</dd>
+              {b.amountCredited > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Goods returned</dt>
+                  <dd className="text-right">{formatINR(b.amountCredited)}</dd>
+                </>
+              )}
               <dt className="font-medium">To pay</dt>
               <dd className="text-right font-medium">{formatINR(b.balance)}</dd>
             </dl>
@@ -283,7 +313,10 @@ export function SupplierBillDetailPage() {
         </CardContent>
       </Card>
 
+      {(b.returns.length > 0 || b.creditsApplied.length > 0) && <ReturnsCard bill={b} />}
+
       {canPay && <RecordSupplierPaymentDialog bill={b} open={paymentOpen} onOpenChange={setPaymentOpen} />}
+      {canUseCredit && <UseSupplierCreditDialog bill={b} open={creditOpen} onOpenChange={setCreditOpen} />}
       <ReasonDialog
         open={approveOpen}
         onOpenChange={setApproveOpen}
@@ -323,5 +356,95 @@ export function SupplierBillDetailPage() {
 
       <RecordHistory entityType="Supplier bill" entityId={b.id} />
     </div>
+  )
+}
+
+/** Goods returned against this bill (our debit notes), and credit from other returns set against it. */
+function ReturnsCard({ bill }: { bill: SupplierBill }) {
+  const own = new Set(bill.returns.map((r) => r.id))
+  const fromOthers = bill.creditsApplied.filter((a) => !own.has(a.creditId))
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Goods returned</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {bill.returns.length > 0 && (
+          <div className="overflow-hidden rounded-lg border">
+            <Table>
+              <TableHeader className="bg-muted/50">
+                <TableRow>
+                  <TableHead>Debit note</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bill.returns.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <Link className="font-mono text-xs underline underline-offset-4" to={`/supplier-returns/${r.id}`}>
+                        {r.number}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatBusinessDate(r.date)}</TableCell>
+                    <TableCell>{returnReasonLabels[r.reason]}</TableCell>
+                    <TableCell>
+                      <ReturnStatusBadge status={r.status} />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatINR(r.grandTotal)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        {fromOthers.length > 0 && (
+          <div className="text-sm">
+            <p className="mb-1 font-medium">Credit from other returns set against this bill</p>
+            <ul className="space-y-1 text-muted-foreground">
+              {fromOthers.map((a) => (
+                <li key={a.id} className={a.reversed ? 'line-through' : undefined}>
+                  {formatINR(a.amount)} from{' '}
+                  <Link className="font-mono underline underline-offset-4" to={`/supplier-returns/${a.creditId}`}>
+                    {a.creditNumber}
+                  </Link>{' '}
+                  on {formatBusinessDate(a.date)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Sets credit we have with the supplier (from earlier returns) against what we owe on this bill. */
+function UseSupplierCreditDialog({ bill, open, onOpenChange }: { bill: SupplierBill; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const available = useAvailableSupplierCredit(bill.supplierId, open)
+  const apply = useApplySupplierCredit()
+  return (
+    <SetCreditDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Use credit with the supplier"
+      description={`We have ${formatINR(bill.supplierCreditAvailable)} of credit with ${bill.supplierName}. ${formatINR(bill.balance)} is owed on ${bill.number}.`}
+      chooseLabel="Supplier return"
+      emptyText="No credit is left with this supplier."
+      options={available.data?.map((r) => ({
+        id: r.id,
+        label: `${r.number} · ${formatBusinessDate(r.date)} · ${formatINR(r.available)} left`,
+        max: Math.min(r.available, bill.balance),
+      }))}
+      minDate={bill.billDate}
+      onApply={async (returnId, amount, date) => {
+        const ret = available.data!.find((r) => r.id === returnId)!
+        await apply.mutateAsync({ id: returnId, documentId: bill.id, amount, date, rowVersion: ret.rowVersion })
+        return `${formatINR(amount)} from ${ret.number} set against ${bill.number}`
+      }}
+    />
   )
 }

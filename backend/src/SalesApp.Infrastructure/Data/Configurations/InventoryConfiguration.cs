@@ -62,9 +62,12 @@ internal sealed class StockReceiptLineConfiguration : IEntityTypeConfiguration<S
     public void Configure(EntityTypeBuilder<StockReceiptLine> builder)
     {
         builder.Property(l => l.Quantity).HasPrecision(18, 3);
+        builder.Property(l => l.QuantityRejected).HasPrecision(18, 3);
+        builder.Property(l => l.RejectionReason).HasMaxLength(200);
         builder.HasOne(l => l.Product).WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<PurchaseOrderLine>().WithMany().HasForeignKey(l => l.PurchaseOrderLineId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(l => l.PurchaseOrderLineId);
-        builder.ToTable(t => t.HasCheckConstraint("CK_StockReceiptLines_Quantity", "[Quantity] > 0"));
+        // A line can be all rejected (nothing accepted), but it must record something.
+        builder.ToTable(t => t.HasCheckConstraint("CK_StockReceiptLines_Quantity", "[Quantity] >= 0 AND [QuantityRejected] >= 0 AND [Quantity] + [QuantityRejected] > 0"));
     }
 }

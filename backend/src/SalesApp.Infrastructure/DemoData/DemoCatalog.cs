@@ -152,6 +152,32 @@ internal static class DemoCatalog
     /// <summary>Relative demand by calendar month: festive Navratri/Diwali peak in Oct-Nov, March year-end push, April-May lull.</summary>
     public static readonly double[] Seasonality = [0.95, 0.90, 1.05, 0.85, 0.85, 0.90, 0.95, 1.05, 1.15, 1.45, 1.35, 1.00];
 
+    /// <summary>The product customers send back far more than the rest (snags and uneven shade), for AI insights to find.</summary>
+    public const string ReturnProneSku = "FB-SAT";
+
+    /// <summary>What the customer said when goods came back, or why the price was corrected.</summary>
+    public static readonly Dictionary<ReturnReason, string[]> ReturnNotes = new()
+    {
+        [ReturnReason.Damaged] = ["Two bales wet in transit", "Cartons crushed on delivery", "Torn packing, goods soiled"],
+        [ReturnReason.WrongItem] = ["Sent 40s instead of 30s", "Wrong shade supplied", "Wrong size mix in the cartons"],
+        [ReturnReason.QualityIssue] = ["Uneven shade across the lot", "Snags and pulls in the fabric", "Count variation found in testing", "Weak yarn, breaks on the loom"],
+        [ReturnReason.RateDifference] = ["Rate agreed on the phone was lower", "Billed at last month's rate"],
+        [ReturnReason.Discount] = ["Festival discount agreed after delivery", "Volume discount for the quarter"],
+        [ReturnReason.ShortSupply] = ["Short weight found on receipt", "Two cartons short in the delivery"],
+    };
+
+    /// <summary>Why goods were sent back to a supplier after their bill.</summary>
+    public static readonly string[] SupplierReturnNotes =
+    [
+        "Shade not as per approved sample", "Moisture damage found after opening", "Count lower than ordered", "Wrong quality sent",
+    ];
+
+    /// <summary>Why part of a delivery was refused at the door.</summary>
+    public static readonly string[] RejectionReasons =
+    [
+        "Wet cones", "Torn bales", "Shade mismatch with the sample", "Short weight on the scale",
+    ];
+
     public static readonly string[] CancelReasons =
     [
         "Customer cancelled the requirement", "Price not agreed", "Duplicate order", "Delivery timeline not suitable",

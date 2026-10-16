@@ -139,8 +139,13 @@ public sealed class StockReceiptLine
     public int ProductId { get; set; }
     public Product? Product { get; set; }
 
+    /// <summary>Accepted into stock.</summary>
     public decimal Quantity { get; set; }
     public decimal? UnitCost { get; set; }
+
+    /// <summary>Refused on delivery: never entered stock, and the order still expects it.</summary>
+    public decimal QuantityRejected { get; set; }
+    public string? RejectionReason { get; set; }
 }
 
 public enum SupplierBillStatus
@@ -222,6 +227,9 @@ public sealed class SupplierBill
     public decimal RoundOff { get; set; }
     public decimal GrandTotal { get; set; }
     public decimal AmountPaid { get; set; }
+
+    /// <summary>Supplier returns set against this bill. What we owe is GrandTotal - AmountPaid - AmountCredited.</summary>
+    public decimal AmountCredited { get; set; }
 
     /// <summary>The total printed on the supplier's invoice, when given; a difference is flagged.</summary>
     public decimal? SupplierTotal { get; set; }

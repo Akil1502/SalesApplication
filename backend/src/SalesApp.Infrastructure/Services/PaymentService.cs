@@ -72,7 +72,7 @@ public sealed class PaymentService(
     {
         var invoice = await db.Invoices.AsNoTracking()
             .Where(i => i.Id == request.InvoiceId)
-            .Select(i => new { i.Id, i.Number, i.Status, i.InvoiceDate, i.CustomerId, i.CustomerName, Balance = i.GrandTotal - i.AmountPaid })
+            .Select(i => new { i.Id, i.Number, i.Status, i.InvoiceDate, i.CustomerId, i.CustomerName, Balance = i.GrandTotal - i.AmountPaid - i.AmountCredited })
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new ValidationException("invoiceId", "Choose a valid invoice.");
 
@@ -83,7 +83,7 @@ public sealed class PaymentService(
 
         if (invoice.Status == InvoiceStatus.Paid)
         {
-            throw new ValidationException("amount", $"{invoice.Number} is already fully paid.");
+            throw new ValidationException("amount", $"Nothing is due on {invoice.Number}.");
         }
 
         var today = clock.Today;
@@ -122,9 +122,9 @@ public sealed class PaymentService(
         var updated = await db.Database.SqlQuery<decimal>($"""
             UPDATE [dbo].[Invoices]
             SET [AmountPaid] = [AmountPaid] + {amount},
-                [Status] = CASE WHEN [AmountPaid] + {amount} >= [GrandTotal] THEN 'Paid' ELSE 'PartiallyPaid' END
+                [Status] = CASE WHEN [AmountPaid] + [AmountCredited] + {amount} >= [GrandTotal] THEN 'Paid' ELSE 'PartiallyPaid' END
             OUTPUT inserted.[AmountPaid] AS [Value]
-            WHERE [Id] = {invoice.Id} AND [Status] <> 'Cancelled' AND [AmountPaid] + {amount} <= [GrandTotal]
+            WHERE [Id] = {invoice.Id} AND [Status] <> 'Cancelled' AND [AmountPaid] + [AmountCredited] + {amount} <= [GrandTotal]
             """).ToListAsync(cancellationToken);
 
         if (updated.Count == 0)

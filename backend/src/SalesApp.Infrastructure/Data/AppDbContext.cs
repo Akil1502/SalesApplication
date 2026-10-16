@@ -30,6 +30,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<SupplierBill> SupplierBills => Set<SupplierBill>();
     public DbSet<SupplierBillLine> SupplierBillLines => Set<SupplierBillLine>();
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
+    public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
+    public DbSet<CreditNoteLine> CreditNoteLines => Set<CreditNoteLine>();
+    public DbSet<CreditAdjustment> CreditAdjustments => Set<CreditAdjustment>();
+    public DbSet<CreditRefund> CreditRefunds => Set<CreditRefund>();
+    public DbSet<SupplierReturn> SupplierReturns => Set<SupplierReturn>();
+    public DbSet<SupplierReturnLine> SupplierReturnLines => Set<SupplierReturnLine>();
+    public DbSet<SupplierCreditAdjustment> SupplierCreditAdjustments => Set<SupplierCreditAdjustment>();
+    public DbSet<SupplierRefund> SupplierRefunds => Set<SupplierRefund>();
     public DbSet<SalesOrder> SalesOrders => Set<SalesOrder>();
     public DbSet<SalesOrderLine> SalesOrderLines => Set<SalesOrderLine>();
     public DbSet<Invoice> Invoices => Set<Invoice>();

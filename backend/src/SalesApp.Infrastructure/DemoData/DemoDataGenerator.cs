@@ -32,7 +32,11 @@ public sealed record DemoDataSummary(
     int Suppliers = 0,
     int PurchaseOrders = 0,
     int SupplierBills = 0,
-    int SupplierPayments = 0);
+    int SupplierPayments = 0,
+    int CreditNotes = 0,
+    int Refunds = 0,
+    int SupplierReturns = 0,
+    int Rejections = 0);
 
 /// <summary>
 /// Generates realistic, fully consistent demo history: a day-by-day simulation of a textile trading
@@ -104,8 +108,9 @@ public sealed class DemoDataGenerator(
 
             var summary = new DemoDataSummary(_start, _today, customers.Count, products.Count, simulation.Orders.Count,
                 simulation.Invoices.Count, simulation.PaymentCount, simulation.Receipts.Count, simulation.Movements.Count,
-                simulation.Invoices.Sum(i => i.Entity.TaxableValue), stopwatch.Elapsed,
-                suppliers.Count, simulation.PurchaseOrders.Count, simulation.Bills.Count, simulation.SupplierPaymentCount);
+                simulation.Invoices.Sum(i => i.Entity.TaxableValue) - simulation.CreditNotes.Sum(c => c.Entity.TaxableValue), stopwatch.Elapsed,
+                suppliers.Count, simulation.PurchaseOrders.Count, simulation.Bills.Count, simulation.SupplierPaymentCount,
+                simulation.CreditNotes.Count, simulation.RefundCount, simulation.SupplierReturns.Count, simulation.RejectionCount);
             logger.LogInformation("Demo data generated: {Summary}", summary);
             return summary;
         }
@@ -126,6 +131,14 @@ public sealed class DemoDataGenerator(
         foreach (var sql in new[]
         {
             "UPDATE [dbo].[SalesOrders] SET [InvoiceId] = NULL",
+            "DELETE FROM [dbo].[CreditRefunds]",
+            "DELETE FROM [dbo].[CreditAdjustments]",
+            "DELETE FROM [dbo].[CreditNoteLines]",
+            "DELETE FROM [dbo].[CreditNotes]",
+            "DELETE FROM [dbo].[SupplierRefunds]",
+            "DELETE FROM [dbo].[SupplierCreditAdjustments]",
+            "DELETE FROM [dbo].[SupplierReturnLines]",
+            "DELETE FROM [dbo].[SupplierReturns]",
             "DELETE FROM [dbo].[Payments]",
             "DELETE FROM [dbo].[InvoiceLines]",
             "DELETE FROM [dbo].[Invoices]",

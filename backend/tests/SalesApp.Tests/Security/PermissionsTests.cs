@@ -55,7 +55,7 @@ public sealed class PermissionsTests
     {
         Assert.Equal(
             [
-                "ask-data.use", "assistant.use", "customers.edit", "customers.view", "dashboard.view", "invoices.view", "orders.edit",
+                "ask-data.use", "assistant.use", "credit-notes.view", "customers.edit", "customers.view", "dashboard.view", "invoices.view", "orders.edit",
                 "orders.view", "payments.view", "products.view", "reports.view", "sales-rep.assignable", "smart-entry.use", "stock.view",
             ],
             Roles.DefaultPermissions(Roles.SalesRep).Order(StringComparer.Ordinal));
@@ -67,6 +67,8 @@ public sealed class PermissionsTests
         Assert.DoesNotContain(Permissions.SupplierBillsApprove, manager);
         Assert.Contains(Permissions.PurchaseOrdersEdit, manager);
         Assert.Contains(Permissions.SupplierPaymentsEdit, manager);
+        Assert.Contains(Permissions.CreditNotesEdit, manager);
+        Assert.Contains(Permissions.SupplierReturnsEdit, manager);
         Assert.DoesNotContain(Permissions.AuditView, manager);
         Assert.DoesNotContain(Permissions.RatesView, manager);
         Assert.DoesNotContain(Permissions.SettingsEdit, manager);

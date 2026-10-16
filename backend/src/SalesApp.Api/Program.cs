@@ -212,6 +212,7 @@ if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
           {summary.Customers} customers, {summary.Products} products, {summary.Orders} orders, {summary.Invoices} invoices,
           {summary.Payments} payments, {summary.Suppliers} suppliers, {summary.PurchaseOrders} purchase orders,
           {summary.StockReceipts} goods receipts, {summary.SupplierBills} supplier bills, {summary.SupplierPayments} supplier payments,
+          {summary.CreditNotes} credit notes, {summary.Refunds} refunds, {summary.SupplierReturns} supplier returns, {summary.Rejections} rejected deliveries,
           {summary.StockMovements} stock movements, taxable sales Rs {summary.TaxableSales:N0}
         """);
     return;

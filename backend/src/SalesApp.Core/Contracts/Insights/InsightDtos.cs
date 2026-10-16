@@ -104,6 +104,12 @@ public enum AnomalyKind
 
     /// <summary>A customer with a significant amount more than 60 days past due.</summary>
     PaymentRisk,
+
+    /// <summary>
+    /// A product or customer with far more goods coming back on credit notes than usual over the last 12 months.
+    /// Ratio is its return rate in percent; Typical is the usual rate across products or customers, in percent.
+    /// </summary>
+    HighReturns,
 }
 
 /// <summary>

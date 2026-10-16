@@ -355,8 +355,8 @@ public sealed class OrderService(
     }
 
     /// <summary>
-    /// Exposure = unpaid invoices + other confirmed orders + this order. Over the limit, sales reps are
-    /// stopped; managers and admins can confirm anyway by setting OverrideCreditLimit.
+    /// Exposure = unpaid invoices + other confirmed orders + this order - unused credit from credit notes. Over the
+    /// limit, sales reps are stopped; managers and admins can confirm anyway by setting OverrideCreditLimit.
     /// </summary>
     private async Task CheckCreditLimitAsync(SalesOrder order, Customer customer, bool overrideRequested, CancellationToken cancellationToken)
     {
@@ -367,11 +367,12 @@ public sealed class OrderService(
 
         var outstanding = await db.Invoices
             .Where(i => i.CustomerId == customer.Id && i.Status != InvoiceStatus.Cancelled)
-            .SumAsync(i => (decimal?)(i.GrandTotal - i.AmountPaid), cancellationToken) ?? 0m;
+            .SumAsync(i => (decimal?)(i.GrandTotal - i.AmountPaid - i.AmountCredited), cancellationToken) ?? 0m;
         var otherOrders = await db.SalesOrders
             .Where(o => o.CustomerId == customer.Id && o.Status == SalesOrderStatus.Confirmed && o.Id != order.Id)
             .SumAsync(o => (decimal?)o.GrandTotal, cancellationToken) ?? 0m;
-        var exposure = outstanding + otherOrders + order.GrandTotal;
+        var credit = await Credits.CustomerCreditAsync(db, customer.Id, cancellationToken);
+        var exposure = outstanding + otherOrders + order.GrandTotal - credit;
 
         if (exposure <= limit || (overrideRequested && currentUser.Has(Permissions.CreditLimitOverride)))
         {
@@ -380,7 +381,8 @@ public sealed class OrderService(
 
         var what = $"This order takes {customer.Name} to ₹{AmountInWords.IndianGrouping(exposure)} against a credit limit of " +
                    $"₹{AmountInWords.IndianGrouping(limit)} (unpaid invoices ₹{AmountInWords.IndianGrouping(outstanding)}, " +
-                   $"other confirmed orders ₹{AmountInWords.IndianGrouping(otherOrders)}).";
+                   $"other confirmed orders ₹{AmountInWords.IndianGrouping(otherOrders)}" +
+                   (credit > 0 ? $", less unused credit ₹{AmountInWords.IndianGrouping(credit)})." : ").");
         throw new ValidationException("creditLimit", currentUser.Has(Permissions.CreditLimitOverride)
             ? $"{what} Confirm with override to go ahead."
             : $"{what} Ask someone who can override credit limits to approve it.");

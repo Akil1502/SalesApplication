@@ -86,7 +86,9 @@ public sealed record StockReceiptLineDto(
     string ProductName,
     ProductUnit Unit,
     decimal Quantity,
-    decimal? UnitCost);
+    decimal? UnitCost,
+    decimal QuantityRejected,
+    string? RejectionReason);
 
 public sealed record StockReceiptDto(
     int Id,

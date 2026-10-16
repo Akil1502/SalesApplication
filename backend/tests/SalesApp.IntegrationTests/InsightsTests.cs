@@ -62,8 +62,14 @@ public sealed class InsightsTests(DemoDataFactory factory) : IClassFixture<DemoD
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var today = scope.ServiceProvider.GetRequiredService<IBusinessClock>().Today;
         var yearStart = FinancialYear.Start(today);
-        var sales = await db.Invoices.Where(i => i.Status != InvoiceStatus.Cancelled && i.InvoiceDate >= yearStart && i.InvoiceDate <= today).SumAsync(i => i.TaxableValue, Ct);
+        // Sales are net of credit notes.
+        var sales = await db.Invoices.Where(i => i.Status != InvoiceStatus.Cancelled && i.InvoiceDate >= yearStart && i.InvoiceDate <= today).SumAsync(i => i.TaxableValue, Ct)
+            - await db.CreditNotes.Where(c => c.Status == ReturnDocumentStatus.Issued && c.CreditNoteDate >= yearStart && c.CreditNoteDate <= today).SumAsync(c => c.TaxableValue, Ct);
         Assert.Equal(Math.Round(sales, 0, MidpointRounding.AwayFromZero), metrics.Sales.FinancialYearToDate);
+
+        // The satin comes back far more often than anything else, and the insights say so.
+        Assert.True(metrics.Anomalies.Any(a => a.Kind == AnomalyKind.HighReturns && a.Title.StartsWith("FB-SAT", StringComparison.Ordinal)),
+            string.Join(" | ", metrics.Anomalies.Select(a => $"{a.Kind}: {a.Title} ({a.Detail})")));
 
         // Thirteen full months: too short to backtest, so same month last year is used, for this month and the next two.
         Assert.Equal(ForecastMethod.SeasonalNaive, metrics.Forecast.Method);
@@ -85,7 +91,8 @@ public sealed class InsightsTests(DemoDataFactory factory) : IClassFixture<DemoD
             .Join(db.Invoices, o => o.InvoiceId, i => i.Id, (o, i) => i.Number).SingleAsync(Ct);
         var unusual = Assert.Single(metrics.Anomalies, a => a.Kind == AnomalyKind.UnusualInvoice && a.Reference == bulk);
         Assert.True(unusual.Ratio >= 4);
-        Assert.Contains(metrics.Anomalies, a => a.Kind == AnomalyKind.Stockout && a.Title.StartsWith("GT-VST has been out of stock", StringComparison.Ordinal));
+        Assert.True(metrics.Anomalies.Any(a => a.Kind == AnomalyKind.Stockout && a.Title.StartsWith("GT-VST has been out of stock", StringComparison.Ordinal)),
+            string.Join(" | ", metrics.Anomalies.Where(a => a.Kind == AnomalyKind.Stockout).Select(a => a.Title)));
         Assert.Contains(metrics.Anomalies, a => a.Kind == AnomalyKind.StoppedBuying);
         Assert.All(metrics.Anomalies, a => Assert.False(string.IsNullOrWhiteSpace(a.Detail)));
     }

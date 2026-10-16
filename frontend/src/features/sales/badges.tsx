@@ -34,11 +34,12 @@ const invoiceTones: Record<InvoiceStatus, string> = {
   Cancelled: tone.red,
 }
 
-export function InvoiceStatusBadge({ status, daysOverdue }: { status: InvoiceStatus; daysOverdue?: number | null }) {
+/** settledByCredit: nothing was paid and credit notes cleared it, so "Paid" would mislead. */
+export function InvoiceStatusBadge({ status, daysOverdue, settledByCredit }: { status: InvoiceStatus; daysOverdue?: number | null; settledByCredit?: boolean }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <Badge variant="outline" className={invoiceTones[status]}>
-        {invoiceStatusLabels[status]}
+        {status === 'Paid' && settledByCredit ? 'Credited' : invoiceStatusLabels[status]}
       </Badge>
       {daysOverdue != null && (
         <Badge variant="outline" className={tone.red}>
