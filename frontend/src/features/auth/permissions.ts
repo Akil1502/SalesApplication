@@ -29,6 +29,7 @@ export const Permissions = {
   UsersEdit: 'users.edit',
   SettingsEdit: 'settings.edit',
   AiUsageView: 'ai-usage.view',
+  AuditView: 'audit.view',
   CostPricesView: 'cost-prices.view',
   CreditTermsEdit: 'credit-terms.edit',
   CreditLimitOverride: 'credit-limit.override',

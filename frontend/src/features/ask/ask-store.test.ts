@@ -103,7 +103,7 @@ describe('ask store on sign-out', () => {
     sessionStorage.setItem('salesapp.ask.history', JSON.stringify([{ id: '1', question: 'Who owes us the most?', status: 'done', steps: [] }]))
     const { askStore } = await freshStore()
     const { authStore } = await import('@/features/auth/auth-store')
-    authStore.set({ token: 't', expiresAtUtc: new Date(Date.now() + 3600e3).toISOString() })
+    authStore.set({ token: 't', expiresAtUtc: new Date(Date.now() + 3600e3).toISOString(), userId: 'u-1' })
     expect(askStore.getSnapshot()).toHaveLength(1)
 
     authStore.clear()

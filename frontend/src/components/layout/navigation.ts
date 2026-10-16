@@ -3,6 +3,7 @@ import {
   Boxes,
   ChartColumn,
   FileText,
+  History,
   LayoutDashboard,
   Lightbulb,
   MessageSquareText,
@@ -76,6 +77,7 @@ export const navigation: NavGroup[] = [
       { title: 'Users & roles', to: '/admin/users', icon: UserCog, permission: Permissions.UsersView },
       { title: 'Company settings', to: '/admin/settings', icon: Settings, permission: Permissions.SettingsEdit },
       { title: 'AI usage', to: '/admin/ai-usage', icon: FileText, permission: Permissions.AiUsageView },
+      { title: 'Audit log', to: '/admin/audit', icon: History, permission: Permissions.AuditView },
     ],
   },
 ]

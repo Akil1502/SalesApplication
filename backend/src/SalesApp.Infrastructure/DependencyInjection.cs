@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using SalesApp.Core.Common;
 using SalesApp.Core.Entities;
+using SalesApp.Core.Security;
+using SalesApp.Infrastructure.Auditing;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.Security;
 using SalesApp.Infrastructure.Services;
@@ -24,11 +27,16 @@ public static class DependencyInjection
 
         services.AddSingleton<AuditTimestampsInterceptor>();
 
+        // The audit trail: who changed what, written by every save. The API replaces the actor with the signed-in user.
+        services.TryAddScoped<IAuditActor, SystemAuditActor>();
+        services.AddScoped<AuditInterceptor>();
+        services.AddScoped<IAuditLog, AuditLog>();
+
         // No EnableRetryOnFailure: invoicing uses explicit transactions (gapless numbering),
         // which a retrying execution strategy would reject. LocalDB/on-prem SQL rarely needs it.
         services.AddDbContext<AppDbContext>((provider, options) => options
             .UseSqlServer(connectionString)
-            .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>()));
+            .AddInterceptors(provider.GetRequiredService<AuditTimestampsInterceptor>(), provider.GetRequiredService<AuditInterceptor>()));
 
         // AddIdentityCore (not AddIdentity) because the API authenticates with JWTs, not cookies.
         services

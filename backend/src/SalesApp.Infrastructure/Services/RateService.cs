@@ -180,11 +180,11 @@ public sealed class RateService(AppDbContext db, ICurrentUser currentUser, IBusi
 
     public async Task DeleteAsync(int id, CancellationToken cancellationToken)
     {
-        var deleted = await db.ProductRates.Where(r => r.Id == id).ExecuteDeleteAsync(cancellationToken);
-        if (deleted == 0)
-        {
-            throw new NotFoundException($"Rate {id} was not found.");
-        }
+        // Loaded and removed (not a bulk delete) so the audit trail records what was removed.
+        var rate = await db.ProductRates.SingleOrDefaultAsync(r => r.Id == id, cancellationToken)
+            ?? throw new NotFoundException($"Rate {id} was not found.");
+        db.ProductRates.Remove(rate);
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<byte[]> ExportAsync(DateOnly day, int? categoryId, string? q, CancellationToken cancellationToken)

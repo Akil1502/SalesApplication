@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { RecordHistory } from '@/features/audit/RecordHistory'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { useCustomer } from '@/features/customers/api'
@@ -359,6 +360,8 @@ export function OrderFormPage() {
           </div>
         </CardContent>
       </Card>
+
+      {o && <RecordHistory entityType="Order" entityId={o.id} />}
 
       {/* Action bar: what's possible depends on the order's status. */}
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">

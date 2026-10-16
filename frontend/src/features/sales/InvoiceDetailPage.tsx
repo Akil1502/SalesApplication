@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { RecordHistory } from '@/features/audit/RecordHistory'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { errorMessage } from '@/lib/api/errors'
@@ -272,6 +273,8 @@ export function InvoiceDetailPage() {
           }
         }}
       />
+
+      <RecordHistory entityType="Invoice" entityId={inv.id} />
     </div>
   )
 }

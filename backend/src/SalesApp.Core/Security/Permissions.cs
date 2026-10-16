@@ -35,6 +35,7 @@ public static class Permissions
     public const string UsersEdit = "users.edit";
     public const string SettingsEdit = "settings.edit";
     public const string AiUsageView = "ai-usage.view";
+    public const string AuditView = "audit.view";
 
     // Special rights: not menus, but rules inside them.
     public const string CostPricesView = "cost-prices.view";
@@ -62,6 +63,7 @@ public static class Permissions
         new("Administration", "Users & roles", UsersView, "See users and roles.", UsersEdit, "Add and change users and roles, and reset passwords."),
         new("Administration", "Company settings", SettingsEdit, "Change the company's details, GSTIN and bank details.", null, null),
         new("Administration", "AI usage", AiUsageView, "See AI spend, every call to Claude and every query the AI wrote.", null, null),
+        new("Administration", "Audit log", AuditView, "See who changed what and when, with old and new values, plus sign-ins and downloads; and each record's history.", null, null),
     ];
 
     public static readonly IReadOnlyList<PermissionRightDto> SpecialRights =
@@ -144,7 +146,7 @@ public static class Permissions
 
     /// <summary>What the built-in Sales manager role starts with: everything except administration and rate updates.</summary>
     public static readonly IReadOnlySet<string> SalesManagerDefaults =
-        All.Except([UsersView, UsersEdit, SettingsEdit, AiUsageView, RatesView, RatesEdit]).ToHashSet(StringComparer.Ordinal);
+        All.Except([UsersView, UsersEdit, SettingsEdit, AiUsageView, AuditView, RatesView, RatesEdit]).ToHashSet(StringComparer.Ordinal);
 
     /// <summary>What the built-in Sales representative role starts with: day-to-day order and customer work.</summary>
     public static readonly IReadOnlySet<string> SalesRepDefaults = WithNeeds(

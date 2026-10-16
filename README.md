@@ -86,6 +86,7 @@ All names, GSTINs and figures are made up. The command only runs in the Developm
 | Task | Command |
 |---|---|
 | Backend tests | `dotnet test --solution backend/SalesApp.slnx` (the live AI evals skip unless enabled) |
+| Tests against another SQL Server (with a SQL login) | set `SALESAPP_TEST_SERVER`, `SALESAPP_TEST_SQL_USER` and `SALESAPP_TEST_SQL_PASSWORD`, then run the backend tests |
 | Live AI evals: calls Claude, about ₹50, stops at $3 | `$env:SALESAPP_RUN_EVALS = 'yes'; dotnet test --project backend/tests/SalesApp.Evals -c Release` |
 | Frontend tests | `npm test --prefix frontend` |
 | Frontend lint / typecheck | `npm run lint --prefix frontend` · `npm run typecheck --prefix frontend` |
@@ -139,6 +140,23 @@ selling rate for a period, such as a month's rate list from 1 to 31 January.
 - **Periods never overlap.** Saving exactly the same period again changes its rates; any other overlap is refused,
   naming the product and the period in the way. Rate history lists every period with who set it and when; periods
   can be edited or removed there. Each product's page shows its periods and today's price.
+
+## Audit trail
+
+Administration → **Audit log** (administrators by default; anyone given the Audit log permission) shows who did what
+and when.
+
+- **Every change, field by field.** Creating, changing or removing a customer (including its addresses), product,
+  rate, category, HSN code, order (including its lines), invoice, payment, goods receipt, stock adjustment, user,
+  role or the company settings is recorded with each field's old and new value, written as people read them
+  ("Credit limit: ₹26,00,000 → ₹30,00,000", "Sales rep: Arun Kumar → Divya Rajan").
+- **Security events:** sign-ins, failed sign-ins (under the email that was tried, with the reason), lockouts,
+  password resets, changes to a user's role or permissions and to a role's permissions, and Excel downloads.
+- **Who and from where:** the user's name at the time and the address the request came from. Background work is
+  recorded as "System".
+- **History on records:** customers, products, orders and invoices have a History panel listing their own changes.
+- **It can be trusted:** a change and its entry are saved in the same transaction, and a database trigger refuses
+  any update or delete of an entry. Generating demo data isn't recorded, so it doesn't bury real activity.
 
 ## Deployment
 
@@ -381,6 +399,9 @@ docs/DEPLOYMENT-IIS.md           Publishing to IIS
 - **Money is `decimal(18,2)`**; quantities are `decimal(18,3)` (kg to the gram, metres to the millimetre).
 - **Optimistic concurrency**: editable records carry a `rowVersion`; saving a stale copy returns 409 and the UI offers a reload.
 - **List endpoints** share `q`, `page`, `pageSize` (max 100), `sort` (`name` or `-name`) and `includeInactive`; list state lives in the page URL.
+- **Continuous integration**: GitHub Actions (`.github/workflows/ci.yml`) builds and runs every test on every push
+  and pull request: the backend against a throwaway SQL Server container, and the web app's lint, type check, tests
+  and production build. A pull request into `main` can only be merged once both pass.
 
 ## Reference data
 

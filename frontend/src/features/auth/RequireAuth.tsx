@@ -5,7 +5,9 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Spinner } from '@/components/ui/spinner'
 import { useAiStatus } from '@/features/ai/api'
 import { useAuth } from './auth-context'
+import { authStore } from './auth-store'
 import { Permissions } from './permissions'
+import type { SignInState } from './sign-in-state'
 
 /** Route guard: renders child routes only for a signed-in user, otherwise sends them to /login. */
 export function RequireAuth() {
@@ -21,7 +23,12 @@ export function RequireAuth() {
   }
 
   if (status === 'anonymous') {
-    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
+    // A page opened from a link (a print view in a new tab, say) opens again after signing in. After a sign-out the
+    // next person starts from home instead, and after an expired session only the same person goes back to the page.
+    const ended = authStore.lastSessionEnd()
+    const state: SignInState | undefined =
+      ended?.reason === 'signed-out' ? undefined : { from: location.pathname + location.search, userId: ended?.userId }
+    return <Navigate to="/login" replace state={state} />
   }
 
   return <Outlet />

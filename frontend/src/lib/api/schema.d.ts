@@ -610,6 +610,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Entries newest first. Filter by record (EntityType and EntityId) for one record's history. */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description The kind of record, such as "Customer". */
+                    entityType?: string;
+                    entityId?: string;
+                    userId?: string;
+                    /** @description An AuditAction name, such as "SignInFailed". */
+                    action?: string;
+                    from?: string;
+                    to?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfAuditEntryDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -3883,6 +3933,33 @@ export interface components {
             succeeded: null | boolean;
             detail: null | string;
         };
+        /**
+         * @description What an audit entry records.
+         * @enum {unknown}
+         */
+        AuditAction: "Created" | "Updated" | "Deleted" | "SignedIn" | "SignInFailed" | "LockedOut" | "PasswordReset" | "PermissionsChanged" | "Exported";
+        /** @description One changed field, with its values written as people read them ("₹7,50,000", "16 Oct 2026"); null when empty. */
+        AuditChange: {
+            field: string;
+            old: null | string;
+            new: null | string;
+        };
+        AuditEntryDto: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            occurredAtUtc: string;
+            /** Format: uuid */
+            userId: null | string;
+            userName: string;
+            action: components["schemas"]["AuditAction"];
+            entityType: null | string;
+            entityId: null | string;
+            entityLabel: null | string;
+            summary: null | string;
+            changes: components["schemas"]["AuditChange"][];
+            ipAddress: null | string;
+        };
         BacktestDto: {
             method: components["schemas"]["ForecastMethod"];
             /** Format: double */
@@ -4636,6 +4713,17 @@ export interface components {
         };
         PagedResultOfAiQueryDto: {
             items: components["schemas"]["AiQueryDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PagedResultOfAuditEntryDto: {
+            items: components["schemas"]["AuditEntryDto"][];
             /** Format: int32 */
             page: number;
             /** Format: int32 */

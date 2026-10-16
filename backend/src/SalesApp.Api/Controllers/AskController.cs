@@ -12,7 +12,9 @@ using SalesApp.Api.Security;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Ai;
 using SalesApp.Core.Contracts.Reports;
+using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
+using SalesApp.Infrastructure.Auditing;
 using SalesApp.Infrastructure.Reporting;
 using SalesApp.Infrastructure.Services;
 
@@ -28,6 +30,7 @@ public sealed class AskController(
     IAskDataService askData,
     IClaudeGateway claude,
     ICompanySettingsService settings,
+    IAuditLog audit,
     IOptions<JsonOptions> json,
     ILogger<AskController> logger) : ApiControllerBase
 {
@@ -108,6 +111,7 @@ public sealed class AskController(
             columns, rows, new Dictionary<string, object?>());
         var company = await settings.GetAsync(cancellationToken);
         var bytes = ExcelReportWriter.Write(report, company.TradeName ?? company.LegalName);
+        await audit.RecordAsync(new AuditEvent(AuditAction.Exported, Summary: $"Downloaded an Ask your data answer as Excel: \"{title}\" ({rows.Count} rows)."), cancellationToken);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"answer_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx");
     }
 

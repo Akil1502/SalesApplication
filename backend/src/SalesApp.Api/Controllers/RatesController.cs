@@ -5,7 +5,9 @@ using SalesApp.Api.Security;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Masters;
+using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
+using SalesApp.Infrastructure.Auditing;
 using SalesApp.Infrastructure.Services;
 
 namespace SalesApp.Api.Controllers;
@@ -18,7 +20,7 @@ public sealed class RateImportForm
 
 /// <summary>Rate lists: products' rates for periods. Administrators by default (Rate updates permission).</summary>
 [RequirePermission(Permissions.RatesView)]
-public sealed class RatesController(IRateService rates, IBusinessClock clock) : ApiControllerBase
+public sealed class RatesController(IRateService rates, IBusinessClock clock, IAuditLog audit) : ApiControllerBase
 {
     private const long MaxSheetBytes = 5 * 1024 * 1024;
 
@@ -60,6 +62,8 @@ public sealed class RatesController(IRateService rates, IBusinessClock clock) : 
     {
         var day = on ?? clock.Today;
         var bytes = await rates.ExportAsync(day, categoryId, q, cancellationToken);
+        await audit.RecordAsync(new AuditEvent(AuditAction.Exported,
+            Summary: $"Downloaded the rate sheet with prices on {day.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}."), cancellationToken);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"rates-{day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.xlsx");
     }

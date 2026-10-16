@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (email: string, password: string) => {
       const result = await unwrap(api.POST('/api/auth/login', { body: { email, password } }))
       queryClient.setQueryData(currentUserQueryKey, result.user)
-      authStore.set({ token: result.accessToken, expiresAtUtc: result.expiresAtUtc })
+      authStore.set({ token: result.accessToken, expiresAtUtc: result.expiresAtUtc, userId: result.user.id })
     },
     [queryClient],
   )
