@@ -113,7 +113,7 @@ describe('assistant store', () => {
   it('clears everything on sign-out', async () => {
     const { assistantStore } = await freshStore()
     const { authStore } = await import('@/features/auth/auth-store')
-    authStore.set({ token: 't', expiresAtUtc: new Date(Date.now() + 3600e3).toISOString() })
+    authStore.set({ token: 't', expiresAtUtc: new Date(Date.now() + 3600e3).toISOString(), userId: 'u-1' })
     const reply = scriptedReply()
     const sending = assistantStore.send('Hello')
     reply.handlers().onStarted('c-2', 'Hello')

@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ChartNoAxesCombined } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Navigate, useLocation } from 'react-router'
 import { z } from 'zod'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { useAuth } from './auth-context'
 import { authStore } from './auth-store'
+import { landingPage } from './sign-in-state'
 
 const loginSchema = z.object({
   email: z.email({ error: 'Enter a valid email address.' }),
@@ -22,10 +23,8 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>
 
 export function LoginPage() {
-  const { status, login } = useAuth()
-  const navigate = useNavigate()
+  const { status, user, login } = useAuth()
   const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
 
   // Read once on mount: was the user sent here because their session expired?
   const [expiredNotice] = useState(() => authStore.takeSignOutReason() === 'expired')
@@ -36,15 +35,15 @@ export function LoginPage() {
     defaultValues: { email: '', password: '' },
   })
 
-  if (status === 'authenticated') {
-    return <Navigate to={from} replace />
+  // Signing in lands here too: the page re-renders as signed in, so this is the one place that picks the next page.
+  if (status === 'authenticated' && user) {
+    return <Navigate to={landingPage(location.state, user.id)} replace />
   }
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null)
     try {
       await login(values.email, values.password)
-      navigate(from, { replace: true })
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['email', 'password'])) {
         setServerError(errorMessage(error))

@@ -9,17 +9,25 @@
 export interface Session {
   token: string
   expiresAtUtc: string
+  /** Who signed in, so after an expired session only that person is taken back to the page they were on. */
+  userId: string
 }
 
 export type SignOutReason = 'expired' | 'signed-out'
+
+/** How the last session in this tab ended, and whose it was. */
+export interface SessionEnd {
+  reason: SignOutReason
+  userId: string
+}
 
 type Listener = () => void
 
 const STORAGE_KEY = 'salesapp.session'
 
 const listeners = new Set<Listener>()
+let lastEnd: SessionEnd | null = null
 let current: Session | null = load()
-let lastSignOutReason: SignOutReason | null = null
 let expiryTimer: ReturnType<typeof setTimeout> | undefined
 scheduleExpiry()
 
@@ -28,8 +36,14 @@ function load(): Session | null {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<Session>
-    if (typeof parsed.token !== 'string' || typeof parsed.expiresAtUtc !== 'string') return null
-    return isExpired(parsed.expiresAtUtc) ? null : { token: parsed.token, expiresAtUtc: parsed.expiresAtUtc }
+    if (typeof parsed.token !== 'string' || typeof parsed.expiresAtUtc !== 'string' || typeof parsed.userId !== 'string') return null
+    if (isExpired(parsed.expiresAtUtc)) {
+      // The tab was reloaded after the token ran out: the same as it expiring while open.
+      lastEnd = { reason: 'expired', userId: parsed.userId }
+      sessionStorage.removeItem(STORAGE_KEY)
+      return null
+    }
+    return { token: parsed.token, expiresAtUtc: parsed.expiresAtUtc, userId: parsed.userId }
   } catch {
     // Storage blocked (privacy mode) or corrupt JSON: behave as signed out.
     return null
@@ -75,7 +89,7 @@ export const authStore = {
 
   set(session: Session) {
     current = session
-    lastSignOutReason = null
+    lastEnd = null
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session))
     } catch {
@@ -87,8 +101,8 @@ export const authStore = {
 
   clear(reason: SignOutReason = 'signed-out') {
     if (current === null) return
+    lastEnd = { reason, userId: current.userId }
     current = null
-    lastSignOutReason = reason
     clearTimeout(expiryTimer)
     try {
       sessionStorage.removeItem(STORAGE_KEY)
@@ -98,10 +112,15 @@ export const authStore = {
     emit()
   },
 
+  /** How the last session ended, so the sign-in redirect knows whether to come back to the same page. */
+  lastSessionEnd(): SessionEnd | null {
+    return lastEnd
+  },
+
   /** Why the last session ended, so the login page can say "your session expired". Read once. */
   takeSignOutReason(): SignOutReason | null {
-    const reason = lastSignOutReason
-    lastSignOutReason = null
+    const reason = lastEnd?.reason ?? null
+    lastEnd = null
     return reason
   },
 }
