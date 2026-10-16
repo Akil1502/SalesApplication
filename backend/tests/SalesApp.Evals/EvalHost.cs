@@ -70,6 +70,8 @@ public class EvalHost : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:Default", $"Server={SqlServer};Database={_database};{SqlCredentials};TrustServerCertificate=True");
         builder.UseSetting("Database:MigrateOnStartup", "false");
+        // Not a secret: tokens here are issued and checked by this host only. CI has no user-secrets to supply one.
+        builder.UseSetting("Jwt:SigningKey", "eval-test-signing-key-not-a-secret-0123456789");
         builder.UseSetting("Ai:Insights:NightlyEnabled", "false");
         builder.UseSetting("Ai:DailyBudgetUsdPerUser", EvalSettings.BudgetUsd.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
