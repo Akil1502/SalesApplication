@@ -35,7 +35,10 @@ public sealed record ProductListItemDto(
     decimal ReorderLevel,
     bool IsActive);
 
-/// <summary>A product with full details. CostPrice is null for sales reps: cost and margin are manager-only.</summary>
+/// <summary>
+/// A product with full details. CostPrice is null for sales reps: cost and margin are manager-only. Image is null
+/// when the product has no photo.
+/// </summary>
 public sealed record ProductDto(
     int Id,
     string Sku,
@@ -58,7 +61,8 @@ public sealed record ProductDto(
     bool IsActive,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
-    string RowVersion);
+    string RowVersion,
+    ProductImageDto? Image);
 
 public sealed record ProductSaveRequest
 {

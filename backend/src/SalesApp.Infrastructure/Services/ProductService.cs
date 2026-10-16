@@ -16,7 +16,7 @@ public interface IProductService
     Task<ProductDto> UpdateAsync(int id, ProductSaveRequest request, CancellationToken cancellationToken);
 }
 
-public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IBusinessClock clock) : IProductService
+public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IBusinessClock clock, IProductImageUrls imageUrls) : IProductService
 {
     private static readonly SortMap<Product> Sorts = new SortMap<Product>()
         .Add("sku", p => p.Sku)
@@ -78,8 +78,9 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
             .Include(p => p.PreferredSupplier)
             .SingleOrDefaultAsync(p => p.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Product {id} was not found.");
+        var imageVersion = await db.ProductImages.Where(i => i.ProductId == id).Select(i => (int?)i.Version).SingleOrDefaultAsync(cancellationToken);
 
-        return ToDto(product);
+        return ToDto(product, imageVersion);
     }
 
     public async Task<ProductDto> CreateAsync(ProductSaveRequest request, CancellationToken cancellationToken)
@@ -182,12 +183,13 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
         }
     }
 
-    private ProductDto ToDto(Product p) => new(
+    private ProductDto ToDto(Product p, int? imageVersion) => new(
         p.Id, p.Sku, p.Name, p.Description,
         p.CategoryId, p.Category!.Name,
         p.HsnCodeId, p.HsnCode!.Code, p.HsnCode.GstRate,
         p.Unit, p.ListPrice,
         currentUser.Has(Permissions.CostPricesView) ? p.CostPrice : null,
         p.ReorderLevel, p.ReorderQuantity, p.LeadTimeDays, p.PreferredSupplierId, p.PreferredSupplier?.Name, p.Stock?.QuantityOnHand ?? 0m,
-        p.IsActive, p.CreatedAtUtc, p.UpdatedAtUtc, RowVersions.ToToken(p.RowVersion));
+        p.IsActive, p.CreatedAtUtc, p.UpdatedAtUtc, RowVersions.ToToken(p.RowVersion),
+        imageVersion is { } version ? imageUrls.Create(p.Id, version) : null);
 }

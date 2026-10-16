@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -17,6 +18,7 @@ using SalesApp.Infrastructure;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.DemoData;
 using SalesApp.Infrastructure.Insights;
+using SalesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -128,6 +130,12 @@ builder.Services
             NameClaimType = AppClaimTypes.Name,
         };
     });
+
+// Product photo addresses are signed with a key derived from the token key, so there's no extra secret to manage.
+builder.Services
+    .AddOptions<ProductImageOptions>()
+    .Configure<IOptions<JwtOptions>>((images, jwt) => images.SigningKey = HKDF.DeriveKey(
+        HashAlgorithmName.SHA256, Encoding.UTF8.GetBytes(jwt.Value.SigningKey), 32, info: "SalesApp product images"u8.ToArray()));
 
 // Role and permissions come from the database on each request, so an administrator's change applies at once.
 builder.Services.AddScoped<IClaimsTransformation, PermissionClaimsTransformation>();

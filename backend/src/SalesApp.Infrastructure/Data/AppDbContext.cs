@@ -19,6 +19,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<HsnCode> HsnCodes => Set<HsnCode>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductRate> ProductRates => Set<ProductRate>();
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<StockLevel> StockLevels => Set<StockLevel>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();

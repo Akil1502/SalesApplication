@@ -1878,6 +1878,50 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.ToTable("ProductAliases");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.ProductImage", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<byte[]>("ImageData")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ThumbnailContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<byte[]>("ThumbnailData")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductId");
+
+                    b.ToTable("ProductImages", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProductImages_Size", "DATALENGTH([ImageData]) <= 2097152 AND DATALENGTH([ThumbnailData]) <= 262144");
+
+                            t.HasCheckConstraint("CK_ProductImages_Version", "[Version] >= 1");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.ProductRate", b =>
                 {
                     b.Property<int>("Id")
@@ -4422,6 +4466,17 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.ProductImage", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.Product", "Product")
+                        .WithOne()
+                        .HasForeignKey("SalesApp.Core.Entities.ProductImage", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Product");
                 });

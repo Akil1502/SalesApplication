@@ -60,6 +60,8 @@ public static class DependencyInjection
         services.AddScoped<IHsnCodeService, HsnCodeService>();
         services.AddScoped<ICompanySettingsService, CompanySettingsService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddSingleton<IProductImageUrls, ProductImageUrls>();
+        services.AddScoped<IProductImageService, ProductImageService>();
         services.AddScoped<IPriceService, PriceService>();
         services.AddScoped<IRateService, RateService>();
         services.AddScoped<ICustomerService, CustomerService>();
