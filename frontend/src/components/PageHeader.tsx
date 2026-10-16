@@ -1,9 +1,19 @@
-import { motion } from 'motion/react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import type { ReactNode } from 'react'
+import { useMotionLevel } from '@/components/fx/preferences-context'
+import { useInPanel } from '@/components/layout/record-panel-state'
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
+  // The header drifts down and fades a little as the page scrolls under it (not in the side panel).
+  const { scrollY } = useScroll()
+  const y = useTransform(scrollY, [0, 320], [0, 56])
+  const opacity = useTransform(scrollY, [0, 280], [1, 0.4])
+  const level = useMotionLevel()
+  const inPanel = useInPanel()
+  const parallax = level === 'full' && !inPanel
+
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
+    <motion.div className="flex flex-wrap items-start justify-between gap-4" style={parallax ? { y, opacity } : undefined}>
       <div className="space-y-1">
         {/* A short brand-coloured rule that draws itself above each page's title. */}
         <motion.span
@@ -17,7 +27,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
         <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
         {description && <div className="text-sm text-muted-foreground">{description}</div>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
-    </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </motion.div>
   )
 }

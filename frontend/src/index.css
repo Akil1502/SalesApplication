@@ -464,7 +464,8 @@ button > [data-slot='card']:hover,
   box-shadow:
     0 6px 18px -6px var(--brand-glow),
     inset 0 1px 0 oklch(1 0 0 / 22%);
-  transform: translateY(calc(var(--fx-depth) * -1px));
+  /* --magnet-x/y: the button leans towards the pointer (set by the cursor effects at full motion). */
+  transform: translate(var(--magnet-x, 0px), calc(var(--magnet-y, 0px) - var(--fx-depth) * 1px));
 }
 [data-slot='button'][data-variant='default']::after {
   content: '';
@@ -536,3 +537,46 @@ button > [data-slot='card']:hover,
     opacity: 0.75;
   }
 }
+
+/* The list row whose record is open in the side panel. */
+[data-slot='table-body'] > tr[data-state='selected'] {
+  background: color-mix(in oklch, var(--brand) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+/* Cursor spotlight: a soft light follows the pointer across cards (--spot-x/y set by the cursor effects). */
+[data-slot='card'] {
+  position: relative;
+  isolation: isolate;
+}
+[data-slot='card']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    380px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in oklch, var(--brand) 13%, transparent),
+    transparent 65%
+  );
+}
+html[data-motion='full'] [data-slot='card']:hover::before {
+  opacity: 1;
+}
+
+/* Scroll reveals: cards below the fold wait tipped back and rise as they scroll into view. */
+html[data-motion='full'] [data-slot='card'][data-reveal='pending'] {
+  animation: none;
+  opacity: 0;
+  transform: perspective(1200px) translateY(44px) rotateX(10deg) scale(0.97);
+}
+html[data-motion='full'] [data-slot='card'][data-reveal='shown'] {
+  animation: none;
+  transition:
+    opacity 0.8s var(--ease-out),
+    transform 0.8s var(--ease-out);
+}
+

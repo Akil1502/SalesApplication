@@ -2,6 +2,7 @@ import { ArrowLeft, Ban, CheckCircle2, FileCheck2, IndianRupee, Sparkles, Triang
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
+import { PaidStamp } from '@/components/fx/Stamp'
 import { PageHeader } from '@/components/PageHeader'
 import { ReasonDialog } from '@/components/ReasonDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -155,7 +156,8 @@ export function SupplierBillDetailPage() {
         </Alert>
       )}
 
-      <Card>
+      <Card className="relative">
+        <PaidStamp key={b.id} paid={b.status === 'Paid'} className="absolute top-4 right-6 z-10" />
         <CardContent className="grid gap-6 sm:grid-cols-3">
           <div className="space-y-1 text-sm">
             <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Supplier</p>

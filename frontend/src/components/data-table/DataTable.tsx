@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { EmptyArt } from '@/components/fx/EmptyArt'
+import { setMorphOrigin, useOpenRecordId } from '@/components/layout/record-panel-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -44,6 +45,8 @@ export function DataTable<T>({
   sort,
   onSortChange,
 }: DataTableProps<T>) {
+  const openId = useOpenRecordId()
+
   if (error) {
     return (
       <Alert variant="destructive">
@@ -120,7 +123,17 @@ export function DataTable<T>({
               <TableRow
                 key={getRowKey(row)}
                 className={cn(onRowClick && 'cursor-pointer')}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                // The row whose record is open in the side panel stays marked.
+                data-state={openId !== undefined && String(getRowKey(row)) === openId ? 'selected' : undefined}
+                onClick={
+                  onRowClick
+                    ? (event) => {
+                        // The panel grows out of the row that was clicked.
+                        setMorphOrigin(event.currentTarget.getBoundingClientRect())
+                        onRowClick(row)
+                      }
+                    : undefined
+                }
               >
                 {columns.map((column) => (
                   <TableCell key={column.key} className={cn(column.align === 'right' && 'text-right tabular-nums', column.className)}>

@@ -9,6 +9,8 @@ describe('preferences', () => {
     expect(parsePreferences('not json')).toEqual({ theme: 'system' })
     expect(parsePreferences('{"theme":"purple","motion":"subtle"}')).toEqual({ theme: 'system', motion: 'subtle' })
     expect(parsePreferences('{"theme":"dark","motion":"wild"}')).toEqual({ theme: 'dark' })
+    expect(parsePreferences('{"theme":"dark","layout":"dock"}')).toEqual({ theme: 'dark', layout: 'dock' })
+    expect(parsePreferences('{"layout":"sideways"}')).toEqual({ theme: 'system' })
   })
 
   it("keeps each user's choice, and the device's last choice for the sign-in page", () => {

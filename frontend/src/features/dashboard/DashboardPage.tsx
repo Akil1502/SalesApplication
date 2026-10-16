@@ -1,6 +1,5 @@
-import { Boxes, ChartColumn, ClipboardList, IndianRupee, TrendingUp, Wallet } from 'lucide-react'
+import { Boxes, ClipboardList, IndianRupee, TrendingUp, Wallet } from 'lucide-react'
 import { Link } from 'react-router'
-import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +9,7 @@ import { useDashboard, type Dashboard } from '@/features/reports/api'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatINRCompact, todayInIndia } from '@/lib/format'
 import { RankedBars, type RankedBar } from './RankedBars'
+import { SalesHero } from './SalesHero'
 import { SalesTrendChart } from './SalesTrendChart'
 import { change } from './kpi'
 import { StatTile } from './StatTile'
@@ -55,20 +55,14 @@ export function DashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title={`${greeting()}, ${user?.fullName ?? ''}`}
+      <SalesHero
+        greeting={`${greeting()}, ${user?.fullName ?? ''}`}
         description={
           data
             ? `Financial year ${data.financialYear} · sales exclude GST · as of ${formatBusinessDate(todayInIndia())}`
             : 'Your sales at a glance.'
         }
-        actions={
-          <Button asChild variant="outline">
-            <Link to="/reports">
-              <ChartColumn /> Reports
-            </Link>
-          </Button>
-        }
+        months={data?.monthlySales}
       />
 
       {dashboard.error && (

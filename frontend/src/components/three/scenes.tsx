@@ -2,14 +2,16 @@ import { lazy, type ComponentProps, type ReactNode } from 'react'
 import { Scene3DGate } from './gate'
 import type AiOrbScene from './AiOrb'
 import type ProductStageScene from './ProductStage'
-import type SalesSkylineScene from './SalesSkyline'
+import type SalesCityScene from './SalesCity'
 import type TextileHeroScene from './TextileHero'
+import type WeaveBackdropScene from './WeaveBackdrop'
 
 // Each scene (and the 3D library) downloads the first time it's shown, never with the rest of the app.
 const TextileHero = lazy(() => import('./TextileHero'))
-const SalesSkyline = lazy(() => import('./SalesSkyline'))
+const SalesCity = lazy(() => import('./SalesCity'))
 const AiOrb = lazy(() => import('./AiOrb'))
 const ProductStage = lazy(() => import('./ProductStage'))
+const WeaveBackdrop = lazy(() => import('./WeaveBackdrop'))
 
 type WithFallback<T> = T & { fallback: ReactNode }
 
@@ -21,10 +23,10 @@ export function TextileHero3D({ fallback, ...props }: WithFallback<ComponentProp
   )
 }
 
-export function SalesSkyline3D({ fallback, ...props }: WithFallback<ComponentProps<typeof SalesSkylineScene>>) {
+export function SalesCity3D({ fallback, ...props }: WithFallback<ComponentProps<typeof SalesCityScene>>) {
   return (
     <Scene3DGate fallback={fallback}>
-      <SalesSkyline {...props} />
+      <SalesCity {...props} />
     </Scene3DGate>
   )
 }
@@ -41,6 +43,14 @@ export function ProductStage3D({ fallback, ...props }: WithFallback<ComponentPro
   return (
     <Scene3DGate fallback={fallback}>
       <ProductStage {...props} />
+    </Scene3DGate>
+  )
+}
+
+export function WeaveBackdrop3D({ fallback, ...props }: WithFallback<ComponentProps<typeof WeaveBackdropScene>>) {
+  return (
+    <Scene3DGate fallback={fallback}>
+      <WeaveBackdrop {...props} />
     </Scene3DGate>
   )
 }

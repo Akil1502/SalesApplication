@@ -221,28 +221,46 @@ returns** (Purchases → Supplier returns) send goods back against a supplier's 
   counted in the month it was issued; the GST summary shows credit notes apart from invoices, and GST payable takes
   supplier returns off the input credit. New registers: Credit notes and Supplier returns.
 
-## Look and feel: 3D, motion and photos
+## Look and feel: layouts, 3D, motion and photos
 
 The app has a calm indigo-and-teal look in light and dark, with depth and motion on every screen.
 
-- **Light and dark.** The sun/moon button in the top bar switches between them; **Appearance** in the user menu also
-  offers *Same as Windows* (the default). Printed documents are always light.
-- **Motion, and how much.** **Motion** in the user menu: *Full* (3D scenes, tilting cards, pages that swing into
+- **Three layouts, each user's choice.** **Layout** in the account menu (the avatar, top right): an *icon rail* on
+  the left that slides open with labels as you point at it (the default), *top menus* with large drop-down panels
+  describing each page, or a *dock* at the bottom whose icons grow under the pointer and pop up their pages.
+  Switching animates from one to the other and is remembered per user in that browser. Phones always get a menu that
+  slides in from the left.
+- **Search everything: Ctrl+K** (⌘K on a Mac), or the search box in the top bar. Jump to any page, start a new order,
+  customer, product or purchase order, or find a customer, invoice, order, product or supplier by name or number
+  (also by GSTIN or phone where the list supports it); also switches layout and light/dark.
+- **Records open beside their list.** Clicking an invoice, order, customer, product, supplier, purchase order,
+  supplier bill, credit note, supplier return or goods receipt grows a panel out of the row, with the list still
+  behind it (that row stays marked, and the list keeps its search, filters and page). **Full width** widens the
+  panel; Escape, the cross, Back or clicking the list closes it. The address is the record's own
+  (/invoices/42), so it can be bookmarked or shared: the list opens behind it.
+- **Light and dark.** The sun/moon button in the top bar switches between them; **Appearance** in the account menu
+  also offers *Same as Windows* (the default). Printed documents are always light.
+- **Motion, and how much.** **Motion** in the account menu: *Full* (3D scenes, tilting cards, pages that swing into
   place), *Subtle* (quick fades only, no 3D) or *Off*. Until someone picks, the app follows Windows' "Animation
-  effects" setting, so anyone who has turned animations off gets none. The choice is remembered per user in that
-  browser.
+  effects" setting, so anyone who has turned animations off gets none.
 - **3D scenes**, drawn in code with three.js (no model or picture files):
+  - the dashboard's hero: the last 24 months of sales as the buildings of a small city (last year's street behind
+    this year's), lit windows at night, cars on the road between; drag to turn it, point at a building for its
+    month;
+  - behind every page: a softly billowing woven cloth with a few bright threads running through it;
   - the sign-in page: yarn cones, a roll of cloth and folded linen floating in soft light, leaning towards the pointer;
-  - the dashboard's **Monthly sales**: glossy columns that grow out of the floor; point at one for its figures
-    (*Chart* and *Table* are still there for exact reading);
   - each product page: its photo on a card that tilts with the pointer, or a 3D model of its kind until it has one;
   - Ask your data, smart order entry and AI insights: a rippling ball that speeds up while Claude is working.
-  The 3D library (about 250 KB) downloads only when a 3D scene is first shown, never with the rest of the app, and a
-  scene stops drawing when it's scrolled out of view. Browsers without 3D support, and the Subtle and Off settings,
+  The 3D library (about 250 KB) downloads after the page has loaded, once, and a scene stops drawing when it's out
+  of view; the backdrop draws at 25 frames a second. Browsers without 3D support, and the Subtle and Off settings,
   get still versions.
-- **Everywhere else:** cards rise into place one after another, table rows cascade in, summary tiles and report
-  tiles tilt towards the pointer, numbers count up, dialogs swing forward, empty lists show an animated drawing, and
-  a thin bar along the top shows when something is loading.
+- **Success moments.** Saved messages draw a tick; a **PAID** stamp thuds onto settled invoices and supplier bills,
+  with a burst of confetti when your payment is the one that settles it; and the dashboard celebrates (once) when
+  this month's sales already beat every earlier month.
+- **Everywhere else:** cards rise into place one after another, and further down a page they rise as you scroll to
+  them; page titles drift as you scroll; table rows cascade in; a soft light follows the pointer across cards and
+  main buttons lean towards it; summary and report tiles tilt; numbers count up; dialogs swing forward; empty lists
+  show an animated drawing; and a thin bar along the top shows when something is loading.
 - **Product photos.** On a product's page, drop a picture on the photo area or choose **Add photo** (JPEG, PNG or
   WebP; needs Products: Add & change). The browser shrinks it before upload, to at most 1200 px plus a 400 px square
   thumbnail, so it uploads in a moment. Photos then show in the product list (and its **Gallery** view), the
@@ -515,7 +533,8 @@ backend/
 frontend/
   src/features/                  Feature folders (auth, customers, products, inventory, sales, dashboard, reports, ...)
   src/components/                App shell and shadcn/ui components
-  src/components/fx/             Theme and motion preferences, page transitions, tilt, count-up and other effects
+  src/components/layout/         The shell: the three layouts, top bar, Ctrl+K search and the record side panel
+  src/components/fx/             Theme, motion and layout preferences, page transitions, tilt, count-up and other effects
   src/components/three/          The 3D scenes (loaded on demand)
   src/lib/api/                   Typed API client generated from OpenAPI
 scripts/setup-dev.ps1            One-time developer setup

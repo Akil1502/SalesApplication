@@ -1,63 +1,56 @@
-import { AnimatePresence, motion } from 'motion/react'
-import { Outlet, ScrollRestoration, useLocation } from 'react-router'
-import { AuroraBackground } from '@/components/fx/AuroraBackground'
+import { AnimatePresence } from 'motion/react'
+import { useState } from 'react'
+import { Outlet, ScrollRestoration } from 'react-router'
+import { Backdrop } from '@/components/fx/Backdrop'
 import { PageTransition } from '@/components/fx/PageTransition'
-import { ThemeToggle } from '@/components/fx/ThemeToggle'
-import { TopProgress } from '@/components/fx/TopProgress'
-import { Separator } from '@/components/ui/separator'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { AssistantLauncher } from '@/features/assistant/AssistantLauncher'
-import { AppSidebar } from './AppSidebar'
-import { findNavItem } from './navigation'
-
-function usePageTitle(): string {
-  const { pathname } = useLocation()
-  return findNavItem(pathname)?.title ?? 'SalesApp'
-}
+import { usePreferences } from '@/components/fx/preferences-context'
+import { useCursorEffects } from '@/components/fx/use-cursor-effects'
+import { useScrollReveal } from '@/components/fx/use-scroll-reveal'
+import { cn } from '@/lib/utils'
+import { CommandPalette } from './CommandPalette'
+import { DockNav } from './DockNav'
+import { RailNav } from './RailNav'
+import { scrollKey } from './record-panel-state'
+import { TopBar } from './TopBar'
 
 /**
- * Signed-in shell: collapsible sidebar, a frosted top bar with the page title, theme switch and assistant, and the
- * routed page, which swings into place as it opens over softly drifting light.
+ * Signed-in shell. The menus take the layout each user picked (an icon rail, menus across the top, or a dock at the
+ * bottom; phones always get a slide-in menu), with a frosted top bar, Ctrl+K search, and pages that swing into
+ * place over a slowly moving backdrop.
  */
 export function AppLayout() {
-  const title = usePageTitle()
+  const { layout } = usePreferences()
+  const [searchOpen, setSearchOpen] = useState(false)
+  useScrollReveal()
+  useCursorEffects()
 
   return (
-    <SidebarProvider>
-      {/* A new page opens at the top; going back returns to where you were. */}
-      <ScrollRestoration />
-      <AppSidebar />
-      {/* min-w-0: a wide chart or table must not stop the page column shrinking, or the page scrolls sideways.
-          isolate: the background light sits behind the page but in front of the page's own background colour. */}
-      <SidebarInset className="isolate min-w-0">
-        <AuroraBackground />
-        <header className="fx-glass sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b px-4">
-          <TopProgress />
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.h1
-              key={title}
-              className="text-sm font-medium"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {title}
-            </motion.h1>
-          </AnimatePresence>
-          <div className="ml-auto flex items-center gap-1">
-            <ThemeToggle />
-            <AssistantLauncher />
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col p-4 md:p-6">
+    <div className="relative isolate min-h-svh">
+      {/* A new page opens at the top; going back returns to where you were; a record panel never moves its list. */}
+      <ScrollRestoration getKey={scrollKey} />
+      <Backdrop />
+
+      <AnimatePresence>
+        {layout === 'rail' && <RailNav key="rail" />}
+        {layout === 'dock' && <DockNav key="dock" />}
+      </AnimatePresence>
+
+      <div
+        className={cn(
+          'flex min-h-svh min-w-0 flex-col transition-[padding] duration-500 ease-[var(--ease-out)]',
+          layout === 'rail' && 'md:pl-[72px]',
+          layout === 'dock' && 'md:pb-24',
+        )}
+      >
+        <TopBar layout={layout} onSearch={() => setSearchOpen(true)} />
+        <main className="flex min-w-0 flex-1 flex-col p-4 md:p-6">
           <PageTransition>
             <Outlet />
           </PageTransition>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </main>
+      </div>
+
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+    </div>
   )
 }

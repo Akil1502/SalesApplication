@@ -2,6 +2,7 @@ import { ArrowLeft, Ban, FileCheck2, IndianRupee, Printer, Undo2 } from 'lucide-
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
+import { PaidStamp } from '@/components/fx/Stamp'
 import { PageHeader } from '@/components/PageHeader'
 import { ProductThumb } from '@/components/ProductThumb'
 import { ReasonDialog } from '@/components/ReasonDialog'
@@ -133,7 +134,8 @@ export function InvoiceDetailPage() {
         </Alert>
       )}
 
-      <Card>
+      <Card className="relative">
+        <PaidStamp key={inv.id} paid={inv.status === 'Paid'} className="absolute top-4 right-6 z-10" />
         <CardContent className="grid gap-6 sm:grid-cols-3">
           <Party title="Bill to" name={inv.customerName} gstin={inv.customerGstin} lines={address(inv.billingAddress)} />
           {inv.shippingAddress ? (

@@ -1,5 +1,5 @@
 import { createContext, useContext, useSyncExternalStore } from 'react'
-import type { MotionLevel, ThemeChoice } from '@/lib/preferences'
+import type { LayoutChoice, MotionLevel, ThemeChoice } from '@/lib/preferences'
 
 export interface PreferencesContextValue {
   theme: ThemeChoice
@@ -10,6 +10,8 @@ export interface PreferencesContextValue {
   /** Whether the user picked the level (false: following Windows). */
   motionChosen: boolean
   setMotion: (motion: MotionLevel) => void
+  layout: LayoutChoice
+  setLayout: (layout: LayoutChoice) => void
 }
 
 export const PreferencesContext = createContext<PreferencesContextValue | null>(null)

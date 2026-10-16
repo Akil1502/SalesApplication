@@ -1,12 +1,13 @@
 import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
+import { panelListOf } from '@/components/layout/record-panel-state'
 import { useMotionLevel } from './preferences-context'
 
 /**
- * Each page swings up into place from slightly below and behind the screen. Keyed by the path, so moving to
- * another page (not a filter or another list page) plays it. The transform ends at none, so fixed and sticky
- * parts of the page behave normally once it settles.
+ * Each page swings up into place from slightly below and behind the screen. Keyed by the page, so moving to
+ * another page plays it, but a filter, another list page or a record opening in the side panel doesn't. The
+ * transform ends at none, so fixed and sticky parts of the page behave normally once it settles.
  */
 export function PageTransition({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
@@ -17,7 +18,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
   const full = level === 'full'
   return (
     <motion.div
-      key={pathname}
+      key={panelListOf(pathname) ?? pathname}
       className="flex flex-1 flex-col gap-4"
       initial={full ? { opacity: 0, y: 28, rotateX: 7, scale: 0.985 } : { opacity: 0 }}
       animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}

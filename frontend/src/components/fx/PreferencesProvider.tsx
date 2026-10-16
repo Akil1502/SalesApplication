@@ -1,7 +1,17 @@
 import { MotionConfig } from 'motion/react'
 import { useCallback, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '@/features/auth/auth-context'
-import { loadPreferences, resolveMotion, resolveTheme, savePreferences, type MotionLevel, type Preferences, type ThemeChoice } from '@/lib/preferences'
+import {
+  DEFAULT_LAYOUT,
+  loadPreferences,
+  resolveMotion,
+  resolveTheme,
+  savePreferences,
+  type LayoutChoice,
+  type MotionLevel,
+  type Preferences,
+  type ThemeChoice,
+} from '@/lib/preferences'
 import { PreferencesContext, useMediaQuery, type PreferencesContextValue } from './preferences-context'
 
 /**
@@ -48,8 +58,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       motion,
       motionChosen: preferences.motion !== undefined,
       setMotion: (level: MotionLevel) => update({ motion: level }),
+      layout: preferences.layout ?? DEFAULT_LAYOUT,
+      setLayout: (layout: LayoutChoice) => update({ layout }),
     }),
-    [preferences.theme, preferences.motion, resolvedTheme, motion, update],
+    [preferences.theme, preferences.motion, preferences.layout, resolvedTheme, motion, update],
   )
 
   return (

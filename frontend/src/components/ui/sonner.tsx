@@ -1,7 +1,8 @@
 import { useContext } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { PreferencesContext } from "@/components/fx/preferences-context"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { AnimatedCheck } from "@/components/fx/AnimatedCheck"
 
 // The shadcn template reads the theme from next-themes; this app follows the user's light/dark choice.
 const Toaster = ({ theme, ...props }: ToasterProps) => {
@@ -12,7 +13,7 @@ const Toaster = ({ theme, ...props }: ToasterProps) => {
       className="toaster group"
       icons={{
         success: (
-          <CircleCheckIcon className="size-4" />
+          <AnimatedCheck className="size-4" />
         ),
         info: (
           <InfoIcon className="size-4" />
