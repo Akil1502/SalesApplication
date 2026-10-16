@@ -177,7 +177,7 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
     {
         var (app, claude) = WithFakeClaude();
         var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
-        var yarn = await TestData.CreateProductAsync(manager, listPrice: 300m);
+        var yarn = await TestData.CreateProductAsync(manager, costPrice: 247.83m, listPrice: 300m);
         var customer = await TestData.CreateCustomerAsync(manager);
         var (rep, _) = await app.CreateClientAsync(Roles.SalesRep);
 
@@ -228,7 +228,7 @@ public sealed class SmartOrderEntryTests(SalesAppFactory factory)
         Assert.Equal("OrderEntry", request.Feature);
         Assert.Equal([false, true], request.System.Select(b => b.CacheAfter));
         Assert.Contains($"{yarn.Id} | {yarn.Sku} | Test yarn | Kg", request.System[1].Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("250", request.System[1].Text, StringComparison.Ordinal); // cost prices never leave the server
+        Assert.DoesNotContain("247.83", request.System[1].Text, StringComparison.Ordinal); // cost prices never leave the server
         var text = Assert.IsType<ClaudeText>(Assert.Single(request.Content));
         Assert.Contains("Today's date (India):", text.Text, StringComparison.Ordinal);
         Assert.Contains("<customer_message>\nHi sir, 30s cc 500kg", text.Text, StringComparison.Ordinal);
