@@ -58,8 +58,8 @@ public sealed record CustomerSuggestionDto(
     string? Warning,
     CustomerCandidateDto? Suggested);
 
-/// <summary>The catalog product a line was matched to, with what the review screen shows about it.</summary>
-public sealed record ExtractedProductDto(int Id, string Sku, string Name, ProductUnit Unit, decimal ListPrice, decimal QuantityOnHand, decimal GstRate);
+/// <summary>The catalog product a line was matched to, with what the review screen shows about it. Price is today's price.</summary>
+public sealed record ExtractedProductDto(int Id, string Sku, string Name, ProductUnit Unit, decimal Price, decimal QuantityOnHand, decimal GstRate);
 
 /// <summary>
 /// One product line read from the order. Prices come from the catalog, never from the message; a price the customer

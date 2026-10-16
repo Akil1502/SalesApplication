@@ -1,4 +1,5 @@
 import {
+  BadgeIndianRupee,
   Boxes,
   ChartColumn,
   FileText,
@@ -53,6 +54,7 @@ export const navigation: NavGroup[] = [
     items: [
       { title: 'Customers', to: '/customers', icon: Users, permission: Permissions.CustomersView },
       { title: 'Products', to: '/products', icon: Package, permission: Permissions.ProductsView },
+      { title: 'Rate updates', to: '/rates', icon: BadgeIndianRupee, permission: Permissions.RatesView },
       { title: 'Categories & HSN', to: '/catalog', icon: Tags, permission: Permissions.CatalogView },
     ],
   },

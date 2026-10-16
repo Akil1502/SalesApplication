@@ -1404,6 +1404,8 @@ export interface paths {
                     categoryId?: number;
                     /** @description Only products at or below their reorder level. */
                     lowStockOnly?: boolean;
+                    /** @description The day to price products on (an order's date); today when left out. */
+                    priceOn?: string;
                     q?: string;
                     page?: number;
                     pageSize?: number;
@@ -1581,6 +1583,284 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    productId?: number;
+                    /** @description Only periods that cover this day. */
+                    activeOn?: string;
+                    q?: string;
+                    page?: number;
+                    pageSize?: number;
+                    sort?: string;
+                    includeInactive?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PagedResultOfProductRateDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rates/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Saves rates for many products over one period, such as a month's rate list. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RateBatchRequest"];
+                    "text/json": components["schemas"]["RateBatchRequest"];
+                    "application/*+json": components["schemas"]["RateBatchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RateBatchResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RateUpdateRequest"];
+                    "text/json": components["schemas"]["RateUpdateRequest"];
+                    "application/*+json": components["schemas"]["RateUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductRateDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rates/excel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A sheet of active products with their price on a day, to fill in and upload. */
+        get: {
+            parameters: {
+                query?: {
+                    on?: string;
+                    categoryId?: number;
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": components["schemas"]["FileContentResult"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rates/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reads a filled-in rate sheet and returns its rows to review. Nothing is saved. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        File?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RateImportResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -3857,7 +4137,7 @@ export interface components {
             matchedBy: components["schemas"]["ProductMatchSource"];
             note: null | string;
         };
-        /** @description The catalog product a line was matched to, with what the review screen shows about it. */
+        /** @description The catalog product a line was matched to, with what the review screen shows about it. Price is today's price. */
         ExtractedProductDto: {
             /** Format: int32 */
             id: number;
@@ -3865,7 +4145,7 @@ export interface components {
             name: string;
             unit: components["schemas"]["ProductUnit"];
             /** Format: double */
-            listPrice: number;
+            price: number;
             /** Format: double */
             quantityOnHand: number;
             /** Format: double */
@@ -4420,6 +4700,17 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        PagedResultOfProductRateDto: {
+            items: components["schemas"]["ProductRateDto"][];
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
         PagedResultOfStockLevelDto: {
             items: components["schemas"]["StockLevelDto"][];
             /** Format: int32 */
@@ -4558,6 +4849,10 @@ export interface components {
             updatedAtUtc: string;
             rowVersion: string;
         };
+        /**
+         * @description A product in a list. Price is its price on the requested day: the rate for that period (HasRate) or else the list
+         *     price. New order lines start at Price.
+         */
         ProductListItemDto: {
             /** Format: int32 */
             id: number;
@@ -4571,6 +4866,9 @@ export interface components {
             /** Format: double */
             listPrice: number;
             /** Format: double */
+            price: number;
+            hasRate: boolean;
+            /** Format: double */
             quantityOnHand: number;
             /** Format: double */
             reorderLevel: number;
@@ -4581,6 +4879,26 @@ export interface components {
          * @enum {unknown}
          */
         ProductMatchSource: "Ai" | "Alias" | "None";
+        /** @description One product's rate for a period. EffectiveTo is null when it runs until a later period replaces it. */
+        ProductRateDto: {
+            /** Format: int32 */
+            id: number;
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            unit: components["schemas"]["ProductUnit"];
+            /** Format: double */
+            rate: number;
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: date */
+            effectiveTo: null | string;
+            note: null | string;
+            updatedBy: null | string;
+            /** Format: date-time */
+            updatedAtUtc: string;
+        };
         ProductSaveRequest: {
             sku: string;
             name: string;
@@ -4613,6 +4931,60 @@ export interface components {
             /** Format: double */
             share: number;
             detail: null | string;
+        };
+        /** @description New rates for many products over one period, such as a month's rate list. */
+        RateBatchRequest: {
+            /** Format: date */
+            effectiveFrom?: string;
+            /**
+             * Format: date
+             * @description The last day the rates apply; leave out to run until a later period replaces them.
+             */
+            effectiveTo?: null | string;
+            note?: null | string;
+            lines: components["schemas"]["RateLineInput"][];
+        };
+        RateBatchResult: {
+            /**
+             * Format: int32
+             * @description Products that got a new period.
+             */
+            created: number;
+            /**
+             * Format: int32
+             * @description Products that already had exactly this period, whose rate was changed.
+             */
+            updated: number;
+        };
+        /** @description A row read from an uploaded rate sheet, ready to review before saving. */
+        RateImportLineDto: {
+            /** Format: int32 */
+            productId: number;
+            sku: string;
+            productName: string;
+            /** Format: double */
+            rate: number;
+        };
+        RateImportResult: {
+            /** @description Rows with a known SKU and a valid new rate. */
+            lines: components["schemas"]["RateImportLineDto"][];
+            /** @description Rows that were skipped, and why, for example an unknown SKU. */
+            problems: string[];
+        };
+        RateLineInput: {
+            /** Format: int32 */
+            productId?: number;
+            /** Format: double */
+            rate?: number;
+        };
+        RateUpdateRequest: {
+            /** Format: double */
+            rate?: number;
+            /** Format: date */
+            effectiveFrom?: string;
+            /** Format: date */
+            effectiveTo?: null | string;
+            note?: null | string;
         };
         ReceivablesAgeingDto: {
             /** Format: double */

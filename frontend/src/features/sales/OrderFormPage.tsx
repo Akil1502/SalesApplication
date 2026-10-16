@@ -88,7 +88,7 @@ export function OrderFormPage() {
   const dirty = formState.isDirty
 
   // ---- Live GST preview: place of supply comes from the customer's shipping (else billing) state.
-  const [customer, watchedLines] = useWatch({ control, name: ['customer', 'lines'] })
+  const [customer, watchedLines, orderDate] = useWatch({ control, name: ['customer', 'lines', 'orderDate'] })
   const customerDetail = useCustomer(customer?.id)
   const posCode = customerDetail.data ? (customerDetail.data.shippingAddress?.stateCode ?? customerDetail.data.billingAddress.stateCode) : order.data?.placeOfSupplyStateCode
   const posState = states.data?.find((s) => s.code === posCode)
@@ -266,13 +266,14 @@ export function OrderFormPage() {
                             <Field data-invalid={fieldState.invalid}>
                               <ProductPicker
                                 value={field.value}
+                                priceOn={orderDate}
                                 disabled={!editable}
                                 excludeIds={pickedIds}
                                 invalid={fieldState.invalid}
                                 onChange={(product) => {
                                   field.onChange(product)
-                                  // A newly picked product starts at its list price.
-                                  form.setValue(`lines.${index}.unitPrice`, product.listPrice.toFixed(2), { shouldDirty: true })
+                                  // A newly picked product starts at its price on the order date: that period's rate, else the list price.
+                                  form.setValue(`lines.${index}.unitPrice`, product.price.toFixed(2), { shouldDirty: true })
                                 }}
                               />
                               {line?.product && (

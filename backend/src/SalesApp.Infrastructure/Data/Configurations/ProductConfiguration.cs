@@ -34,3 +34,23 @@ internal sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         });
     }
 }
+
+internal sealed class ProductRateConfiguration : IEntityTypeConfiguration<ProductRate>
+{
+    public void Configure(EntityTypeBuilder<ProductRate> builder)
+    {
+        builder.Property(r => r.Note).HasMaxLength(200);
+
+        // Finding the rate for a product on a date reads periods by product and start date.
+        builder.HasIndex(r => new { r.ProductId, r.EffectiveFrom }).IsUnique();
+
+        builder.HasOne(r => r.Product).WithMany().HasForeignKey(r => r.ProductId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(r => r.UpdatedBy).WithMany().HasForeignKey(r => r.UpdatedByUserId).OnDelete(DeleteBehavior.SetNull);
+
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_ProductRates_Rate", "[Rate] >= 0");
+            t.HasCheckConstraint("CK_ProductRates_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
+        });
+    }
+}

@@ -52,6 +52,8 @@ public static class DependencyInjection
         services.AddScoped<IHsnCodeService, HsnCodeService>();
         services.AddScoped<ICompanySettingsService, CompanySettingsService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<IPriceService, PriceService>();
+        services.AddScoped<IRateService, RateService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<IRoleAdminService, RoleAdminService>();

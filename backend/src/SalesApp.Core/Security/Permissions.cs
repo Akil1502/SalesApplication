@@ -21,6 +21,8 @@ public static class Permissions
     public const string CustomersEdit = "customers.edit";
     public const string ProductsView = "products.view";
     public const string ProductsEdit = "products.edit";
+    public const string RatesView = "rates.view";
+    public const string RatesEdit = "rates.edit";
     public const string CatalogView = "catalog.view";
     public const string CatalogEdit = "catalog.edit";
     public const string StockView = "stock.view";
@@ -50,6 +52,7 @@ public static class Permissions
         new("Sales", "Payments", PaymentsView, "See payments received.", PaymentsEdit, "Record payments, from the invoice. Needs Invoices: View."),
         new("Masters", "Customers", CustomersView, "See customers and what they owe.", CustomersEdit, "Add and change customers. Credit terms need their own right."),
         new("Masters", "Products", ProductsView, "See products and selling prices.", ProductsEdit, "Add and change products."),
+        new("Masters", "Rate updates", RatesView, "See each product's rate for each period.", RatesEdit, "Set rates for a period, including from Excel, and change or remove them."),
         new("Masters", "Categories & HSN", CatalogView, "See product categories and HSN codes.", CatalogEdit, "Add and change them."),
         new("Inventory", "Stock", StockView, "See stock levels, movements and goods receipts.", StockEdit, "Record goods receipts and stock adjustments."),
         new("Insights", "Reports", ReportsView, "Run and export the standard reports.", null, null),
@@ -139,9 +142,9 @@ public static class Permissions
         return WithoutUnmetNeeds(result);
     }
 
-    /// <summary>What the built-in Sales manager role starts with: everything except administration.</summary>
+    /// <summary>What the built-in Sales manager role starts with: everything except administration and rate updates.</summary>
     public static readonly IReadOnlySet<string> SalesManagerDefaults =
-        All.Except([UsersView, UsersEdit, SettingsEdit, AiUsageView]).ToHashSet(StringComparer.Ordinal);
+        All.Except([UsersView, UsersEdit, SettingsEdit, AiUsageView, RatesView, RatesEdit]).ToHashSet(StringComparer.Ordinal);
 
     /// <summary>What the built-in Sales representative role starts with: day-to-day order and customer work.</summary>
     public static readonly IReadOnlySet<string> SalesRepDefaults = WithNeeds(

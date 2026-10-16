@@ -10,7 +10,8 @@ import { unwrap } from '@/lib/api/errors'
 import { formatQuantity } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-export type PickedProduct = Pick<Schemas['ProductListItemDto'], 'id' | 'sku' | 'name' | 'unit' | 'quantityOnHand' | 'listPrice' | 'gstRate'>
+/** A picked product. price is its price on the picker's priceOn day: that period's rate, else the list price. */
+export type PickedProduct = Pick<Schemas['ProductListItemDto'], 'id' | 'sku' | 'name' | 'unit' | 'quantityOnHand' | 'price' | 'gstRate'>
 
 interface ProductPickerProps {
   value: PickedProduct | null
@@ -20,6 +21,8 @@ interface ProductPickerProps {
   disabled?: boolean
   invalid?: boolean
   id?: string
+  /** The day to price products on (yyyy-mm-dd), such as the order date; today when left out. */
+  priceOn?: string
 }
 
 function useDebounced<T>(value: T, delayMs: number): T {
@@ -35,14 +38,14 @@ function useDebounced<T>(value: T, delayMs: number): T {
  * Searchable product dropdown. Searches the server (SKU, name or HSN) as you type, so it works the same
  * with 20 products or 20,000. Used on receipts now and on order lines in P3.
  */
-export function ProductPicker({ value, onChange, excludeIds = [], disabled, invalid, id }: ProductPickerProps) {
+export function ProductPicker({ value, onChange, excludeIds = [], disabled, invalid, id, priceOn }: ProductPickerProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const q = useDebounced(search.trim(), 250)
 
   const results = useQuery({
-    queryKey: ['products', 'picker', q],
-    queryFn: () => unwrap(api.GET('/api/products', { params: { query: { q: q || undefined, pageSize: 20, sort: 'name' } } })),
+    queryKey: ['products', 'picker', q, priceOn],
+    queryFn: () => unwrap(api.GET('/api/products', { params: { query: { q: q || undefined, pageSize: 20, sort: 'name', priceOn: priceOn || undefined } } })),
     enabled: open,
     staleTime: 30_000,
   })

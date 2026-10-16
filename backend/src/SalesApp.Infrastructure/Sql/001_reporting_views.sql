@@ -1,4 +1,4 @@
--- Reporting views. One definition of each business metric, shared by the dashboard, the reports and
+﻿-- Reporting views. One definition of each business metric, shared by the dashboard, the reports and
 -- (from phase P6) the AI "ask your data" feature, which may query ONLY these views.
 --
 -- Idempotent: run after every migration by DbObjectsInitializer. Batches are separated by GO lines.
@@ -142,6 +142,7 @@ SELECT
     h.GstRate,
     p.Unit,
     p.ListPrice,
+    ISNULL(cr.Rate, p.ListPrice)                    AS CurrentPrice,
     p.ReorderLevel,
     p.ReorderQuantity,
     p.LeadTimeDays,
@@ -154,7 +155,12 @@ SELECT
 FROM dbo.Products p
 JOIN dbo.Categories cat ON cat.Id = p.CategoryId
 JOIN dbo.HsnCodes h     ON h.Id = p.HsnCodeId
-LEFT JOIN dbo.StockLevels sl ON sl.ProductId = p.Id;
+LEFT JOIN dbo.StockLevels sl ON sl.ProductId = p.Id
+CROSS APPLY (SELECT CAST(SYSDATETIMEOFFSET() AT TIME ZONE 'India Standard Time' AS date) AS Today) t
+-- Today's rate from the rate lists, when a period covers today.
+OUTER APPLY (SELECT TOP (1) r.Rate FROM dbo.ProductRates r
+             WHERE r.ProductId = p.Id AND r.EffectiveFrom <= t.Today AND (r.EffectiveTo IS NULL OR r.EffectiveTo >= t.Today)
+             ORDER BY r.EffectiveFrom DESC) cr;
 GO
 
 CREATE OR ALTER VIEW rpt.StockMovements AS

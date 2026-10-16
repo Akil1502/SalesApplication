@@ -79,8 +79,9 @@ public static class AskDataPrompt
           CustomerId, Code, Name, TradeName, City, StateCode, StateName, IsGstRegistered (bit), CreditLimit,
           PaymentTermsDays, SalesRepName, IsActive (bit), FirstInvoiceDate, LastInvoiceDate
 
-        rpt.Products: one row per product, with its current stock.
-          ProductId, Sku, Name, CategoryName, HsnCode, GstRate, Unit, ListPrice, ReorderLevel, ReorderQuantity,
+        rpt.Products: one row per product, with its current stock and price.
+          ProductId, Sku, Name, CategoryName, HsnCode, GstRate, Unit, ListPrice, CurrentPrice (today's selling
+          price: this period's rate from the rate list if one is set, else ListPrice), ReorderLevel, ReorderQuantity,
           LeadTimeDays, QuantityOnHand, StockStatus ('InStock', 'Low', 'OutOfStock'), LastMovementAtUtc,
           IsActive (bit)
 

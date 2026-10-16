@@ -7,7 +7,7 @@ namespace SalesApp.Infrastructure.Reporting;
 public static class ExcelReportWriter
 {
     /// <summary>Indian digit grouping (12,34,56,789.00), which Excel can't do with a plain "#,##0".</summary>
-    private const string IndianMoney = "[>=10000000]##\\,##\\,##\\,##0.00;[>=100000]##\\,##\\,##0.00;##,##0.00";
+    internal const string IndianMoney = "[>=10000000]##\\,##\\,##\\,##0.00;[>=100000]##\\,##\\,##0.00;##,##0.00";
     private const string Quantity = "#,##0.###";
     private const string Percent = "0.0%";
     private const string Date = "dd-mmm-yyyy";

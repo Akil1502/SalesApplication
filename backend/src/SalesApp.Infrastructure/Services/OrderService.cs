@@ -30,6 +30,7 @@ public sealed class OrderService(
     ILookupService lookups,
     IBusinessClock clock,
     ICurrentUser currentUser,
+    IPriceService prices,
     TimeProvider timeProvider) : IOrderService
 {
     private const string OrderPrefix = "SO";
@@ -125,7 +126,7 @@ public sealed class OrderService(
     {
         var customer = await LoadCustomerAsync(request.CustomerId, cancellationToken);
         var orderDate = ValidateDates(request.OrderDate, request.ValidUntil);
-        var lines = await BuildLinesAsync(request.Lines, cancellationToken);
+        var lines = await BuildLinesAsync(request.Lines, orderDate, cancellationToken);
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
@@ -157,7 +158,7 @@ public sealed class OrderService(
 
         var customer = await LoadCustomerAsync(request.CustomerId, cancellationToken);
         var orderDate = ValidateDates(request.OrderDate, request.ValidUntil);
-        var lines = await BuildLinesAsync(request.Lines, cancellationToken);
+        var lines = await BuildLinesAsync(request.Lines, orderDate, cancellationToken);
 
         order.CustomerId = customer.Id;
         order.PlaceOfSupplyStateCode = PlaceOfSupply(customer);
@@ -293,14 +294,18 @@ public sealed class OrderService(
         return orderDate;
     }
 
-    /// <summary>Products must exist, be active and appear once; prices default to the list price; GST rate is copied from the HSN code.</summary>
-    private async Task<List<SalesOrderLine>> BuildLinesAsync(List<OrderLineInput> inputs, CancellationToken cancellationToken)
+    /// <summary>
+    /// Products must exist, be active and appear once; a line without a price gets the product's price on the order
+    /// date (its rate for that period, else the list price); GST rate is copied from the HSN code.
+    /// </summary>
+    private async Task<List<SalesOrderLine>> BuildLinesAsync(List<OrderLineInput> inputs, DateOnly orderDate, CancellationToken cancellationToken)
     {
         var ids = inputs.Select(l => l.ProductId).Distinct().ToList();
         var products = await db.Products.AsNoTracking()
             .Where(p => ids.Contains(p.Id))
-            .Select(p => new { p.Id, p.IsActive, p.ListPrice, GstRate = p.HsnCode!.GstRate })
+            .Select(p => new { p.Id, p.IsActive, GstRate = p.HsnCode!.GstRate })
             .ToDictionaryAsync(p => p.Id, cancellationToken);
+        var priceOn = await prices.PricesOnAsync(ids, orderDate, cancellationToken);
 
         var errors = new Dictionary<string, string[]>();
         var seen = new HashSet<int>();
@@ -325,7 +330,7 @@ public sealed class OrderService(
                 LineNumber = lines.Count + 1,
                 ProductId = input.ProductId,
                 Quantity = input.Quantity,
-                UnitPrice = input.UnitPrice ?? product.ListPrice,
+                UnitPrice = input.UnitPrice ?? priceOn[input.ProductId],
                 DiscountPercent = input.DiscountPercent,
                 GstRate = product.GstRate,
             });

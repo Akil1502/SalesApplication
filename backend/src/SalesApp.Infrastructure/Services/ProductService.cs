@@ -16,7 +16,7 @@ public interface IProductService
     Task<ProductDto> UpdateAsync(int id, ProductSaveRequest request, CancellationToken cancellationToken);
 }
 
-public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : IProductService
+public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IBusinessClock clock) : IProductService
 {
     private static readonly SortMap<Product> Sorts = new SortMap<Product>()
         .Add("sku", p => p.Sku)
@@ -50,11 +50,21 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser) : 
             query = query.Where(p => p.Sku.Contains(q) || p.Name.Contains(q) || p.HsnCode!.Code.StartsWith(q));
         }
 
+        var day = request.PriceOn ?? clock.Today;
         return await Sorts.Apply(query, request.Sort, "name")
             .ThenBy(p => p.Id)
-            .Select(p => new ProductListItemDto(
-                p.Id, p.Sku, p.Name, p.Category!.Name, p.HsnCode!.Code, p.HsnCode.GstRate,
-                p.Unit, p.ListPrice, p.Stock != null ? p.Stock.QuantityOnHand : 0m, p.ReorderLevel, p.IsActive))
+            .Select(p => new
+            {
+                Product = p,
+                Rate = db.ProductRates
+                    .Where(r => r.ProductId == p.Id && r.EffectiveFrom <= day && (r.EffectiveTo == null || r.EffectiveTo >= day))
+                    .Select(r => (decimal?)r.Rate)
+                    .FirstOrDefault(),
+            })
+            .Select(x => new ProductListItemDto(
+                x.Product.Id, x.Product.Sku, x.Product.Name, x.Product.Category!.Name, x.Product.HsnCode!.Code, x.Product.HsnCode.GstRate,
+                x.Product.Unit, x.Product.ListPrice, x.Rate ?? x.Product.ListPrice, x.Rate != null,
+                x.Product.Stock != null ? x.Product.Stock.QuantityOnHand : 0m, x.Product.ReorderLevel, x.Product.IsActive))
             .ToPagedResultAsync(request, cancellationToken);
     }
 

@@ -195,7 +195,7 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                             {problem === 'Enter a quantity' && <p className="mt-1 text-xs text-destructive">{problem}</p>}
                           </TableCell>
                           <TableCell className="text-right whitespace-normal tabular-nums">
-                            {line.product ? formatINR(line.product.listPrice) : '—'}
+                            {line.product ? formatINR(line.product.price) : '—'}
                             {line.statedPrice !== null && (
                               <p className={cn('mt-1 text-xs', priceDiffers(line) ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground')}>
                                 Order: {formatINR(line.statedPrice)}

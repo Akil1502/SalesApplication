@@ -15,6 +15,8 @@ export const Permissions = {
   CustomersEdit: 'customers.edit',
   ProductsView: 'products.view',
   ProductsEdit: 'products.edit',
+  RatesView: 'rates.view',
+  RatesEdit: 'rates.edit',
   CatalogView: 'catalog.view',
   CatalogEdit: 'catalog.edit',
   StockView: 'stock.view',

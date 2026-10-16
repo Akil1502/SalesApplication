@@ -345,6 +345,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         var aliasIds = alias.Length == 0
             ? []
             : await db.ProductAliases.Where(a => a.NormalizedAlias.Contains(alias)).Select(a => a.ProductId).ToListAsync(cancellationToken);
+        var today = clock.Today;
         var products = await db.Products.AsNoTracking()
             .Where(p => p.Name.Contains(query) || p.Sku.Contains(query) || p.Category!.Name.Contains(query) || aliasIds.Contains(p.Id))
             .OrderByDescending(p => p.IsActive).ThenBy(p => p.Name)
@@ -353,6 +354,10 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             {
                 id = p.Id, p.Sku, p.Name, category = p.Category!.Name, p.Unit, p.ListPrice, gstRate = p.HsnCode!.GstRate,
                 onHand = p.Stock != null ? p.Stock.QuantityOnHand : 0m, p.ReorderLevel, p.LeadTimeDays, active = p.IsActive,
+                rate = db.ProductRates
+                    .Where(r => r.ProductId == p.Id && r.EffectiveFrom <= today && (r.EffectiveTo == null || r.EffectiveTo >= today))
+                    .Select(r => (decimal?)r.Rate)
+                    .FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
 
@@ -361,7 +366,9 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             matches = products.Count,
             products = products.Select(p => new
             {
-                p.id, p.Sku, p.Name, p.category, unit = p.Unit.ToString(), p.ListPrice, p.gstRate, p.onHand, p.ReorderLevel, p.LeadTimeDays, p.active,
+                p.id, p.Sku, p.Name, p.category, unit = p.Unit.ToString(), p.ListPrice,
+                // What an order placed today is priced at: this period's rate when one is set, else the list price.
+                priceToday = p.rate ?? p.ListPrice, p.gstRate, p.onHand, p.ReorderLevel, p.LeadTimeDays, p.active,
                 stockStatus = p.onHand <= 0 ? "OutOfStock" : p.onHand <= p.ReorderLevel ? "Low" : "InStock",
             }),
         }), false, $"Searched products for “{query}”");

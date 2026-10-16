@@ -25,6 +25,7 @@ const featureRoutes: RouteObject[] = [
   guarded([P.ProductsEdit], [
     { path: '/products/new', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
   ]),
+  guarded([P.RatesView], [{ path: '/rates', lazy: () => import('@/features/rates/RatesPage').then((m) => ({ Component: m.RatesPage })) }]),
   guarded([P.CatalogView], [{ path: '/catalog', lazy: () => import('@/features/catalog/CatalogPage').then((m) => ({ Component: m.CatalogPage })) }]),
   guarded([P.OrdersView], [
     { path: '/orders', lazy: () => import('@/features/sales/OrdersPage').then((m) => ({ Component: m.OrdersPage })) },

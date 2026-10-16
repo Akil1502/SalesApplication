@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
+import { ProductRatesCard } from '@/features/rates/ProductRatesCard'
 import { ApiRequestError, applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, formatPercent, formatQuantity } from '@/lib/format'
 import { useCategories, useHsnCodes } from '@/lib/lookups'
@@ -144,7 +145,10 @@ export function ProductFormPage() {
         <Card>
           <CardHeader>
             <CardTitle>Pricing</CardTitle>
-            <CardDescription>Per unit, excluding GST.{showCost && ' Cost price is visible only to users who may see cost prices.'}</CardDescription>
+            <CardDescription>
+              Per unit, excluding GST. The list price applies whenever no rate period covers the order date.
+              {showCost && ' Cost price is visible only to users who may see cost prices.'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <FieldGroup className="grid gap-4 sm:grid-cols-3">
@@ -161,6 +165,8 @@ export function ProductFormPage() {
             </FieldGroup>
           </CardContent>
         </Card>
+
+        {product.data && can(Permissions.RatesView) && <ProductRatesCard productId={product.data.id} listPrice={product.data.listPrice} />}
 
         <Card>
           <CardHeader>

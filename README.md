@@ -105,7 +105,7 @@ Administration → **Users & roles** decides who can do what.
   invoices, payments, customers, products, categories, stock, users). A few special rights sit beside them: see cost
   prices and margins, set credit terms, override credit limits, and can be a customer's sales rep.
 - **Roles** are sets of permissions. Three are built in: **Administrator** (everything, and it can't be changed),
-  **Sales manager** (everything except administration) and **Sales representative** (orders, customers, smart order
+  **Sales manager** (everything except administration and rate updates) and **Sales representative** (orders, customers, smart order
   entry, viewing invoices, payments, products and stock, reports, Ask your data and the assistant; no cost prices or
   credit terms). Their permissions can be changed; add your own roles too, such as an accountant or a storekeeper.
 - **Each user** has one role and can have permissions added or taken away just for them; the user list shows this as
@@ -121,6 +121,24 @@ Administration → **Users & roles** decides who can do what.
   get margins from Ask your data and the assistant.
 - **Guard rails:** you can't change your own role or permissions, there is always an active administrator, you can't
   change your own role so that you lose Users & roles, and a role can't be deleted while anyone has it.
+
+## Rate updates
+
+Masters → **Rate updates** (administrators by default; anyone given the Rate updates permission) sets each product's
+selling rate for a period, such as a month's rate list from 1 to 31 January.
+
+- **Which price an order gets:** the rate whose period covers the order's date, or the product's list price when no
+  period does. The order form fills in that price when a product is picked (and it can still be changed on the line),
+  and smart order entry, the assistant and Ask your data (`rpt.Products.CurrentPrice`) use the same rule.
+- **Saved orders and invoices keep their prices.** A line's price is copied when the order is saved, so changing or
+  removing a rate later only affects orders priced afterwards.
+- **Setting a month's rates:** choose the period (This month and Next month fill in the dates; leave the last day
+  empty for "until replaced"), then type new rates, or change all shown products by a percentage rounded to whole
+  rupees or to the paisa. Or download the rate sheet for Excel, fill in its "New rate" column and upload it; the
+  rows come back to the screen to review before anything is saved.
+- **Periods never overlap.** Saving exactly the same period again changes its rates; any other overlap is refused,
+  naming the product and the period in the way. Rate history lists every period with who set it and when; periods
+  can be edited or removed there. Each product's page shows its periods and today's price.
 
 ## Deployment
 

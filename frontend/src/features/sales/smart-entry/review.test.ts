@@ -5,7 +5,7 @@ import { blankLine, buildConfirmRequest, initialNotes, lineProblem, needsAttenti
 
 const extracted = (overrides: Partial<ExtractedLine> = {}): ExtractedLine => ({
   sourceText: '30s cc 500kg',
-  product: { id: 7, sku: 'CY-30C', name: 'Cotton yarn 30s combed', unit: 'Kg', listPrice: 300, quantityOnHand: 1200, gstRate: 5 },
+  product: { id: 7, sku: 'CY-30C', name: 'Cotton yarn 30s combed', unit: 'Kg', price: 300, quantityOnHand: 1200, gstRate: 5 },
   quantity: 500,
   statedUnit: null,
   statedPrice: null,

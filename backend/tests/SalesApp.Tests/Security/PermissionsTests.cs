@@ -61,8 +61,9 @@ public sealed class PermissionsTests
             Roles.DefaultPermissions(Roles.SalesRep).Order(StringComparer.Ordinal));
 
         var manager = Roles.DefaultPermissions(Roles.SalesManager);
-        Assert.Equal(Permissions.All.Count - 4, manager.Count);
+        Assert.Equal(Permissions.All.Count - 6, manager.Count);
         Assert.DoesNotContain(Permissions.UsersView, manager);
+        Assert.DoesNotContain(Permissions.RatesView, manager);
         Assert.DoesNotContain(Permissions.SettingsEdit, manager);
         Assert.DoesNotContain(Permissions.AiUsageView, manager);
         Assert.Contains(Permissions.CostPricesView, manager);

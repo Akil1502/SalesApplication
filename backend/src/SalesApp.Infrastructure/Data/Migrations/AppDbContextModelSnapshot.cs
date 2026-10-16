@@ -1419,6 +1419,55 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.ToTable("ProductAliases");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.ProductRate", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("ProductId", "EffectiveFrom")
+                        .IsUnique();
+
+                    b.ToTable("ProductRates", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProductRates_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
+
+                            t.HasCheckConstraint("CK_ProductRates_Rate", "[Rate] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.RoleGrant", b =>
                 {
                     b.Property<Guid>("RoleId")
@@ -2747,6 +2796,24 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.Navigation("CreatedBy");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.ProductRate", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Product");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.RoleGrant", b =>
