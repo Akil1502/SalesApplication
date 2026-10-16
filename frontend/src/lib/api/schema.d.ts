@@ -1718,6 +1718,220 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/products/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every product photo, so any screen can show a picture next to a product. Open to everyone signed in: photos
+         *     show on orders, invoices and stock screens as well as the product list.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductImageDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets the product's photo. The browser sends it in two sizes it has already shrunk: the picture (at most
+         *     1.5 MB) and a thumbnail (at most 192 KB).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        Image?: components["schemas"]["IFormFile"];
+                        Thumbnail?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductImageDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{id}/image/{size}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The picture itself. Anonymous because an &lt;img&gt; tag can't send the sign-in token: the signed address
+         *     (from Task&lt;IReadOnlyList&lt;ProductImageDto&gt;&gt; ProductsController.Images(CancellationToken cancellationToken) or a product) is the permission. Each address names one version of the photo, so
+         *     browsers may keep it for a year.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    v?: number;
+                    s?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    size: components["schemas"]["ProductImageSize"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                        "image/jpeg": unknown;
+                        "image/png": unknown;
+                        "image/webp": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/jpeg": components["schemas"]["ProblemDetails"];
+                        "image/png": components["schemas"]["ProblemDetails"];
+                        "image/webp": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/suppliers": {
         parameters: {
             query?: never;
@@ -7529,7 +7743,18 @@ export interface components {
             name: string;
             description: string;
         };
-        /** @description A product with full details. CostPrice is null for sales reps: cost and margin are manager-only. */
+        ProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
+        };
+        /**
+         * @description A product with full details. CostPrice is null for sales reps: cost and margin are manager-only. Image is null
+         *     when the product has no photo.
+         */
         ProductDto: {
             /** Format: int32 */
             id: number;
@@ -7566,7 +7791,22 @@ export interface components {
             /** Format: date-time */
             updatedAtUtc: string;
             rowVersion: string;
+            image: null | components["schemas"]["ProductImageDto"];
         };
+        /**
+         * @description Where to load a product's photo from. The addresses are signed, so a plain &lt;img&gt; tag can load them without
+         *     the sign-in token, and they change with every new photo (Version), so browsers cache each one for good.
+         */
+        ProductImageDto: {
+            /** Format: int32 */
+            productId: number;
+            /** Format: int32 */
+            version: number;
+            imageUrl: string;
+            thumbnailUrl: string;
+        };
+        /** @enum {unknown} */
+        ProductImageSize: "Full" | "Thumb";
         /**
          * @description A product in a list. Price is its price on the requested day: the rate for that period (HasRate) or else the list
          *     price. New order lines start at Price.

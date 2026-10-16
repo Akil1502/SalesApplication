@@ -1,10 +1,11 @@
-import { Plus, TriangleAlert } from 'lucide-react'
+import { LayoutGrid, List, Plus, TriangleAlert } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
 import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
+import { ProductThumb } from '@/components/ProductThumb'
 import { ActiveBadge } from '@/components/StatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,12 +17,23 @@ import { Permissions } from '@/features/auth/permissions'
 import { formatINR, formatPercent, formatQuantity } from '@/lib/format'
 import { useCategories } from '@/lib/lookups'
 import { useProducts, type ProductListItem } from './api'
+import { ProductGallery } from './ProductGallery'
 
 const ALL = 'all'
 
 const columns: Column<ProductListItem>[] = [
   { key: 'sku', header: 'SKU', sortKey: 'sku', cell: (p) => <span className="font-mono text-xs">{p.sku}</span>, className: 'w-36' },
-  { key: 'name', header: 'Product', sortKey: 'name', cell: (p) => <span className="font-medium">{p.name}</span> },
+  {
+    key: 'name',
+    header: 'Product',
+    sortKey: 'name',
+    cell: (p) => (
+      <span className="flex items-center gap-3">
+        <ProductThumb productId={p.id} name={p.name} preview />
+        <span className="font-medium">{p.name}</span>
+      </span>
+    ),
+  },
   { key: 'category', header: 'Category', sortKey: 'category', cell: (p) => p.categoryName },
   { key: 'hsn', header: 'HSN · GST', cell: (p) => <span className="tabular-nums">{p.hsnCode} · {formatPercent(p.gstRate)}</span> },
   {
@@ -62,6 +74,7 @@ export function ProductsPage() {
   const categories = useCategories()
   const categoryId = params.filters.categoryId ? Number(params.filters.categoryId) : undefined
   const lowStockOnly = params.filters.lowStock === 'true'
+  const gallery = params.filters.view === 'gallery'
 
   const products = useProducts({
     q: params.q || undefined,
@@ -118,20 +131,38 @@ export function ProductsPage() {
           <Switch id="show-inactive" checked={params.includeInactive} onCheckedChange={(includeInactive) => update({ includeInactive })} />
           <Label htmlFor="show-inactive">Show inactive</Label>
         </div>
+        <div className="ml-auto flex gap-1 rounded-lg border bg-card p-0.5" role="group" aria-label="Show as">
+          <Button size="sm" variant={gallery ? 'ghost' : 'secondary'} aria-pressed={!gallery} onClick={() => update({ filters: { view: undefined } })}>
+            <List /> Table
+          </Button>
+          <Button size="sm" variant={gallery ? 'secondary' : 'ghost'} aria-pressed={gallery} onClick={() => update({ filters: { view: 'gallery' } })}>
+            <LayoutGrid /> Gallery
+          </Button>
+        </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        rows={products.data?.items}
-        getRowKey={(p) => p.id}
-        isLoading={products.isPending}
-        error={products.error}
-        onRowClick={(p) => navigate(`/products/${p.id}`)}
-        sort={params.sort}
-        onSortChange={(sort) => update({ sort })}
-        emptyTitle={filtered ? 'No products match' : 'No products yet'}
-        emptyDescription={filtered ? 'Try a different search or filter.' : canEdit ? 'Add products to start quoting and invoicing.' : undefined}
-      />
+      {gallery ? (
+        <ProductGallery
+          items={products.data?.items}
+          isLoading={products.isPending}
+          onOpen={(p) => navigate(`/products/${p.id}`)}
+          emptyTitle={filtered ? 'No products match' : 'No products yet'}
+          emptyDescription={filtered ? 'Try a different search or filter.' : undefined}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={products.data?.items}
+          getRowKey={(p) => p.id}
+          isLoading={products.isPending}
+          error={products.error}
+          onRowClick={(p) => navigate(`/products/${p.id}`)}
+          sort={params.sort}
+          onSortChange={(sort) => update({ sort })}
+          emptyTitle={filtered ? 'No products match' : 'No products yet'}
+          emptyDescription={filtered ? 'Try a different search or filter.' : canEdit ? 'Add products to start quoting and invoicing.' : undefined}
+        />
+      )}
 
       {products.data && (
         <Pagination

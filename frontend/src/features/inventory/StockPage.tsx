@@ -6,6 +6,7 @@ import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
 import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
+import { ProductThumb } from '@/components/ProductThumb'
 import type { PickedProduct } from '@/components/ProductPicker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
@@ -78,7 +79,17 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
 
   const columns: Column<StockLevel>[] = [
     { key: 'sku', header: 'SKU', sortKey: 'sku', cell: (s) => <span className="font-mono text-xs">{s.sku}</span>, className: 'w-36' },
-    { key: 'name', header: 'Product', sortKey: 'name', cell: (s) => <span className="font-medium">{s.name}</span> },
+    {
+      key: 'name',
+      header: 'Product',
+      sortKey: 'name',
+      cell: (s) => (
+        <span className="flex items-center gap-3">
+          <ProductThumb productId={s.productId} name={s.name} preview />
+          <span className="font-medium">{s.name}</span>
+        </span>
+      ),
+    },
     { key: 'category', header: 'Category', cell: (s) => s.categoryName },
     { key: 'onHand', header: 'On hand', sortKey: 'quantityOnHand', align: 'right', cell: (s) => formatQuantity(s.quantityOnHand, s.unit) },
     { key: 'reorder', header: 'Reorder at', align: 'right', cell: (s) => formatQuantity(s.reorderLevel, s.unit) },
@@ -177,9 +188,12 @@ function MovementsTab() {
       key: 'product',
       header: 'Product',
       cell: (m) => (
-        <div className="flex flex-col">
-          <span className="font-medium">{m.productName}</span>
-          <span className="font-mono text-xs text-muted-foreground">{m.sku}</span>
+        <div className="flex items-center gap-3">
+          <ProductThumb productId={m.productId} name={m.productName} />
+          <div className="flex flex-col">
+            <span className="font-medium">{m.productName}</span>
+            <span className="font-mono text-xs text-muted-foreground">{m.sku}</span>
+          </div>
         </div>
       ),
     },

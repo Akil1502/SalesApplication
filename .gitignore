@@ -57,3 +57,6 @@ Thumbs.db
 
 # Reports from live AI eval runs (they can contain business figures)
 backend/tests/SalesApp.Evals/results/
+
+# Original photos handed over for the demo catalogue: resized copies are committed, never the originals.
+photos-incoming/

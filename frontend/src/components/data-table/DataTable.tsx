@@ -1,5 +1,6 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Inbox } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { EmptyArt } from '@/components/fx/EmptyArt'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -55,7 +56,7 @@ export function DataTable<T>({
   const descending = sort?.startsWith('-') ?? false
 
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <div className="overflow-hidden rounded-xl border bg-card shadow-[var(--shadow-elevated)]">
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
@@ -103,8 +104,8 @@ export function DataTable<T>({
               <TableCell colSpan={columns.length}>
                 <Empty className="py-10">
                   <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <Inbox />
+                    <EmptyMedia>
+                      <EmptyArt />
                     </EmptyMedia>
                     <EmptyTitle>{emptyTitle}</EmptyTitle>
                     {emptyDescription && <EmptyDescription>{emptyDescription}</EmptyDescription>}

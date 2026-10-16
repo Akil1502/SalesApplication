@@ -1,6 +1,7 @@
 import { Activity, Database, IndianRupee, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
+import { useMotionLevel } from '@/components/fx/preferences-context'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
@@ -57,6 +58,7 @@ function DailyTooltip({ active, payload }: TooltipContentProps) {
 function DailyChart({ daily }: { daily: AiUsageSummary['daily'] }) {
   const data = daily.map((d) => ({ ...d, tick: new Date(`${d.day}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'UTC' }) }))
   const tick = { fill: 'var(--muted-foreground)', fontSize: 12 }
+  const level = useMotionLevel()
   return (
     <figure aria-label="Estimated AI spend per day. Exact values are in the tooltips.">
       <BarChart data={data} responsive style={{ width: '100%', height: 220 }} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap="20%">
@@ -64,7 +66,7 @@ function DailyChart({ daily }: { daily: AiUsageSummary['daily'] }) {
         <XAxis dataKey="tick" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={tick} interval="preserveStartEnd" minTickGap={16} />
         <YAxis tickFormatter={(v: number) => `₹${v}`} tickLine={false} axisLine={false} tick={tick} width={56} />
         <Tooltip content={DailyTooltip} cursor={{ fill: 'var(--muted)', opacity: 0.7 }} isAnimationActive={false} />
-        <Bar dataKey="costInr" fill="var(--viz-series-1)" radius={[3, 3, 0, 0]} maxBarSize={28} isAnimationActive={false} />
+        <Bar dataKey="costInr" fill="var(--viz-series-1)" radius={[3, 3, 0, 0]} maxBarSize={28} isAnimationActive={level !== 'off'} animationDuration={900} />
       </BarChart>
     </figure>
   )

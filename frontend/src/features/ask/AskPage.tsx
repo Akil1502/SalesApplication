@@ -1,7 +1,9 @@
 import { CheckCircle2, Database, MessageSquareText, RotateCcw, ShieldAlert, Sparkles, Square, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router'
+import { StillOrb } from '@/components/fx/StillOrb'
 import { PageHeader } from '@/components/PageHeader'
+import { AiOrb3D } from '@/components/three/scenes'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -105,51 +107,63 @@ export function AskPage() {
         <AiOff reason={status.data?.reason} />
       ) : (
         <>
-          <Card>
-            <CardContent className="flex flex-col gap-3">
-              <form
-                className="flex flex-col gap-3 sm:flex-row sm:items-end"
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  ask(question)
-                }}
-              >
-                <Textarea
-                  ref={input}
-                  aria-label="Your question"
-                  rows={2}
-                  maxLength={500}
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      ask(question)
-                    }
+          <Card className="relative overflow-hidden">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 w-72 opacity-70"
+              style={{ background: 'radial-gradient(circle at 30% 50%, color-mix(in oklch, var(--brand) 14%, transparent), transparent 70%)' }}
+            />
+            <CardContent className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
+              <AiOrb3D
+                active={running}
+                className="mx-auto size-32 shrink-0 sm:mx-0 sm:size-36"
+                fallback={<StillOrb active={running} className="mx-auto size-32 shrink-0 sm:mx-0 sm:size-36" />}
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <form
+                  className="flex flex-col gap-3 sm:flex-row sm:items-end"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    ask(question)
                   }}
-                  placeholder="e.g. Which customers bought less this year than last year?"
-                  disabled={running}
-                  className="min-h-16 flex-1"
-                />
-                {running ? (
-                  <Button type="button" variant="outline" onClick={() => askStore.stop()}>
-                    <Square /> Stop
-                  </Button>
-                ) : (
-                  <Button type="submit" disabled={!question.trim()}>
-                    <Sparkles /> Ask
-                  </Button>
-                )}
-              </form>
-              {history.length === 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {[...examples, ...(can(Permissions.CostPricesView) ? managerExamples : [])].map((example) => (
-                    <Button key={example} size="sm" variant="outline" className="h-auto py-1 whitespace-normal" onClick={() => ask(example)}>
-                      {example}
+                >
+                  <Textarea
+                    ref={input}
+                    aria-label="Your question"
+                    rows={2}
+                    maxLength={500}
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        ask(question)
+                      }
+                    }}
+                    placeholder="e.g. Which customers bought less this year than last year?"
+                    disabled={running}
+                    className="min-h-16 flex-1"
+                  />
+                  {running ? (
+                    <Button type="button" variant="outline" onClick={() => askStore.stop()}>
+                      <Square /> Stop
                     </Button>
-                  ))}
-                </div>
-              )}
+                  ) : (
+                    <Button type="submit" disabled={!question.trim()}>
+                      <Sparkles /> Ask
+                    </Button>
+                  )}
+                </form>
+                {history.length === 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {[...examples, ...(can(Permissions.CostPricesView) ? managerExamples : [])].map((example) => (
+                      <Button key={example} size="sm" variant="outline" className="h-auto py-1 whitespace-normal" onClick={() => ask(example)}>
+                        {example}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 

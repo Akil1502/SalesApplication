@@ -1,3 +1,5 @@
+import { motion } from 'motion/react'
+import { useMotionLevel } from '@/components/fx/preferences-context'
 import { formatINRCompact } from '@/lib/format'
 
 export interface RankedBar {
@@ -17,12 +19,13 @@ const shareFormatter = new Intl.NumberFormat('en-IN', { style: 'percent', maximu
  * as its own table and nothing depends on reading bar lengths or colours.
  */
 export function RankedBars({ items, emptyText }: { items: RankedBar[]; emptyText: string }) {
+  const level = useMotionLevel()
   if (items.length === 0) return <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>
   const max = Math.max(...items.map((i) => i.value), 0)
 
   return (
     <ul className="flex flex-col gap-3">
-      {items.map((item) => (
+      {items.map((item, index) => (
         <li key={item.label} className="-mx-2 rounded-md px-2 py-1 transition-colors hover:bg-muted/50">
           <div className="flex items-baseline justify-between gap-3 text-sm">
             <span className="min-w-0 truncate font-medium" title={item.label}>
@@ -32,12 +35,13 @@ export function RankedBars({ items, emptyText }: { items: RankedBar[]; emptyText
           </div>
           <div className="mt-1.5 flex items-center gap-3">
             <div className="h-2 flex-1">
-              <div
+              {/* Bars sweep out from the left, one after another. */}
+              <motion.div
                 className="h-full rounded-r-[4px]"
-                style={{
-                  width: `${max > 0 ? Math.max((item.value / max) * 100, item.value > 0 ? 1 : 0) : 0}%`,
-                  background: item.color ?? 'var(--viz-series-1)',
-                }}
+                initial={{ width: level === 'off' ? undefined : 0 }}
+                animate={{ width: `${max > 0 ? Math.max((item.value / max) * 100, item.value > 0 ? 1 : 0) : 0}%` }}
+                transition={level === 'off' ? { duration: 0 } : { duration: 0.9, delay: 0.2 + index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+                style={{ background: item.color ?? 'var(--viz-series-1)' }}
               />
             </div>
             {item.share !== undefined && (

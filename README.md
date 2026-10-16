@@ -26,7 +26,7 @@ source was lost, so the app has been rebuilt on a modern stack, with AI designed
 
 | Layer | Choice |
 |---|---|
-| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS + shadcn/ui, React Hook Form + Zod |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS + shadcn/ui, React Hook Form + Zod, Motion (animation), three.js + React Three Fiber (3D) |
 | API | ASP.NET Core 10 Web API, built-in OpenAPI + Scalar, JWT bearer auth |
 | Data | EF Core 10 on SQL Server (LocalDB in development) |
 | Auth | ASP.NET Core Identity (users, roles, password hashing, lockout) + JWT. Roles are editable permission sets, with per-user changes |
@@ -220,6 +220,36 @@ returns** (Purchases → Supplier returns) send goods back against a supplier's 
 - **Reports.** Sales figures are net of credit notes everywhere (dashboard, reports, forecasts, Ask your data), each
   counted in the month it was issued; the GST summary shows credit notes apart from invoices, and GST payable takes
   supplier returns off the input credit. New registers: Credit notes and Supplier returns.
+
+## Look and feel: 3D, motion and photos
+
+The app has a calm indigo-and-teal look in light and dark, with depth and motion on every screen.
+
+- **Light and dark.** The sun/moon button in the top bar switches between them; **Appearance** in the user menu also
+  offers *Same as Windows* (the default). Printed documents are always light.
+- **Motion, and how much.** **Motion** in the user menu: *Full* (3D scenes, tilting cards, pages that swing into
+  place), *Subtle* (quick fades only, no 3D) or *Off*. Until someone picks, the app follows Windows' "Animation
+  effects" setting, so anyone who has turned animations off gets none. The choice is remembered per user in that
+  browser.
+- **3D scenes**, drawn in code with three.js (no model or picture files):
+  - the sign-in page: yarn cones, a roll of cloth and folded linen floating in soft light, leaning towards the pointer;
+  - the dashboard's **Monthly sales**: glossy columns that grow out of the floor; point at one for its figures
+    (*Chart* and *Table* are still there for exact reading);
+  - each product page: its photo on a card that tilts with the pointer, or a 3D model of its kind until it has one;
+  - Ask your data, smart order entry and AI insights: a rippling ball that speeds up while Claude is working.
+  The 3D library (about 250 KB) downloads only when a 3D scene is first shown, never with the rest of the app, and a
+  scene stops drawing when it's scrolled out of view. Browsers without 3D support, and the Subtle and Off settings,
+  get still versions.
+- **Everywhere else:** cards rise into place one after another, table rows cascade in, summary tiles and report
+  tiles tilt towards the pointer, numbers count up, dialogs swing forward, empty lists show an animated drawing, and
+  a thin bar along the top shows when something is loading.
+- **Product photos.** On a product's page, drop a picture on the photo area or choose **Add photo** (JPEG, PNG or
+  WebP; needs Products: Add & change). The browser shrinks it before upload, to at most 1200 px plus a 400 px square
+  thumbnail, so it uploads in a moment. Photos then show in the product list (and its **Gallery** view), the
+  product picker on orders and purchase orders, invoice lines and the stock screens. They're stored in the database
+  (one backup covers everything) and changes appear in the product's history. Pictures load from signed addresses,
+  because an `<img>` tag can't send the sign-in token: only the server can make one, and each new photo gets a new
+  address, so browsers cache photos for good.
 
 ## Audit trail
 
@@ -485,6 +515,8 @@ backend/
 frontend/
   src/features/                  Feature folders (auth, customers, products, inventory, sales, dashboard, reports, ...)
   src/components/                App shell and shadcn/ui components
+  src/components/fx/             Theme and motion preferences, page transitions, tilt, count-up and other effects
+  src/components/three/          The 3D scenes (loaded on demand)
   src/lib/api/                   Typed API client generated from OpenAPI
 scripts/setup-dev.ps1            One-time developer setup
 docs/DEPLOYMENT-IIS.md           Publishing to IIS

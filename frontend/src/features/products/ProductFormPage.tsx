@@ -18,6 +18,7 @@ import { RecordHistory } from '@/features/audit/RecordHistory'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { ProductRatesCard } from '@/features/rates/ProductRatesCard'
+import { ProductPhotoCard } from './ProductPhotoCard'
 import { ApiRequestError, applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, formatPercent, formatQuantity } from '@/lib/format'
 import { useCategories, useHsnCodes } from '@/lib/lookups'
@@ -122,6 +123,8 @@ export function ProductFormPage() {
           </AlertDescription>
         </Alert>
       )}
+
+      {product.data && <ProductPhotoCard product={product.data} canEdit={canEdit} />}
 
       <fieldset disabled={readOnly} className="contents">
         <Card>

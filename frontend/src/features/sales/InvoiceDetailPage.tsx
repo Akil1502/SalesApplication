@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { PageHeader } from '@/components/PageHeader'
+import { ProductThumb } from '@/components/ProductThumb'
 import { ReasonDialog } from '@/components/ReasonDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -179,9 +180,12 @@ export function InvoiceDetailPage() {
                   <TableRow key={l.lineNumber}>
                     <TableCell>{l.lineNumber}</TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span>{l.productName}</span>
-                        <span className="font-mono text-xs text-muted-foreground">{l.sku}</span>
+                      <div className="flex items-center gap-3">
+                        <ProductThumb productId={l.productId} name={l.productName} preview />
+                        <div className="flex flex-col">
+                          <span>{l.productName}</span>
+                          <span className="font-mono text-xs text-muted-foreground">{l.sku}</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{l.hsnCode}</TableCell>

@@ -1,4 +1,5 @@
 import { Bar, BarChart, CartesianGrid, ErrorBar, Rectangle, Tooltip, XAxis, YAxis, type BarShapeProps, type TooltipContentProps } from 'recharts'
+import { useMotionLevel } from '@/components/fx/preferences-context'
 import { formatINR, formatINRCompact } from '@/lib/format'
 import type { InsightMetrics } from './api'
 import { forecastBars, type ForecastBar } from './insight-format'
@@ -38,6 +39,7 @@ function ForecastShape(props: BarShapeProps) {
 
 export function ForecastChart({ forecast }: { forecast: InsightMetrics['forecast'] }) {
   const bars = forecastBars(forecast)
+  const level = useMotionLevel()
   if (bars.length === 0) return null
   const tick = { fill: 'var(--muted-foreground)', fontSize: 12 }
   const first = bars[0]!
@@ -50,7 +52,7 @@ export function ForecastChart({ forecast }: { forecast: InsightMetrics['forecast
         <XAxis dataKey="tick" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={tick} interval="preserveStartEnd" minTickGap={12} />
         <YAxis tickFormatter={(v: number) => formatINRCompact(v)} tickLine={false} axisLine={false} tick={tick} width={72} />
         <Tooltip content={ForecastTooltip} cursor={{ fill: 'var(--muted)', opacity: 0.7 }} isAnimationActive={false} />
-        <Bar dataKey="value" fill="var(--viz-series-1)" radius={[3, 3, 0, 0]} shape={ForecastShape} isAnimationActive={false}>
+        <Bar dataKey="value" fill="var(--viz-series-1)" radius={[3, 3, 0, 0]} shape={ForecastShape} isAnimationActive={level !== 'off'} animationDuration={900}>
           <ErrorBar dataKey="range" width={6} stroke="var(--foreground)" strokeOpacity={0.55} />
         </Bar>
       </BarChart>

@@ -20,7 +20,9 @@ import {
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
+import { StillOrb } from '@/components/fx/StillOrb'
 import { PageHeader } from '@/components/PageHeader'
+import { AiOrb3D } from '@/components/three/scenes'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,7 +60,7 @@ const anomalyIcons: Record<AnomalyKind, LucideIcon> = {
 }
 
 /** Claude's written summary, or why there isn't one. Only parts whose figures were found in the metrics are shown. */
-function Briefing({ insights }: { insights: Insights }) {
+function Briefing({ insights, working }: { insights: Insights; working: boolean }) {
   const narrative = insights.narrative ?? null
   const note = insights.narrativeNote ?? null
 
@@ -78,8 +80,18 @@ function Briefing({ insights }: { insights: Insights }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="relative overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-16 size-64 rounded-full opacity-60"
+        style={{ background: 'radial-gradient(circle, color-mix(in oklch, var(--brand) 16%, transparent), transparent 70%)' }}
+      />
+      <AiOrb3D
+        active={working}
+        className="absolute top-2 right-2 hidden size-28 sm:block"
+        fallback={<StillOrb active={working} className="absolute top-2 right-2 hidden size-28 sm:flex" />}
+      />
+      <CardHeader className="relative sm:pr-32">
         <div className="flex flex-wrap items-center gap-2">
           {insights.narrativeStatus === 'Verified' ? (
             <Badge variant="secondary" className="gap-1">
@@ -251,9 +263,9 @@ export function InsightsPage() {
             {data.costInr > 0 && ` · summary cost about ${formatINR(data.costInr)}`}
           </p>
 
-          <Briefing insights={data} />
+          <Briefing insights={data} working={refresh.isPending} />
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="fx-stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
               label={`Sales, FY ${metrics.sales.financialYear} so far`}
               icon={IndianRupee}

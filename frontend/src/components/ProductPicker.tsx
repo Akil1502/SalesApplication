@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { useState } from 'react'
+import { ProductThumb } from '@/components/ProductThumb'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -55,7 +56,10 @@ export function ProductPicker({ value, onChange, excludeIds = [], disabled, inva
           disabled={disabled}
           className={cn('w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
-          <span className="truncate">{value ? `${value.sku} · ${value.name}` : 'Choose a product…'}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            {value && <ProductThumb productId={value.id} name={value.name} size="xs" />}
+            <span className="truncate">{value ? `${value.sku} · ${value.name}` : 'Choose a product…'}</span>
+          </span>
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -85,6 +89,7 @@ export function ProductPicker({ value, onChange, excludeIds = [], disabled, inva
                     }}
                   >
                     <Check className={cn(value?.id === product.id ? 'opacity-100' : 'opacity-0')} />
+                    <ProductThumb productId={product.id} name={product.name} />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate">{product.name}</span>
                       <span className="text-xs text-muted-foreground">

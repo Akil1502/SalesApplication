@@ -86,12 +86,13 @@ export function DashboardPage() {
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="fx-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatTile
           label="Sales this month"
           icon={IndianRupee}
           isLoading={loading}
           value={kpis && formatINRCompact(kpis.salesMonthToDate)}
+          count={kpis && { value: kpis.salesMonthToDate, format: formatINRCompact }}
           delta={kpis && { value: change(kpis.salesMonthToDate, kpis.salesLastMonthSamePeriod), comparison: 'same days last month' }}
           hint={kpis && count(kpis.invoicesMonthToDate, 'invoice')}
           to="/invoices"
@@ -101,6 +102,7 @@ export function DashboardPage() {
           icon={TrendingUp}
           isLoading={loading}
           value={kpis && formatINRCompact(kpis.salesFinancialYearToDate)}
+          count={kpis && { value: kpis.salesFinancialYearToDate, format: formatINRCompact }}
           delta={kpis && { value: change(kpis.salesFinancialYearToDate, kpis.salesPreviousYearSamePeriod), comparison: 'same period last year' }}
           to="/reports/sales-by-period"
         />
@@ -109,6 +111,7 @@ export function DashboardPage() {
           icon={Wallet}
           isLoading={loading}
           value={kpis && formatINRCompact(kpis.outstanding)}
+          count={kpis && { value: kpis.outstanding, format: formatINRCompact }}
           hint={kpis && `${formatINRCompact(kpis.overdue)} overdue on ${count(kpis.overdueInvoices, 'invoice')}`}
           to="/invoices?view=overdue"
         />
@@ -117,6 +120,7 @@ export function DashboardPage() {
           icon={ClipboardList}
           isLoading={loading}
           value={kpis && formatINRCompact(kpis.openOrdersValue)}
+          count={kpis && { value: kpis.openOrdersValue, format: formatINRCompact }}
           hint={kpis && count(kpis.openOrders, 'order')}
           to="/orders?status=Confirmed"
         />
@@ -125,6 +129,7 @@ export function DashboardPage() {
           icon={Boxes}
           isLoading={loading}
           value={kpis && count(kpis.lowStockProducts, 'product')}
+          count={kpis && { value: kpis.lowStockProducts, format: (n) => count(Math.round(n), 'product') }}
           hint="At or below reorder level"
           to="/stock?status=Low"
         />
