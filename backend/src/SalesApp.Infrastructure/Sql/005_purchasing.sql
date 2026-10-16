@@ -62,7 +62,7 @@ CROSS APPLY (SELECT CASE WHEN MONTH(o.OrderDate) >= 4 THEN YEAR(o.OrderDate) ELS
 WHERE o.Status <> 'Cancelled';
 GO
 
--- One row per supplier bill, with what we still owe.
+-- One row per supplier bill, with what we still owe after payments and goods returned (debit notes).
 CREATE OR ALTER VIEW rpt_mgr.SupplierBills AS
 SELECT
     b.Id                                            AS BillId,
@@ -88,7 +88,8 @@ SELECT
     b.CgstAmount + b.SgstAmount + b.IgstAmount      AS TaxAmount,
     b.GrandTotal,
     b.AmountPaid,
-    b.GrandTotal - b.AmountPaid                     AS Outstanding,
+    b.AmountCredited,
+    b.GrandTotal - b.AmountPaid - b.AmountCredited  AS Outstanding,
     CASE WHEN b.Status IN ('Unpaid', 'PartiallyPaid') AND b.DueDate < t.Today
          THEN DATEDIFF(day, b.DueDate, t.Today) ELSE 0 END AS DaysOverdue
 FROM dbo.SupplierBills b
@@ -127,6 +128,59 @@ JOIN dbo.SupplierBills b ON b.Id = bl.SupplierBillId
 JOIN dbo.Products p      ON p.Id = bl.ProductId
 JOIN dbo.Categories cat  ON cat.Id = p.CategoryId
 WHERE b.Status <> 'Cancelled';
+GO
+
+-- One row per issued supplier return (our debit note), with how much of its credit is still unused.
+CREATE OR ALTER VIEW rpt_mgr.SupplierReturns AS
+SELECT
+    r.Id                                            AS ReturnId,
+    r.Number                                        AS ReturnNumber,
+    r.ReturnDate,
+    DATEFROMPARTS(YEAR(r.ReturnDate), MONTH(r.ReturnDate), 1) AS MonthStart,
+    r.FinancialYear                                 AS FinancialYearStart,
+    CONCAT(r.FinancialYear, '-', RIGHT(CAST(r.FinancialYear + 1 AS varchar(4)), 2)) AS FinancialYear,
+    r.Reason,
+    r.WithGst,
+    r.SupplierId,
+    r.SupplierName,
+    b.Id                                            AS BillId,
+    b.Number                                        AS BillNumber,
+    b.SupplierInvoiceNumber,
+    r.SupplierCreditNoteNumber,
+    r.TaxableValue,
+    r.CgstAmount + r.SgstAmount + r.IgstAmount      AS TaxAmount,
+    r.GrandTotal,
+    r.AmountAdjusted,
+    r.AmountRefunded,
+    r.GrandTotal - r.AmountAdjusted - r.AmountRefunded AS CreditAvailable
+FROM dbo.SupplierReturns r
+JOIN dbo.SupplierBills b ON b.Id = r.SupplierBillId
+WHERE r.Status = 'Issued';
+GO
+
+-- One row per line of an issued supplier return: what went back, at the bill's price.
+CREATE OR ALTER VIEW rpt_mgr.SupplierReturnLines AS
+SELECT
+    rl.Id                                           AS ReturnLineId,
+    r.Id                                            AS ReturnId,
+    r.Number                                        AS ReturnNumber,
+    r.ReturnDate,
+    DATEFROMPARTS(YEAR(r.ReturnDate), MONTH(r.ReturnDate), 1) AS MonthStart,
+    r.Reason,
+    r.SupplierId,
+    r.SupplierName,
+    rl.ProductId,
+    rl.ProductSku                                   AS Sku,
+    rl.ProductName,
+    rl.Unit,
+    rl.Quantity,
+    rl.UnitPrice,
+    rl.TaxableValue,
+    rl.CgstAmount + rl.SgstAmount + rl.IgstAmount   AS TaxAmount,
+    rl.LineTotal
+FROM dbo.SupplierReturnLines rl
+JOIN dbo.SupplierReturns r ON r.Id = rl.SupplierReturnId
+WHERE r.Status = 'Issued';
 GO
 
 CREATE OR ALTER VIEW rpt_mgr.SupplierPayments AS

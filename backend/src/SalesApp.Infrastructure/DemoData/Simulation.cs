@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Purchasing;
+using SalesApp.Core.Returns;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data.Configurations;
 using SalesApp.Infrastructure.Services;
@@ -12,9 +13,9 @@ namespace SalesApp.Infrastructure.DemoData;
 
 /// <summary>
 /// Day-by-day trading simulation behind <see cref="DemoDataGenerator"/>. Each day: weekly purchase orders and their
-/// deliveries (with the supplier's bill and, on their terms, our payment), invoices due that day (goods leave stock),
-/// then new orders (stock is reserved so it's never oversold). Everything is built in memory and saved in a few bulk
-/// steps at the end.
+/// deliveries (with the supplier's bill and, on their terms, our payment), returns due that day (credit notes from
+/// customers, goods sent back to suppliers), invoices due that day (goods leave stock), then new orders (stock is
+/// reserved so it's never oversold). Everything is built in memory and saved in a few bulk steps at the end.
 /// </summary>
 internal sealed class Simulation(
     DemoDataGenerator generator,
@@ -35,7 +36,8 @@ internal sealed class Simulation(
 
     internal sealed record DemoInvoice(Invoice Entity, DemoOrder Order, int Sequence);
 
-    internal sealed record DemoMovement(StockMovement Entity, DemoProduct Product, DemoInvoice? Invoice, StockReceipt? Receipt);
+    internal sealed record DemoMovement(StockMovement Entity, DemoProduct Product, DemoInvoice? Invoice, StockReceipt? Receipt,
+        DemoCreditNote? CreditNote = null, DemoSupplierReturn? SupplierReturn = null);
 
     internal sealed class DemoPurchaseOrder(PurchaseOrder entity, Supplier supplier, int sequence)
     {
@@ -49,11 +51,21 @@ internal sealed class Simulation(
 
     internal sealed record DemoBill(SupplierBill Entity, DemoPurchaseOrder Order, int Sequence, List<(PurchaseOrderLine OrderLine, SupplierBillLine Line)> Lines);
 
+    internal sealed record DemoCreditNote(CreditNote Entity, DemoInvoice Invoice, InvoiceLine Line, int Sequence);
+
+    internal sealed record DemoSupplierReturn(SupplierReturn Entity, DemoBill Bill, SupplierBillLine Line, int Sequence);
+
     private readonly Random _random = generator.Random;
     private readonly Dictionary<DateOnly, List<DemoOrder>> _toInvoice = [];
     private readonly Dictionary<(int CustomerId, DateOnly Day), decimal> _cashByDay = [];
-    private readonly Dictionary<DateOnly, List<(DemoPurchaseOrder Order, Dictionary<PurchaseOrderLine, decimal> Quantities)>> _deliveries = [];
+    private readonly Dictionary<DateOnly, List<(DemoPurchaseOrder Order, Dictionary<PurchaseOrderLine, decimal> Quantities, string Notes)>> _deliveries = [];
     private readonly Dictionary<string, int> _supplierInvoiceNumbers = [];
+    private readonly Dictionary<DateOnly, List<DemoInvoice>> _returns = [];
+    private readonly Dictionary<DateOnly, List<DemoBill>> _supplierReturns = [];
+    private readonly Dictionary<int, List<DemoCreditNote>> _customerCredit = [];
+    private readonly Dictionary<DemoCreditNote, DateOnly> _refundOn = [];
+    private readonly Dictionary<int, List<DemoSupplierReturn>> _supplierCredit = [];
+    private readonly Dictionary<string, int> _supplierCreditNoteNumbers = [];
     private Dictionary<string, (string Name, bool UsesUtgst)> _states = [];
     private int _sequence;
 
@@ -63,8 +75,12 @@ internal sealed class Simulation(
     public List<DemoReceipt> Receipts { get; } = [];
     public List<DemoBill> Bills { get; } = [];
     public List<DemoMovement> Movements { get; } = [];
+    public List<DemoCreditNote> CreditNotes { get; } = [];
+    public List<DemoSupplierReturn> SupplierReturns { get; } = [];
     public int PaymentCount { get; private set; }
     public int SupplierPaymentCount { get; private set; }
+    public int RefundCount { get; private set; }
+    public int RejectionCount { get; private set; }
 
     // Anomalies, placed relative to today so they always fall inside a long enough history.
     private DateOnly BulkOrderDay => Weekday(generator.Today.AddDays(-150));
@@ -84,6 +100,13 @@ internal sealed class Simulation(
     /// (zero: nothing arrived). The demo therefore opens with two products below reorder level and one out of stock.
     /// </summary>
     private static readonly Dictionary<string, double> DelayedNow = new() { ["PC-40"] = 5, ["HT-TWL"] = 6, ["GT-VST"] = 0 };
+
+    /// <summary>
+    /// The delayed product that got nothing stops being topped up 75 days back: weekly top-ups hold up to five weeks of
+    /// stock, so it's surely out by today, however demand happened to fall.
+    /// </summary>
+    private bool RunsDry(DemoProduct p, DateOnly day) =>
+        DelayedNow.TryGetValue(p.Spec.Sku, out var cover) && cover == 0 && day > generator.Today.AddDays(-75);
     private double Surge(DemoProduct p, DateOnly day) =>
         p.Spec.Sku == "GT-TSP" && day > generator.Today.AddDays(-280) && day < generator.Today.AddDays(-250) ? 3.0 : 1.0;
 
@@ -104,9 +127,9 @@ internal sealed class Simulation(
         {
             if (_deliveries.Remove(day, out var balances))
             {
-                foreach (var (order, quantities) in balances)
+                foreach (var (order, quantities, notes) in balances)
                 {
-                    Deliver(order, day, quantities, "Balance of the order");
+                    Deliver(order, day, quantities, notes);
                 }
             }
 
@@ -125,6 +148,7 @@ internal sealed class Simulation(
                 PlaceLateOrders(day);
             }
 
+            ProcessReturns(day);
             InvoiceDueOrders(day);
 
             var orderedToday = products.ToDictionary(p => p, _ => 0m);
@@ -159,7 +183,7 @@ internal sealed class Simulation(
         var bySupplier = new Dictionary<string, List<(DemoProduct Product, decimal Quantity)>>();
         foreach (var product in products)
         {
-            if (InStockout(product, day))
+            if (InStockout(product, day) || RunsDry(product, day))
             {
                 continue;
             }
@@ -250,7 +274,7 @@ internal sealed class Simulation(
         if (rest.Count > 0)
         {
             var later = day.AddDays(_random.Next(3, 7));
-            (_deliveries.TryGetValue(later, out var due) ? due : _deliveries[later] = []).Add((order, rest));
+            (_deliveries.TryGetValue(later, out var due) ? due : _deliveries[later] = []).Add((order, rest, "Balance of the order"));
         }
     }
 
@@ -324,20 +348,45 @@ internal sealed class Simulation(
             CreatedAtUtc = ToUtc(day),
         };
         var demo = new DemoReceipt(receipt, order, ++_sequence, []);
+        var replacements = new Dictionary<PurchaseOrderLine, decimal>();
 
         foreach (var (product, line) in order.Lines.Where(l => quantities.ContainsKey(l.Line)))
         {
             var quantity = quantities[line];
-            product.AverageCost = PurchaseCosting.AfterReceipt(product.AverageCost, product.OnHand, quantity, line.UnitPrice);
-            var receiptLine = new StockReceiptLine { ProductId = product.Entity.Id, Quantity = quantity, UnitCost = line.UnitPrice };
+
+            // Now and then part of a delivery is refused at the door: it never enters stock and the mill replaces it.
+            var rejected = notes is null && quantity >= 10 * product.Spec.Step && _random.NextDouble() < 0.03
+                ? RoundTo(quantity * (decimal)(0.05 + _random.NextDouble() * 0.1), product.Spec.Step)
+                : 0m;
+            var accepted = quantity - rejected;
+            product.AverageCost = PurchaseCosting.AfterReceipt(product.AverageCost, product.OnHand, accepted, line.UnitPrice);
+            var receiptLine = new StockReceiptLine
+            {
+                ProductId = product.Entity.Id,
+                Quantity = accepted,
+                UnitCost = line.UnitPrice,
+                QuantityRejected = rejected,
+                RejectionReason = rejected > 0 ? DemoCatalog.RejectionReasons[_random.Next(DemoCatalog.RejectionReasons.Length)] : null,
+            };
             receipt.Lines.Add(receiptLine);
             demo.Lines.Add((line, receiptLine));
-            Move(product, StockMovementType.Receipt, quantity, day, null, receipt, unitCost: line.UnitPrice);
-            line.QuantityReceived += quantity;
+            Move(product, StockMovementType.Receipt, accepted, day, null, receipt, unitCost: line.UnitPrice);
+            line.QuantityReceived += accepted;
+            if (rejected > 0)
+            {
+                replacements[line] = rejected;
+                RejectionCount++;
+            }
         }
 
         order.Entity.Status = order.Entity.Lines.All(l => l.QuantityReceived >= l.Quantity) ? PurchaseOrderStatus.Received : PurchaseOrderStatus.PartlyReceived;
         Receipts.Add(demo);
+
+        if (replacements.Count > 0)
+        {
+            var later = day.AddDays(_random.Next(5, 11));
+            (_deliveries.TryGetValue(later, out var due) ? due : _deliveries[later] = []).Add((order, replacements, "Replacement for goods rejected on delivery"));
+        }
 
         // The supplier's invoice travels with the goods, but this week's haven't been entered yet.
         if (day <= generator.Today.AddDays(-5))
@@ -452,7 +501,18 @@ internal sealed class Simulation(
         }
 
         Bills.Add(demo);
+        UseSupplierCredit(bill, billDate);
         PaySupplier(bill);
+
+        // A few deliveries turn out faulty once opened and part goes back to the mill.
+        if (_random.NextDouble() < 0.03)
+        {
+            var returnDay = Weekday(billDate.AddDays(_random.Next(3, 15)));
+            if (returnDay > billDate && returnDay <= generator.Today)
+            {
+                (_supplierReturns.TryGetValue(returnDay, out var due) ? due : _supplierReturns[returnDay] = []).Add(demo);
+            }
+        }
     }
 
     /// <summary>
@@ -461,7 +521,8 @@ internal sealed class Simulation(
     /// </summary>
     private void PaySupplier(SupplierBill bill)
     {
-        if (bill.MatchStatus == BillMatchStatus.NeedsApproval)
+        SetStatus(bill);
+        if (bill.MatchStatus == BillMatchStatus.NeedsApproval || bill.AmountCredited >= bill.GrandTotal)
         {
             return;
         }
@@ -484,15 +545,44 @@ internal sealed class Simulation(
         bill.Payments.Add(new SupplierPayment
         {
             PaymentDate = payOn,
-            Amount = bill.GrandTotal,
+            Amount = bill.GrandTotal - bill.AmountCredited,
             Mode = mode,
             Reference = Reference(mode, payOn),
             CreatedByUserId = team.ManagerId,
             CreatedAtUtc = ToUtc(payOn).AddHours(6),
         });
-        bill.AmountPaid = bill.GrandTotal;
-        bill.Status = SupplierBillStatus.Paid;
+        bill.AmountPaid = bill.GrandTotal - bill.AmountCredited;
+        SetStatus(bill);
         SupplierPaymentCount++;
+    }
+
+    /// <summary>Credit with the supplier from earlier returns comes off their next bill.</summary>
+    private void UseSupplierCredit(SupplierBill bill, DateOnly date)
+    {
+        if (!_supplierCredit.TryGetValue(bill.SupplierId, out var credits))
+        {
+            return;
+        }
+
+        foreach (var credit in credits.Where(c => c.Entity.ReturnDate <= date).ToList())
+        {
+            var use = Math.Min(Available(credit.Entity), bill.GrandTotal - bill.AmountCredited);
+            if (use <= 0)
+            {
+                break;
+            }
+
+            credit.Entity.Adjustments.Add(new SupplierCreditAdjustment
+            {
+                SupplierBill = bill, AdjustmentDate = date, Amount = use, CreatedByUserId = team.ManagerId, CreatedAtUtc = ToUtc(date).AddHours(5),
+            });
+            credit.Entity.AmountAdjusted += use;
+            bill.AmountCredited += use;
+            if (Available(credit.Entity) == 0)
+            {
+                credits.Remove(credit);
+            }
+        }
     }
 
     // Deterministic on purpose (string.GetHashCode is randomised per process): combed yarn from one mill, carded from
@@ -746,7 +836,49 @@ internal sealed class Simulation(
                 Move(product, StockMovementType.Sale, -line.Quantity, day, demoInvoice, null);
             }
 
+            UseCustomerCredit(invoice, day);
             AddPayments(invoice, customer);
+
+            // About one invoice in 45 sees a return or a price correction, usually within three weeks but sometimes only
+            // after it was paid (that credit is then used on the next invoice or refunded); the satin far more often.
+            var returnProne = order.Lines.Any(l => l.Product.Spec.Sku == DemoCatalog.ReturnProneSku);
+            if (_random.NextDouble() < (returnProne ? 0.25 : 0.022))
+            {
+                var returnDay = Weekday(day.AddDays(_random.NextDouble() < 0.3 ? _random.Next(30, 61) : _random.Next(3, 21)));
+                if (returnDay > day && returnDay <= generator.Today)
+                {
+                    (_returns.TryGetValue(returnDay, out var due) ? due : _returns[returnDay] = []).Add(demoInvoice);
+                }
+            }
+        }
+    }
+
+    /// <summary>Credit the customer has from earlier credit notes comes off their next invoice.</summary>
+    private void UseCustomerCredit(Invoice invoice, DateOnly date)
+    {
+        if (!_customerCredit.TryGetValue(invoice.CustomerId, out var credits))
+        {
+            return;
+        }
+
+        foreach (var credit in credits.Where(c => c.Entity.CreditNoteDate <= date && !_refundOn.ContainsKey(c)).ToList())
+        {
+            var use = Math.Min(Available(credit.Entity), invoice.GrandTotal - invoice.AmountCredited);
+            if (use <= 0)
+            {
+                break;
+            }
+
+            credit.Entity.Adjustments.Add(new CreditAdjustment
+            {
+                Invoice = invoice, AdjustmentDate = date, Amount = use, CreatedByUserId = team.ManagerId, CreatedAtUtc = ToUtc(date).AddHours(3),
+            });
+            credit.Entity.AmountAdjusted += use;
+            invoice.AmountCredited += use;
+            if (Available(credit.Entity) == 0)
+            {
+                credits.Remove(credit);
+            }
         }
     }
 
@@ -766,7 +898,8 @@ internal sealed class Simulation(
             _ => invoice.InvoiceDate < generator.Today.AddDays(-150) ? [(due.AddDays(_random.Next(40, 91)), 1m)] : [],
         };
 
-        var remaining = invoice.GrandTotal;
+        var payable = invoice.GrandTotal - invoice.AmountCredited;
+        var remaining = payable;
         for (var i = 0; i < schedule.Count; i++)
         {
             var (date, share) = schedule[i];
@@ -780,7 +913,7 @@ internal sealed class Simulation(
                 break; // not paid yet
             }
 
-            var amount = i == schedule.Count - 1 ? remaining : Math.Round(invoice.GrandTotal * share, 0);
+            var amount = i == schedule.Count - 1 ? remaining : Math.Round(payable * share, 0);
             if (amount <= 0)
             {
                 break;
@@ -800,9 +933,345 @@ internal sealed class Simulation(
             PaymentCount++;
         }
 
-        invoice.AmountPaid = invoice.GrandTotal - remaining;
-        invoice.Status = remaining == 0 ? InvoiceStatus.Paid : invoice.AmountPaid > 0 ? InvoiceStatus.PartiallyPaid : InvoiceStatus.Unpaid;
+        invoice.AmountPaid = payable - remaining;
+        SetStatus(invoice);
     }
+
+    private static void SetStatus(Invoice invoice) =>
+        invoice.Status = invoice.AmountPaid + invoice.AmountCredited >= invoice.GrandTotal ? InvoiceStatus.Paid
+            : invoice.AmountPaid + invoice.AmountCredited > 0 ? InvoiceStatus.PartiallyPaid
+            : InvoiceStatus.Unpaid;
+
+    private static void SetStatus(SupplierBill bill) =>
+        bill.Status = bill.AmountPaid + bill.AmountCredited >= bill.GrandTotal ? SupplierBillStatus.Paid
+            : bill.AmountPaid + bill.AmountCredited > 0 ? SupplierBillStatus.PartiallyPaid
+            : SupplierBillStatus.Unpaid;
+
+    // ---- Returns ------------------------------------------------------------------------------------
+
+    private void ProcessReturns(DateOnly day)
+    {
+        if (_returns.Remove(day, out var invoices))
+        {
+            foreach (var invoice in invoices)
+            {
+                IssueCreditNote(invoice, day);
+            }
+        }
+
+        if (_supplierReturns.Remove(day, out var bills))
+        {
+            foreach (var bill in bills)
+            {
+                ReturnToSupplier(bill, day);
+            }
+        }
+
+        RefundUnusedCredit(day);
+    }
+
+    /// <summary>
+    /// A credit note against one line of an invoice: three in four are goods coming back (damaged ones written off at
+    /// once), the rest price corrections. Its value comes off what's still due, and payments still to come shrink to
+    /// match; whatever is left is the customer's credit, for their next invoice or a refund.
+    /// </summary>
+    private void IssueCreditNote(DemoInvoice demoInvoice, DateOnly day)
+    {
+        var invoice = demoInvoice.Entity;
+        var lines = demoInvoice.Order.Lines;
+        var prone = lines.FindIndex(l => l.Product.Spec.Sku == DemoCatalog.ReturnProneSku);
+        var index = prone >= 0 && _random.NextDouble() < 0.9 ? prone : _random.Next(lines.Count);
+        var product = lines[index].Product;
+        var line = invoice.Lines[index];
+        var creditable = new CreditableLine(line.Quantity, line.TaxableValue, line.CgstAmount, line.SgstAmount, line.IgstAmount, line.GstRate);
+        // Goods coming back would interrupt a stock-out the insights are meant to find, so those are price corrections.
+        var goods = !InStockout(product, day) && (index == prone || _random.NextDouble() < 0.75);
+
+        ReturnReason reason;
+        decimal? quantity = null;
+        ReturnDisposition? disposition = null;
+        CreditAmounts amounts;
+        if (goods)
+        {
+            var share = index == prone ? 0.3 + _random.NextDouble() * 0.3 : 0.1 + _random.NextDouble() * 0.3;
+            var back = Math.Min(line.Quantity, RoundTo(line.Quantity * (decimal)share, product.Spec.Step));
+            reason = index == prone
+                ? (_random.NextDouble() < 0.6 ? ReturnReason.QualityIssue : ReturnReason.Damaged)
+                : generator.Pick([(ReturnReason.Damaged, 0.35), (ReturnReason.WrongItem, 0.25), (ReturnReason.QualityIssue, 0.40)], r => r.Item2).Item1;
+            disposition = reason == ReturnReason.Damaged || (reason == ReturnReason.QualityIssue && _random.NextDouble() < 0.3)
+                ? ReturnDisposition.Damaged
+                : ReturnDisposition.Restock;
+            quantity = back;
+            amounts = ReturnRules.ForGoods(creditable, CreditedSoFar.None, back, invoice.IsInterState, withGst: true);
+        }
+        else
+        {
+            reason = generator.Pick([(ReturnReason.RateDifference, 0.5), (ReturnReason.Discount, 0.3), (ReturnReason.ShortSupply, 0.2)], r => r.Item2).Item1;
+            var amount = Math.Max(1m, Math.Round(line.TaxableValue * (decimal)(0.03 + _random.NextDouble() * 0.05), 0));
+            amounts = ReturnRules.ForValue(creditable, CreditedSoFar.None, Math.Min(amount, line.TaxableValue), invoice.IsInterState, withGst: true);
+        }
+
+        var (roundOff, total) = ReturnRules.Total([amounts]);
+        if (total <= 0)
+        {
+            return;
+        }
+
+        var notes = DemoCatalog.ReturnNotes[reason];
+        var address = invoice.BillingAddress;
+        var note = new CreditNote
+        {
+            Number = string.Empty, // numbered in date order when saving
+            FinancialYear = FinancialYear.StartYear(day),
+            CreditNoteDate = day,
+            Kind = goods ? CreditNoteKind.GoodsReturn : CreditNoteKind.PriceCorrection,
+            Reason = reason,
+            ReasonNote = notes[_random.Next(notes.Length)],
+            WithGst = true,
+            Invoice = invoice,
+            CustomerId = invoice.CustomerId,
+            SellerName = invoice.SellerName,
+            SellerGstin = invoice.SellerGstin,
+            SellerStateCode = invoice.SellerStateCode,
+            SellerAddress = invoice.SellerAddress,
+            CustomerName = invoice.CustomerName,
+            CustomerGstin = invoice.CustomerGstin,
+            BillingAddress = new InvoiceAddress
+            {
+                Line1 = address.Line1, Line2 = address.Line2, City = address.City,
+                StateCode = address.StateCode, StateName = address.StateName, Pincode = address.Pincode,
+            },
+            PlaceOfSupplyStateCode = invoice.PlaceOfSupplyStateCode,
+            PlaceOfSupplyStateName = invoice.PlaceOfSupplyStateName,
+            IsInterState = invoice.IsInterState,
+            UsesUtgst = invoice.UsesUtgst,
+            TaxableValue = amounts.TaxableValue,
+            CgstAmount = amounts.CgstAmount,
+            SgstAmount = amounts.SgstAmount,
+            IgstAmount = amounts.IgstAmount,
+            RoundOff = roundOff,
+            GrandTotal = total,
+            CreatedByUserId = team.ManagerId,
+            CreatedAtUtc = ToUtc(day).AddHours(2),
+        };
+        note.Lines.Add(new CreditNoteLine
+        {
+            LineNumber = 1,
+            ProductId = line.ProductId,
+            ProductSku = line.ProductSku,
+            ProductName = line.ProductName,
+            HsnCode = line.HsnCode,
+            Unit = line.Unit,
+            Quantity = quantity,
+            Disposition = disposition,
+            TaxableValue = amounts.TaxableValue,
+            GstRate = line.GstRate,
+            CgstAmount = amounts.CgstAmount,
+            SgstAmount = amounts.SgstAmount,
+            IgstAmount = amounts.IgstAmount,
+            LineTotal = amounts.LineTotal,
+        });
+        var demo = new DemoCreditNote(note, demoInvoice, line, ++_sequence);
+        CreditNotes.Add(demo);
+
+        if (quantity is { } returned)
+        {
+            Move(product, StockMovementType.SaleReturn, returned, day, null, null, unitCost: product.AverageCost, creditNote: demo);
+            if (disposition == ReturnDisposition.Damaged)
+            {
+                Move(product, StockMovementType.Adjustment, -returned, day, null, null, reason: AdjustmentReason.Damaged,
+                    notes: "Came back damaged: written off", creditNote: demo);
+            }
+        }
+
+        var off = SettleAgainst(invoice.Payments, p => p.PaymentDate, p => p.Amount, (p, amount) => p.Amount = amount,
+            p => { invoice.Payments.Remove(p); PaymentCount--; }, invoice.GrandTotal - invoice.AmountCredited, total, day);
+        if (off > 0)
+        {
+            note.Adjustments.Add(new CreditAdjustment
+            {
+                Invoice = invoice, AdjustmentDate = day, Amount = off, CreatedByUserId = team.ManagerId, CreatedAtUtc = ToUtc(day).AddHours(2),
+            });
+            note.AmountAdjusted = off;
+            invoice.AmountCredited += off;
+            invoice.AmountPaid = invoice.Payments.Sum(p => p.Amount);
+            SetStatus(invoice);
+        }
+
+        if (total > off)
+        {
+            // About a third of customers ask for the money back; the rest have it set against their next invoice.
+            if (_random.NextDouble() < 0.35)
+            {
+                _refundOn[demo] = day.AddDays(_random.Next(5, 15));
+            }
+
+            (_customerCredit.TryGetValue(invoice.CustomerId, out var credits) ? credits : _customerCredit[invoice.CustomerId] = []).Add(demo);
+        }
+    }
+
+    /// <summary>
+    /// Part of one bill line goes back to the mill (no more than is on the shelf): stock out at the bill's price, and
+    /// the value off what we still owe on that bill, or credit for their next one.
+    /// </summary>
+    private void ReturnToSupplier(DemoBill demoBill, DateOnly day)
+    {
+        var bill = demoBill.Entity;
+        var (orderLine, line) = demoBill.Lines[_random.Next(demoBill.Lines.Count)];
+        var product = demoBill.Order.Lines.Single(l => l.Line == orderLine).Product;
+        var wanted = RoundTo(line.Quantity * (decimal)(0.05 + _random.NextDouble() * 0.1), product.Spec.Step);
+        var quantity = Math.Min(Math.Min(wanted, line.Quantity), FloorTo(product.OnHand, product.Spec.Step));
+        if (quantity <= 0 || InStockout(product, day))
+        {
+            return;
+        }
+
+        var creditable = new CreditableLine(line.Quantity, line.TaxableValue, line.CgstAmount, line.SgstAmount, line.IgstAmount, line.GstRate);
+        var amounts = ReturnRules.ForGoods(creditable, CreditedSoFar.None, quantity, bill.IsInterState, withGst: true);
+        var (roundOff, total) = ReturnRules.Total([amounts]);
+        if (total <= 0)
+        {
+            return;
+        }
+
+        // Their credit note has usually arrived for returns more than ten days old.
+        var noted = day < generator.Today.AddDays(-10);
+        var prefix = bill.SupplierName.Split(' ')[0].ToUpperInvariant()[..3];
+        var ret = new SupplierReturn
+        {
+            Number = string.Empty, // numbered in date order when saving
+            FinancialYear = FinancialYear.StartYear(day),
+            ReturnDate = day,
+            Reason = generator.Pick([(ReturnReason.QualityIssue, 0.5), (ReturnReason.Damaged, 0.3), (ReturnReason.WrongItem, 0.2)], r => r.Item2).Item1,
+            ReasonNote = DemoCatalog.SupplierReturnNotes[_random.Next(DemoCatalog.SupplierReturnNotes.Length)],
+            WithGst = true,
+            SupplierBill = bill,
+            SupplierId = bill.SupplierId,
+            SupplierName = bill.SupplierName,
+            SupplierGstin = bill.SupplierGstin,
+            SupplierStateCode = bill.SupplierStateCode,
+            IsInterState = bill.IsInterState,
+            SupplierCreditNoteNumber = noted
+                ? $"{prefix}/CN/{_supplierCreditNoteNumbers[bill.SupplierName] = _supplierCreditNoteNumbers.GetValueOrDefault(bill.SupplierName) + 1:D3}"
+                : null,
+            SupplierCreditNoteDate = noted ? day.AddDays(_random.Next(2, 9)) : null,
+            TaxableValue = amounts.TaxableValue,
+            CgstAmount = amounts.CgstAmount,
+            SgstAmount = amounts.SgstAmount,
+            IgstAmount = amounts.IgstAmount,
+            RoundOff = roundOff,
+            GrandTotal = total,
+            CreatedByUserId = team.ManagerId,
+            CreatedAtUtc = ToUtc(day).AddHours(4),
+        };
+        ret.Lines.Add(new SupplierReturnLine
+        {
+            LineNumber = 1,
+            ProductId = line.ProductId,
+            ProductSku = line.ProductSku,
+            ProductName = line.ProductName,
+            HsnCode = line.HsnCode,
+            Unit = line.Unit,
+            Quantity = quantity,
+            UnitPrice = line.UnitPrice,
+            TaxableValue = amounts.TaxableValue,
+            GstRate = line.GstRate,
+            CgstAmount = amounts.CgstAmount,
+            SgstAmount = amounts.SgstAmount,
+            IgstAmount = amounts.IgstAmount,
+            LineTotal = amounts.LineTotal,
+        });
+        var demo = new DemoSupplierReturn(ret, demoBill, line, ++_sequence);
+        SupplierReturns.Add(demo);
+
+        product.AverageCost = PurchaseCosting.AfterReturn(product.AverageCost, product.OnHand, quantity, line.UnitPrice);
+        Move(product, StockMovementType.PurchaseReturn, -quantity, day, null, null, unitCost: line.UnitPrice, supplierReturn: demo);
+
+        var off = SettleAgainst(bill.Payments, p => p.PaymentDate, p => p.Amount, (p, amount) => p.Amount = amount,
+            p => { bill.Payments.Remove(p); SupplierPaymentCount--; }, bill.GrandTotal - bill.AmountCredited, total, day);
+        if (off > 0)
+        {
+            ret.Adjustments.Add(new SupplierCreditAdjustment
+            {
+                SupplierBill = bill, AdjustmentDate = day, Amount = off, CreatedByUserId = team.ManagerId, CreatedAtUtc = ToUtc(day).AddHours(4),
+            });
+            ret.AmountAdjusted = off;
+            bill.AmountCredited += off;
+            bill.AmountPaid = bill.Payments.Sum(p => p.Amount);
+            SetStatus(bill);
+        }
+
+        if (total > off)
+        {
+            (_supplierCredit.TryGetValue(bill.SupplierId, out var credits) ? credits : _supplierCredit[bill.SupplierId] = []).Add(demo);
+        }
+    }
+
+    /// <summary>
+    /// How much of a credit worth <paramref name="total"/> comes off a document on <paramref name="day"/>: what's still
+    /// due after the payments made by then. Payments planned for later shrink (or go) by as much as they would have
+    /// covered, since the customer or we now pay less.
+    /// </summary>
+    private static decimal SettleAgainst<TPayment>(List<TPayment> payments, Func<TPayment, DateOnly> date, Func<TPayment, decimal> amount,
+        Action<TPayment, decimal> setAmount, Action<TPayment> remove, decimal outstanding, decimal total, DateOnly day)
+    {
+        var due = outstanding - payments.Where(p => date(p) <= day).Sum(amount);
+        var off = Math.Clamp(due, 0m, total);
+        var later = payments.Where(p => date(p) > day).OrderByDescending(date).ToList();
+        var neverPaid = due - later.Sum(amount);
+        var excess = off - Math.Max(0m, neverPaid);
+        foreach (var payment in later)
+        {
+            if (excess <= 0)
+            {
+                break;
+            }
+
+            var value = amount(payment);
+            if (value <= excess)
+            {
+                excess -= value;
+                remove(payment);
+            }
+            else
+            {
+                setAmount(payment, value - excess);
+                excess = 0;
+            }
+        }
+
+        return off;
+    }
+
+    /// <summary>Credit is paid back when the customer asked for it, or once it has gone unused for 45 days.</summary>
+    private void RefundUnusedCredit(DateOnly day)
+    {
+        foreach (var credits in _customerCredit.Values)
+        {
+            foreach (var credit in credits.Where(c => (_refundOn.TryGetValue(c, out var on) ? on : c.Entity.CreditNoteDate.AddDays(45)) <= day).ToList())
+            {
+                var amount = Available(credit.Entity);
+                var mode = amount >= 50_000m ? PaymentMode.Neft : generator.Pick([(PaymentMode.Neft, 0.6), (PaymentMode.Upi, 0.3), (PaymentMode.Cheque, 0.1)], m => m.Item2).Item1;
+                credit.Entity.Refunds.Add(new CreditRefund
+                {
+                    RefundDate = day,
+                    Amount = amount,
+                    Mode = mode,
+                    Reference = Reference(mode, day),
+                    Notes = "Unused credit paid back",
+                    CreatedByUserId = team.ManagerId,
+                    CreatedAtUtc = ToUtc(day).AddHours(4),
+                });
+                credit.Entity.AmountRefunded += amount;
+                credits.Remove(credit);
+                RefundCount++;
+            }
+        }
+    }
+
+    private static decimal Available(CreditNote note) => note.GrandTotal - note.AmountAdjusted - note.AmountRefunded;
+
+    private static decimal Available(SupplierReturn ret) => ret.GrandTotal - ret.AmountAdjusted - ret.AmountRefunded;
 
     private PaymentMode ChooseMode(decimal amount, int customerId, DateOnly date)
     {
@@ -841,7 +1310,7 @@ internal sealed class Simulation(
     // ---- Stock ledger ------------------------------------------------------------------------------
 
     private void Move(DemoProduct product, StockMovementType type, decimal quantity, DateOnly day, DemoInvoice? invoice, StockReceipt? receipt,
-        decimal? unitCost = null, AdjustmentReason? reason = null, string? notes = null)
+        decimal? unitCost = null, AdjustmentReason? reason = null, string? notes = null, DemoCreditNote? creditNote = null, DemoSupplierReturn? supplierReturn = null)
     {
         product.OnHand += quantity;
         Movements.Add(new DemoMovement(new StockMovement
@@ -852,11 +1321,15 @@ internal sealed class Simulation(
             BalanceAfter = product.OnHand,
             UnitCost = unitCost,
             Reason = reason,
-            ReferenceType = invoice is not null ? StockReferenceTypes.Invoice : receipt is not null ? StockReferenceTypes.Receipt : null,
+            ReferenceType = invoice is not null ? StockReferenceTypes.Invoice
+                : receipt is not null ? StockReferenceTypes.Receipt
+                : creditNote is not null ? StockReferenceTypes.CreditNote
+                : supplierReturn is not null ? StockReferenceTypes.SupplierReturn
+                : null,
             Notes = notes,
             CreatedByUserId = team.ManagerId,
             CreatedAtUtc = ToUtc(day),
-        }, product, invoice, receipt));
+        }, product, invoice, receipt, creditNote, supplierReturn));
     }
 
     private static DateOnly Weekday(DateOnly day) => day.DayOfWeek switch
@@ -918,6 +1391,24 @@ internal sealed class Simulation(
             }
         }
 
+        foreach (var fy in CreditNotes.GroupBy(c => c.Entity.FinancialYear))
+        {
+            var n = 0;
+            foreach (var note in fy.OrderBy(c => c.Entity.CreditNoteDate).ThenBy(c => c.Sequence))
+            {
+                note.Entity.Number = $"CN/{FinancialYear.Label(note.Entity.CreditNoteDate)}/{++n:D5}";
+            }
+        }
+
+        foreach (var fy in SupplierReturns.GroupBy(r => r.Entity.FinancialYear))
+        {
+            var n = 0;
+            foreach (var ret in fy.OrderBy(r => r.Entity.ReturnDate).ThenBy(r => r.Sequence))
+            {
+                ret.Entity.Number = $"DN/{FinancialYear.Label(ret.Entity.ReturnDate)}/{++n:D5}";
+            }
+        }
+
         var receiptNumber = 0;
         foreach (var receipt in Receipts.OrderBy(r => r.Entity.ReceiptDate).ThenBy(r => r.Sequence))
         {
@@ -953,11 +1444,35 @@ internal sealed class Simulation(
         db.SupplierBills.AddRange(Bills.Select(b => b.Entity));
         await db.SaveChangesAsync(cancellationToken);
 
+        // Credit notes and supplier returns point at invoice and bill lines, which have their ids now.
+        foreach (var note in CreditNotes)
+        {
+            note.Entity.Lines[0].InvoiceLineId = note.Line.Id;
+        }
+
+        foreach (var ret in SupplierReturns)
+        {
+            ret.Entity.Lines[0].SupplierBillLineId = ret.Line.Id;
+        }
+
+        db.CreditNotes.AddRange(CreditNotes.Select(c => c.Entity));
+        db.SupplierReturns.AddRange(SupplierReturns.Select(r => r.Entity));
+        await db.SaveChangesAsync(cancellationToken);
+
         foreach (var movement in Movements)
         {
             movement.Entity.ProductId = movement.Product.Entity.Id;
-            movement.Entity.ReferenceId = movement.Invoice?.Entity.Id ?? movement.Receipt?.Id;
-            movement.Entity.ReferenceNumber = movement.Invoice?.Entity.Number ?? movement.Receipt?.Number;
+            movement.Entity.ReferenceId = movement.Invoice?.Entity.Id ?? movement.Receipt?.Id ?? movement.CreditNote?.Entity.Id ?? movement.SupplierReturn?.Entity.Id;
+            movement.Entity.ReferenceNumber = movement.Invoice?.Entity.Number ?? movement.Receipt?.Number
+                ?? movement.CreditNote?.Entity.Number ?? movement.SupplierReturn?.Entity.Number;
+            if (movement.CreditNote is { } note && movement.Entity.Type == StockMovementType.SaleReturn)
+            {
+                movement.Entity.Notes = $"Returned against {note.Invoice.Entity.Number}";
+            }
+            else if (movement.SupplierReturn is { } ret)
+            {
+                movement.Entity.Notes = $"Returned to {ret.Entity.SupplierName} against {ret.Bill.Entity.Number}";
+            }
         }
 
         db.StockMovements.AddRange(Movements.Select(m => m.Entity));
@@ -986,6 +1501,8 @@ internal sealed class Simulation(
         AddSequences(DocumentTypes.Invoice, Invoices.Select(i => i.Entity.FinancialYear));
         AddSequences(DocumentTypes.PurchaseOrder, PurchaseOrders.Select(o => FinancialYear.StartYear(o.Entity.OrderDate)));
         AddSequences(DocumentTypes.SupplierBill, Bills.Select(b => b.Entity.FinancialYear));
+        AddSequences(DocumentTypes.CreditNote, CreditNotes.Select(c => c.Entity.FinancialYear));
+        AddSequences(DocumentTypes.DebitNote, SupplierReturns.Select(r => r.Entity.FinancialYear));
         await db.SaveChangesAsync(cancellationToken);
 
 #pragma warning disable EF1002 // Integers formatted by us, not user input.

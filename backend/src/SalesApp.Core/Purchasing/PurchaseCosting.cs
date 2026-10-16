@@ -41,6 +41,24 @@ public static class PurchaseCosting
     }
 
     /// <summary>
+    /// The cost after sending <paramref name="quantity"/> back to the supplier at <paramref name="unitCost"/> (the bill's
+    /// price) out of <paramref name="onHandBefore"/>: the rest keeps what it actually cost. 150 kg at ₹210 less 50 kg
+    /// returned at ₹230 leaves 100 kg at ₹200. Nothing changes when no stock would be left or the sum makes no sense.
+    /// </summary>
+    public static decimal? AfterReturn(decimal? currentCost, decimal onHandBefore, decimal quantity, decimal unitCost)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
+        var left = onHandBefore - quantity;
+        if (currentCost is not { } cost || left <= 0)
+        {
+            return currentCost;
+        }
+
+        var value = onHandBefore * cost - quantity * unitCost;
+        return value <= 0 ? currentCost : Money(value / left);
+    }
+
+    /// <summary>
     /// Splits <paramref name="amount"/> in proportion to <paramref name="weights"/> (freight by line value), to the
     /// paisa; the largest line takes the rounding difference so the parts always add up to the amount.
     /// </summary>

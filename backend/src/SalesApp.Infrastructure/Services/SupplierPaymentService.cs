@@ -74,7 +74,7 @@ public sealed class SupplierPaymentService(
     {
         var bill = await db.SupplierBills.AsNoTracking()
             .Where(b => b.Id == request.SupplierBillId)
-            .Select(b => new { b.Id, b.Number, b.Status, b.MatchStatus, b.BillDate, b.SupplierId, b.SupplierName, Balance = b.GrandTotal - b.AmountPaid })
+            .Select(b => new { b.Id, b.Number, b.Status, b.MatchStatus, b.BillDate, b.SupplierId, b.SupplierName, Balance = b.GrandTotal - b.AmountPaid - b.AmountCredited })
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new ValidationException("supplierBillId", "Choose a valid bill.");
 
@@ -131,9 +131,9 @@ public sealed class SupplierPaymentService(
         var updated = await db.Database.SqlQuery<decimal>($"""
             UPDATE [dbo].[SupplierBills]
             SET [AmountPaid] = [AmountPaid] + {amount},
-                [Status] = CASE WHEN [AmountPaid] + {amount} >= [GrandTotal] THEN 'Paid' ELSE 'PartiallyPaid' END
+                [Status] = CASE WHEN [AmountPaid] + [AmountCredited] + {amount} >= [GrandTotal] THEN 'Paid' ELSE 'PartiallyPaid' END
             OUTPUT inserted.[AmountPaid] AS [Value]
-            WHERE [Id] = {bill.Id} AND [Status] <> 'Cancelled' AND [MatchStatus] <> 'NeedsApproval' AND [AmountPaid] + {amount} <= [GrandTotal]
+            WHERE [Id] = {bill.Id} AND [Status] <> 'Cancelled' AND [MatchStatus] <> 'NeedsApproval' AND [AmountPaid] + [AmountCredited] + {amount} <= [GrandTotal]
             """).ToListAsync(cancellationToken);
 
         if (updated.Count == 0)

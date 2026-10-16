@@ -216,6 +216,21 @@ internal static class AuditedTypes
                 nameof(SupplierBill.MatchStatus), nameof(SupplierBill.Source)]),
         [typeof(SupplierPayment)] = new("Supplier payment", (e, l) =>
             $"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierPayment.Amount)))} for {l.Name(nameof(SupplierPayment.SupplierBillId), Value<int>(e, nameof(SupplierPayment.SupplierBillId)))}"),
+        [typeof(CreditNote)] = new("Credit note", (e, _) => $"{Value<string>(e, nameof(CreditNote.Number))} ({Value<string>(e, nameof(CreditNote.CustomerName))})",
+            CreatedFields: [nameof(CreditNote.CreditNoteDate), nameof(CreditNote.Kind), nameof(CreditNote.Reason), nameof(CreditNote.ReasonNote),
+                nameof(CreditNote.InvoiceId), nameof(CreditNote.CustomerId), nameof(CreditNote.WithGst), nameof(CreditNote.TaxableValue), nameof(CreditNote.GrandTotal)]),
+        [typeof(CreditAdjustment)] = new("Credit used", (e, l) =>
+            $"{AuditFormat.Money(Value<decimal>(e, nameof(CreditAdjustment.Amount)))} of {l.Name(nameof(CreditAdjustment.CreditNoteId), Value<int>(e, nameof(CreditAdjustment.CreditNoteId)))} against {l.Name(nameof(CreditAdjustment.InvoiceId), Value<int>(e, nameof(CreditAdjustment.InvoiceId)))}"),
+        [typeof(CreditRefund)] = new("Credit refund", (e, l) =>
+            $"{AuditFormat.Money(Value<decimal>(e, nameof(CreditRefund.Amount)))} from {l.Name(nameof(CreditRefund.CreditNoteId), Value<int>(e, nameof(CreditRefund.CreditNoteId)))}"),
+        [typeof(SupplierReturn)] = new("Supplier return", (e, _) => $"{Value<string>(e, nameof(SupplierReturn.Number))} ({Value<string>(e, nameof(SupplierReturn.SupplierName))})",
+            CreatedFields: [nameof(SupplierReturn.ReturnDate), nameof(SupplierReturn.Reason), nameof(SupplierReturn.ReasonNote), nameof(SupplierReturn.SupplierBillId),
+                nameof(SupplierReturn.SupplierId), nameof(SupplierReturn.WithGst), nameof(SupplierReturn.TaxableValue), nameof(SupplierReturn.GrandTotal),
+                nameof(SupplierReturn.SupplierCreditNoteNumber)]),
+        [typeof(SupplierCreditAdjustment)] = new("Supplier credit used", (e, l) =>
+            $"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierCreditAdjustment.Amount)))} of {l.Name(nameof(SupplierCreditAdjustment.SupplierReturnId), Value<int>(e, nameof(SupplierCreditAdjustment.SupplierReturnId)))} against {l.Name(nameof(SupplierCreditAdjustment.SupplierBillId), Value<int>(e, nameof(SupplierCreditAdjustment.SupplierBillId)))}"),
+        [typeof(SupplierRefund)] = new("Supplier refund", (e, l) =>
+            $"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierRefund.Amount)))} from {l.Name(nameof(SupplierRefund.SupplierReturnId), Value<int>(e, nameof(SupplierRefund.SupplierReturnId)))}"),
         [typeof(StockMovement)] = new("Stock adjustment", (e, l) => l.Name(nameof(StockMovement.ProductId), Value<int>(e, nameof(StockMovement.ProductId)))),
         [typeof(AppUser)] = new("User", (e, _) => $"{Value<string>(e, nameof(AppUser.FullName))} ({Value<string>(e, nameof(AppUser.Email))})"),
         [typeof(AppRole)] = new("Role", (e, _) => Value<string>(e, nameof(IdentityRole<Guid>.Name))),
@@ -230,9 +245,14 @@ internal static class AuditedTypes
         "FinancialYear", "CgstAmount", "SgstAmount", "IgstAmount", "RoundOff", "BalanceAfter", "MatchIssuesJson",
     ];
 
-    /// <summary>Stock movements are audited only when someone made them by hand; sales and receipts are covered by their documents.</summary>
+    /// <summary>
+    /// Stock movements are audited only when someone made them by hand; sales, receipts, returns and the write-off of
+    /// damaged returns are covered by their documents.
+    /// </summary>
     internal static bool Audited(EntityEntry entry) =>
-        entry.Entity is not StockMovement movement || movement.Type is StockMovementType.Opening or StockMovementType.Adjustment;
+        entry.Entity is not StockMovement movement
+        || movement.Type == StockMovementType.Opening
+        || (movement.Type == StockMovementType.Adjustment && movement.ReferenceType is null);
 
     private static T Value<T>(EntityEntry entry, string property)
     {

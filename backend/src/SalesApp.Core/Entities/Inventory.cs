@@ -31,6 +31,12 @@ public enum StockMovementType
 
     /// <summary>A cancelled invoice putting its goods back (phase P3).</summary>
     SaleReversal,
+
+    /// <summary>Goods a customer sent back, on a credit note.</summary>
+    SaleReturn,
+
+    /// <summary>Goods sent back to a supplier, on a debit note.</summary>
+    PurchaseReturn,
 }
 
 public enum AdjustmentReason
@@ -123,4 +129,6 @@ public static class StockReferenceTypes
 {
     public const string Receipt = "Receipt";
     public const string Invoice = "Invoice";
+    public const string CreditNote = "CreditNote";
+    public const string SupplierReturn = "SupplierReturn";
 }

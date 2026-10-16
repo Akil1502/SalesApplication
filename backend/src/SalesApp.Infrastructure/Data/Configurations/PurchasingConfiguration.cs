@@ -124,7 +124,7 @@ internal sealed class SupplierBillConfiguration : IEntityTypeConfiguration<Suppl
 
         builder.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_SupplierBills_AmountPaid", "[AmountPaid] >= 0 AND [AmountPaid] <= [GrandTotal]");
+            t.HasCheckConstraint("CK_SupplierBills_AmountPaid", "[AmountPaid] >= 0 AND [AmountCredited] >= 0 AND [AmountPaid] + [AmountCredited] <= [GrandTotal]");
             t.HasCheckConstraint("CK_SupplierBills_DueDate", "[DueDate] >= [BillDate]");
             t.HasCheckConstraint("CK_SupplierBills_Charges", "[ChargesAmount] >= 0");
         });

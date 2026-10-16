@@ -193,7 +193,8 @@ public sealed class InventoryService(
             .AsNoTracking()
             .Where(l => l.StockReceiptId == id)
             .OrderBy(l => l.Id)
-            .Select(l => new StockReceiptLineDto(l.Id, l.ProductId, l.Product!.Sku, l.Product.Name, l.Product.Unit, l.Quantity, showCost ? l.UnitCost : null))
+            .Select(l => new StockReceiptLineDto(l.Id, l.ProductId, l.Product!.Sku, l.Product.Name, l.Product.Unit, l.Quantity, showCost ? l.UnitCost : null,
+                l.QuantityRejected, l.RejectionReason))
             .ToListAsync(cancellationToken);
 
         return new StockReceiptDto(receipt.Id, receipt.Number, receipt.ReceiptDate, receipt.PurchaseOrderId, receipt.OrderNumber,

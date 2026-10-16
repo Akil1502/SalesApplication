@@ -802,6 +802,365 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditAdjustment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("AdjustmentDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CreditNoteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InvoiceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CreditNoteId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.ToTable("CreditAdjustments", t =>
+                        {
+                            t.HasCheckConstraint("CK_CreditAdjustments_Amount", "[Amount] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AmountAdjusted")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AmountRefunded")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<decimal>("CgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("CreditNoteDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("CustomerGstin")
+                        .HasMaxLength(15)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(15)");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("FinancialYear")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("GrandTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("InvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsInterState")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("PlaceOfSupplyStateCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<string>("PlaceOfSupplyStateName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ReasonNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("RoundOff")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SellerAddress")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<string>("SellerGstin")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(15)");
+
+                    b.Property<string>("SellerName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("SellerStateCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<decimal>("TaxableValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("UsesUtgst")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("WithGst")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId", "Status");
+
+                    b.HasIndex("FinancialYear", "CreditNoteDate");
+
+                    b.ToTable("CreditNotes", t =>
+                        {
+                            t.HasCheckConstraint("CK_CreditNotes_Total", "[GrandTotal] > 0");
+
+                            t.HasCheckConstraint("CK_CreditNotes_Used", "[AmountAdjusted] >= 0 AND [AmountRefunded] >= 0 AND [AmountAdjusted] + [AmountRefunded] <= [GrandTotal]");
+                        });
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditNoteLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CreditNoteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Disposition")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<decimal>("GstRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("HsnCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("InvoiceLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ProductSku")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<decimal?>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxableValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceLineId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("CreditNoteId", "LineNumber")
+                        .IsUnique();
+
+                    b.ToTable("CreditNoteLines", t =>
+                        {
+                            t.HasCheckConstraint("CK_CreditNoteLines_Goods", "([Quantity] IS NULL AND [Disposition] IS NULL) OR ([Quantity] > 0 AND [Disposition] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_CreditNoteLines_Value", "[TaxableValue] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditRefund", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CreditNoteId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateOnly>("RefundDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CreditNoteId");
+
+                    b.HasIndex("RefundDate");
+
+                    b.ToTable("CreditRefunds", t =>
+                        {
+                            t.HasCheckConstraint("CK_CreditRefunds_Amount", "[Amount] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.Customer", b =>
                 {
                     b.Property<int>("Id")
@@ -1073,6 +1432,10 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("AmountCredited")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("AmountPaid")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -1221,7 +1584,7 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
                     b.ToTable("Invoices", t =>
                         {
-                            t.HasCheckConstraint("CK_Invoices_AmountPaid", "[AmountPaid] >= 0 AND [AmountPaid] <= [GrandTotal]");
+                            t.HasCheckConstraint("CK_Invoices_AmountPaid", "[AmountPaid] >= 0 AND [AmountCredited] >= 0 AND [AmountPaid] + [AmountCredited] <= [GrandTotal]");
 
                             t.HasCheckConstraint("CK_Invoices_DueDate", "[DueDate] >= [InvoiceDate]");
                         });
@@ -2325,6 +2688,14 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<decimal>("QuantityRejected")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<int>("StockReceiptId")
                         .HasColumnType("int");
 
@@ -2342,7 +2713,7 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
                     b.ToTable("StockReceiptLines", t =>
                         {
-                            t.HasCheckConstraint("CK_StockReceiptLines_Quantity", "[Quantity] > 0");
+                            t.HasCheckConstraint("CK_StockReceiptLines_Quantity", "[Quantity] >= 0 AND [QuantityRejected] >= 0 AND [Quantity] + [QuantityRejected] > 0");
                         });
                 });
 
@@ -2445,6 +2816,10 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AmountCredited")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("AmountPaid")
                         .HasPrecision(18, 2)
@@ -2613,7 +2988,7 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
                     b.ToTable("SupplierBills", t =>
                         {
-                            t.HasCheckConstraint("CK_SupplierBills_AmountPaid", "[AmountPaid] >= 0 AND [AmountPaid] <= [GrandTotal]");
+                            t.HasCheckConstraint("CK_SupplierBills_AmountPaid", "[AmountPaid] >= 0 AND [AmountCredited] >= 0 AND [AmountPaid] + [AmountCredited] <= [GrandTotal]");
 
                             t.HasCheckConstraint("CK_SupplierBills_Charges", "[ChargesAmount] >= 0");
 
@@ -2730,6 +3105,47 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierCreditAdjustment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("AdjustmentDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SupplierBillId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierReturnId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("SupplierBillId");
+
+                    b.HasIndex("SupplierReturnId");
+
+                    b.ToTable("SupplierCreditAdjustments", t =>
+                        {
+                            t.HasCheckConstraint("CK_SupplierCreditAdjustments_Amount", "[Amount] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.SupplierPayment", b =>
                 {
                     b.Property<int>("Id")
@@ -2782,6 +3198,293 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierRefund", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateOnly>("RefundDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("SupplierReturnId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("RefundDate");
+
+                    b.HasIndex("SupplierReturnId");
+
+                    b.ToTable("SupplierRefunds", t =>
+                        {
+                            t.HasCheckConstraint("CK_SupplierRefunds_Amount", "[Amount] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierReturn", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AmountAdjusted")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AmountRefunded")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<decimal>("CgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("FinancialYear")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("GrandTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsInterState")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(16)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ReasonNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateOnly>("ReturnDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("RoundOff")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("SupplierBillId")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("SupplierCreditNoteDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SupplierCreditNoteNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("SupplierGstin")
+                        .HasMaxLength(15)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(15)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("SupplierStateCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .IsUnicode(false)
+                        .HasColumnType("char(2)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("TaxableValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("WithGst")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("SupplierBillId");
+
+                    b.HasIndex("SupplierStateCode");
+
+                    b.HasIndex("FinancialYear", "ReturnDate");
+
+                    b.HasIndex("SupplierId", "Status");
+
+                    b.ToTable("SupplierReturns", t =>
+                        {
+                            t.HasCheckConstraint("CK_SupplierReturns_Total", "[GrandTotal] > 0");
+
+                            t.HasCheckConstraint("CK_SupplierReturns_Used", "[AmountAdjusted] >= 0 AND [AmountRefunded] >= 0 AND [AmountAdjusted] + [AmountRefunded] <= [GrandTotal]");
+                        });
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierReturnLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("GstRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("HsnCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(8)");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ProductSku")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SupplierBillLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierReturnId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TaxableValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SupplierBillLineId");
+
+                    b.HasIndex("SupplierReturnId", "LineNumber")
+                        .IsUnique();
+
+                    b.ToTable("SupplierReturnLines", t =>
+                        {
+                            t.HasCheckConstraint("CK_SupplierReturnLines_Quantity", "[Quantity] > 0 AND [TaxableValue] > 0");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -2802,6 +3505,10 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("SalesApp.Infrastructure.Reporting.RptInvoice", b =>
                 {
+                    b.Property<decimal>("AmountCredited")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("AmountPaid")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -2970,6 +3677,9 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("SalesApp.Infrastructure.Reporting.RptSalesLine", b =>
                 {
+                    b.Property<bool>("AffectsGst")
+                        .HasColumnType("bit");
+
                     b.Property<string>("CategoryName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -2990,6 +3700,14 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DocumentType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -3214,6 +3932,154 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("State");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditAdjustment", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.CreditNote", "CreditNote")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("CreditNoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("CreditNote");
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditNote", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("SalesApp.Core.Entities.InvoiceAddress", "BillingAddress", b1 =>
+                        {
+                            b1.Property<int>("CreditNoteId")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("City")
+                                .IsRequired()
+                                .HasMaxLength(60)
+                                .HasColumnType("nvarchar(60)")
+                                .HasColumnName("BillingCity");
+
+                            b1.Property<string>("Line1")
+                                .IsRequired()
+                                .HasMaxLength(120)
+                                .HasColumnType("nvarchar(120)")
+                                .HasColumnName("BillingLine1");
+
+                            b1.Property<string>("Line2")
+                                .HasMaxLength(120)
+                                .HasColumnType("nvarchar(120)")
+                                .HasColumnName("BillingLine2");
+
+                            b1.Property<string>("Pincode")
+                                .IsRequired()
+                                .HasMaxLength(6)
+                                .IsUnicode(false)
+                                .HasColumnType("varchar(6)")
+                                .HasColumnName("BillingPincode");
+
+                            b1.Property<string>("StateCode")
+                                .IsRequired()
+                                .HasMaxLength(2)
+                                .IsUnicode(false)
+                                .HasColumnType("char(2)")
+                                .HasColumnName("BillingStateCode")
+                                .IsFixedLength();
+
+                            b1.Property<string>("StateName")
+                                .IsRequired()
+                                .HasMaxLength(60)
+                                .HasColumnType("nvarchar(60)")
+                                .HasColumnName("BillingStateName");
+
+                            b1.HasKey("CreditNoteId");
+
+                            b1.ToTable("CreditNotes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CreditNoteId");
+                        });
+
+                    b.Navigation("BillingAddress")
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditNoteLine", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.CreditNote", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("CreditNoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.InvoiceLine", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditRefund", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.CreditNote", "CreditNote")
+                        .WithMany("Refunds")
+                        .HasForeignKey("CreditNoteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("CreditNote");
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.Customer", b =>
@@ -3874,6 +4740,33 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierCreditAdjustment", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.SupplierBill", "SupplierBill")
+                        .WithMany()
+                        .HasForeignKey("SupplierBillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.SupplierReturn", "SupplierReturn")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("SupplierReturnId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("SupplierBill");
+
+                    b.Navigation("SupplierReturn");
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.SupplierPayment", b =>
                 {
                     b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
@@ -3893,6 +4786,79 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.Navigation("SupplierBill");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierRefund", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.SupplierReturn", "SupplierReturn")
+                        .WithMany("Refunds")
+                        .HasForeignKey("SupplierReturnId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("SupplierReturn");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierReturn", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.SupplierBill", "SupplierBill")
+                        .WithMany()
+                        .HasForeignKey("SupplierBillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.State", null)
+                        .WithMany()
+                        .HasForeignKey("SupplierStateCode")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Supplier");
+
+                    b.Navigation("SupplierBill");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierReturnLine", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.SupplierBillLine", null)
+                        .WithMany()
+                        .HasForeignKey("SupplierBillLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.SupplierReturn", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("SupplierReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
                 {
                     b.HasOne("SalesApp.Core.Entities.AppUser", null)
@@ -3910,6 +4876,15 @@ namespace SalesApp.Infrastructure.Data.Migrations
             modelBuilder.Entity("SalesApp.Core.Entities.AppRole", b =>
                 {
                     b.Navigation("Permissions");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.CreditNote", b =>
+                {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("Lines");
+
+                    b.Navigation("Refunds");
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.Invoice", b =>
@@ -3944,6 +4919,15 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.Navigation("Lines");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.SupplierReturn", b =>
+                {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("Lines");
+
+                    b.Navigation("Refunds");
                 });
 #pragma warning restore 612, 618
         }

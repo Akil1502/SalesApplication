@@ -47,6 +47,7 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
         anomalies.AddRange(stockouts.Take(MaxPerKind).Select(s => s.Anomaly));
         anomalies.AddRange(await DemandAnomaliesAsync(monthStart, seasonalIndex, stockouts, cancellationToken));
         anomalies.AddRange(await PaymentRisksAsync(cancellationToken));
+        anomalies.AddRange(await HighReturnsAsync(today, cancellationToken));
 
         return new InsightMetricsDto(today, sales, receivables, forecast, top, growing, declining, reorder, anomalies);
     }
@@ -493,6 +494,68 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
                     + $"The oldest overdue invoice is {o.Oldest} days past due; {Money(o.Overdue)} is overdue in all.",
                 (double)(o.Late / 100_000), lastPaid.TryGetValue(o.CustomerId, out var paid) ? paid : null,
                 Rupees(o.Late), null, null, null, o.Oldest, o.CustomerId, null, null))];
+    }
+
+    /// <summary>
+    /// Products and customers whose goods come back far more often than the rest: at least 5% returned, three times the
+    /// usual rate, and on several credit notes, over the last 12 months. Price corrections don't count as returns.
+    /// </summary>
+    private async Task<List<AnomalyDto>> HighReturnsAsync(DateOnly today, CancellationToken cancellationToken)
+    {
+        var from = today.AddDays(-365);
+        var lines = db.RptSalesLines.Where(l => l.InvoiceDate > from && l.InvoiceDate <= today);
+
+        var products = await lines
+            .GroupBy(l => new { l.ProductId, l.Sku, l.ProductName, l.Unit })
+            .Select(g => new
+            {
+                g.Key.ProductId, g.Key.Sku, g.Key.ProductName, g.Key.Unit,
+                Sold = g.Sum(l => l.DocumentType == "Invoice" ? l.Quantity : 0m),
+                Returned = g.Sum(l => l.DocumentType == "CreditNote" && l.Quantity < 0 ? -l.Quantity : 0m),
+                Notes = g.Where(l => l.DocumentType == "CreditNote" && l.Quantity < 0).Select(l => l.DocumentNumber).Distinct().Count(),
+            })
+            .ToListAsync(cancellationToken);
+        var customers = await lines
+            .GroupBy(l => new { l.CustomerId, l.CustomerName })
+            .Select(g => new
+            {
+                g.Key.CustomerId, g.Key.CustomerName,
+                Bought = g.Sum(l => l.DocumentType == "Invoice" ? l.TaxableValue : 0m),
+                Returned = g.Sum(l => l.DocumentType == "CreditNote" && l.Quantity < 0 ? -l.TaxableValue : 0m),
+                Notes = g.Where(l => l.DocumentType == "CreditNote" && l.Quantity < 0).Select(l => l.DocumentNumber).Distinct().Count(),
+            })
+            .ToListAsync(cancellationToken);
+
+        static decimal Percent(decimal part, decimal whole) => whole > 0 ? Math.Round(part / whole * 100m, 1) : 0m;
+        static bool Unusual(decimal rate, decimal typical) => rate >= 5m && rate >= 3m * typical;
+
+        var soldProducts = products.Where(p => p.Sold > 0).ToList();
+        var typicalProduct = soldProducts.Count == 0 ? 0m : Math.Round((decimal)Statistics.Median([.. soldProducts.Select(p => (double)Percent(p.Returned, p.Sold))]), 1);
+        var productAlerts = soldProducts
+            .Select(p => (p, Rate: Percent(p.Returned, p.Sold)))
+            .Where(x => x.p.Notes >= 3 && Unusual(x.Rate, typicalProduct))
+            .OrderByDescending(x => x.Rate)
+            .Take(MaxPerKind)
+            .Select(x => new AnomalyDto(AnomalyKind.HighReturns,
+                $"{x.p.Sku}: {x.Rate.ToString("0.#", India)}% of what was sold came back",
+                $"{x.p.ProductName}: {Quantity(Math.Round(x.p.Returned, 0), x.p.Unit)} returned out of {Quantity(Math.Round(x.p.Sold, 0), x.p.Unit)} sold in the last 12 months, " +
+                $"on {x.p.Notes} credit notes. Across products the usual rate is {typicalProduct.ToString("0.#", India)}%.",
+                (double)(x.Rate / Math.Max(typicalProduct, 0.5m)), null, null, Math.Round(x.p.Returned, 0), typicalProduct, x.Rate, null, null, x.p.ProductId, null));
+
+        var buyers = customers.Where(c => c.Bought > 0).ToList();
+        var typicalCustomer = buyers.Count == 0 ? 0m : Math.Round((decimal)Statistics.Median([.. buyers.Select(c => (double)Percent(c.Returned, c.Bought))]), 1);
+        var customerAlerts = buyers
+            .Select(c => (c, Rate: Percent(c.Returned, c.Bought)))
+            .Where(x => x.c.Notes >= 2 && x.c.Returned >= 10_000 && Unusual(x.Rate, typicalCustomer))
+            .OrderByDescending(x => x.c.Returned)
+            .Take(MaxPerKind)
+            .Select(x => new AnomalyDto(AnomalyKind.HighReturns,
+                $"{x.c.CustomerName} returned {x.Rate.ToString("0.#", India)}% of what they bought",
+                $"{Money(x.c.Returned)} of goods came back out of {Money(x.c.Bought)} bought in the last 12 months, on {x.c.Notes} credit notes. " +
+                $"Customers usually return {typicalCustomer.ToString("0.#", India)}%.",
+                (double)(x.Rate / Math.Max(typicalCustomer, 0.5m)), null, Rupees(x.c.Returned), null, typicalCustomer, x.Rate, null, x.c.CustomerId, null, null));
+
+        return [.. productAlerts, .. customerAlerts];
     }
 
     private static decimal Rupees(decimal value) => Math.Round(value, 0, MidpointRounding.AwayFromZero);

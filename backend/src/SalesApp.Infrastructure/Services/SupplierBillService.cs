@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Purchasing;
+using SalesApp.Core.Contracts.Returns;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Purchasing;
 using SalesApp.Core.Security;
@@ -100,13 +101,14 @@ public sealed class SupplierBillService(
             .Select(b => new
             {
                 b.Id, b.Number, b.SupplierInvoiceNumber, b.BillDate, b.DueDate, b.SupplierId, b.SupplierName, b.PurchaseOrderId,
-                OrderNumber = b.PurchaseOrder!.Number, b.GrandTotal, b.AmountPaid, b.Status, b.MatchStatus,
+                OrderNumber = b.PurchaseOrder!.Number, b.GrandTotal, b.AmountPaid, b.AmountCredited, b.Status, b.MatchStatus,
             })
             .ToPagedResultAsync(request, cancellationToken);
 
         var items = page.Items
             .Select(b => new SupplierBillListItemDto(b.Id, b.Number, b.SupplierInvoiceNumber, b.BillDate, b.DueDate, b.SupplierId, b.SupplierName,
-                b.PurchaseOrderId, b.OrderNumber, b.GrandTotal, b.AmountPaid, b.Status == SupplierBillStatus.Cancelled ? 0m : b.GrandTotal - b.AmountPaid,
+                b.PurchaseOrderId, b.OrderNumber, b.GrandTotal, b.AmountPaid, b.AmountCredited,
+                b.Status == SupplierBillStatus.Cancelled ? 0m : b.GrandTotal - b.AmountPaid - b.AmountCredited,
                 b.Status, b.MatchStatus, DaysOverdue(b.Status, b.DueDate, today)))
             .ToList();
         return new PagedResult<SupplierBillListItemDto>(items, page.Page, page.PageSize, page.TotalCount);
@@ -118,13 +120,14 @@ public sealed class SupplierBillService(
         var monthStart = new DateOnly(today.Year, today.Month, 1);
         var open = db.SupplierBills.AsNoTracking().Where(b => Open.Contains(b.Status));
 
-        var payable = await open.SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid), cancellationToken) ?? 0m;
+        var payable = await open.SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited), cancellationToken) ?? 0m;
         var openCount = await open.CountAsync(cancellationToken);
         var overdue = open.Where(b => b.DueDate < today);
-        var overdueAmount = await overdue.SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid), cancellationToken) ?? 0m;
+        var overdueAmount = await overdue.SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited), cancellationToken) ?? 0m;
         var overdueCount = await overdue.CountAsync(cancellationToken);
         var weekAhead = today.AddDays(7);
-        var dueSoon = await open.Where(b => b.DueDate >= today && b.DueDate <= weekAhead).SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid), cancellationToken) ?? 0m;
+        var dueSoon = await open.Where(b => b.DueDate >= today && b.DueDate <= weekAhead)
+            .SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited), cancellationToken) ?? 0m;
         var needsApproval = await db.SupplierBills.CountAsync(b => b.MatchStatus == BillMatchStatus.NeedsApproval && b.Status != SupplierBillStatus.Cancelled, cancellationToken);
         var paid = await db.SupplierPayments.Where(p => p.PaymentDate >= monthStart && p.PaymentDate <= today).SumAsync(p => (decimal?)p.Amount, cancellationToken) ?? 0m;
 
@@ -145,6 +148,19 @@ public sealed class SupplierBillService(
             ?? throw new NotFoundException($"Supplier bill {id} was not found.");
 
         var states = await lookups.GetStatesAsync(cancellationToken);
+        var returned = await Credits.ReturnedSoFarAsync(db, bill.Id, cancellationToken);
+        var returns = await db.SupplierReturns.AsNoTracking()
+            .Where(r => r.SupplierBillId == bill.Id)
+            .OrderBy(r => r.ReturnDate).ThenBy(r => r.Id)
+            .Select(r => new ReturnSummaryDto(r.Id, r.Number, r.ReturnDate, nameof(CreditNoteKind.GoodsReturn), r.Reason, r.Status, r.WithGst, r.GrandTotal))
+            .ToListAsync(cancellationToken);
+        var creditsApplied = await db.SupplierCreditAdjustments.AsNoTracking()
+            .Where(a => a.SupplierBillId == bill.Id)
+            .OrderBy(a => a.AdjustmentDate).ThenBy(a => a.Id)
+            .Select(a => new CreditUseDto(a.Id, a.SupplierReturnId, a.SupplierReturn!.Number, bill.Id, bill.Number, a.AdjustmentDate, a.Amount,
+                a.SupplierReturn.Status == ReturnDocumentStatus.Cancelled, a.CreatedBy!.FullName, a.CreatedAtUtc))
+            .ToListAsync(cancellationToken);
+        var supplierCredit = await Credits.SupplierCreditAsync(db, bill.SupplierId, cancellationToken);
         var payments = bill.Payments.OrderBy(p => p.PaymentDate).ThenBy(p => p.Id)
             .Select(p => new SupplierPaymentDto(p.Id, bill.Id, bill.Number, bill.SupplierInvoiceNumber, bill.SupplierId, bill.SupplierName,
                 p.PaymentDate, p.Amount, p.Mode, p.Reference, p.Notes, p.CreatedBy!.FullName, p.CreatedAtUtc))
@@ -156,15 +172,18 @@ public sealed class SupplierBillService(
             bill.SupplierId, bill.SupplierName, bill.SupplierGstin, bill.SupplierStateCode,
             states.GetValueOrDefault(bill.SupplierStateCode)?.Name ?? bill.SupplierStateCode, bill.IsInterState,
             bill.PurchaseOrderId, bill.PurchaseOrder!.Number,
-            [.. bill.Lines.OrderBy(l => l.LineNumber).Select(l => new SupplierBillLineDto(l.LineNumber, l.PurchaseOrderLineId, l.ProductId,
+            [.. bill.Lines.OrderBy(l => l.LineNumber).Select(l => new SupplierBillLineDto(l.Id, l.LineNumber, l.PurchaseOrderLineId, l.ProductId,
                 l.ProductSku, l.ProductName, l.HsnCode, l.Unit, l.Quantity, l.UnitPrice, l.OrderedPrice, l.TaxableValue, l.GstRate,
-                l.CgstAmount, l.SgstAmount, l.IgstAmount, l.LineTotal, l.Issue))],
+                l.CgstAmount, l.SgstAmount, l.IgstAmount, l.LineTotal, l.Issue, returned.GetValueOrDefault(l.Id)?.Quantity ?? 0m))],
             bill.TaxableValue, bill.ChargesAmount, bill.ChargesGstRate, bill.ChargesDescription,
             bill.CgstAmount, bill.SgstAmount, bill.IgstAmount, bill.RoundOff, bill.GrandTotal, bill.SupplierTotal,
-            bill.AmountPaid, bill.Status == SupplierBillStatus.Cancelled ? 0m : bill.GrandTotal - bill.AmountPaid,
+            bill.AmountPaid, bill.AmountCredited,
+            bill.Status == SupplierBillStatus.Cancelled ? 0m : bill.GrandTotal - bill.AmountPaid - bill.AmountCredited,
             DaysOverdue(bill.Status, bill.DueDate, clock.Today),
             bill.MatchIssuesJson is null ? [] : JsonSerializer.Deserialize<List<string>>(bill.MatchIssuesJson, Json) ?? [],
             bill.ApprovedBy?.FullName, bill.ApprovedAtUtc, bill.ApprovalNote, bill.Notes, payments,
+            creditsApplied, returns, supplierCredit,
+            bill.Status == SupplierBillStatus.Cancelled ? null : CancelBlockedReason(bill, returns.Any(r => r.Status == ReturnDocumentStatus.Issued)),
             bill.CancelledAtUtc, bill.CancellationReason, bill.CreatedBy!.FullName, bill.CreatedAtUtc, RowVersions.ToToken(bill.RowVersion));
     }
 
@@ -376,9 +395,10 @@ public sealed class SupplierBillService(
             throw new ConflictException($"{bill.Number} is already cancelled.");
         }
 
-        if (bill.AmountPaid > 0)
+        var hasReturns = await db.SupplierReturns.AnyAsync(r => r.SupplierBillId == bill.Id && r.Status == ReturnDocumentStatus.Issued, cancellationToken);
+        if (CancelBlockedReason(bill, hasReturns) is { } blocked)
         {
-            throw new ConflictException($"Payments are recorded against {bill.Number}, so it can't be cancelled.");
+            throw new ConflictException(blocked);
         }
 
         bill.Status = SupplierBillStatus.Cancelled;
@@ -400,6 +420,11 @@ public sealed class SupplierBillService(
     }
 
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
+
+    private static string? CancelBlockedReason(SupplierBill bill, bool hasReturns) =>
+        bill.AmountPaid > 0 ? $"Payments are recorded against {bill.Number}, so it can't be cancelled."
+        : hasReturns || bill.AmountCredited > 0 ? $"Goods have been returned against {bill.Number}, so it can't be cancelled."
+        : null;
 
     internal static int? DaysOverdue(SupplierBillStatus status, DateOnly dueDate, DateOnly today) =>
         Open.Contains(status) && today > dueDate ? today.DayNumber - dueDate.DayNumber : null;

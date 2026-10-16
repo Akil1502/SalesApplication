@@ -50,6 +50,20 @@ public static class AuditFormat
         ["EffectiveFrom"] = "From",
         ["EffectiveTo"] = "To",
         ["Type"] = "Type",
+        ["CreditNoteId"] = "Credit note",
+        ["SupplierReturnId"] = "Supplier return",
+        ["CreditNoteDate"] = "Date",
+        ["ReturnDate"] = "Date",
+        ["AdjustmentDate"] = "Date",
+        ["RefundDate"] = "Date",
+        ["Kind"] = "Type",
+        ["ReasonNote"] = "Details",
+        ["WithGst"] = "Reduces GST",
+        ["AmountAdjusted"] = "Set against invoices or bills",
+        ["AmountRefunded"] = "Refunded",
+        ["AmountCredited"] = "Credited",
+        ["SupplierCreditNoteNumber"] = "Supplier's credit note number",
+        ["SupplierCreditNoteDate"] = "Supplier's credit note date",
     };
 
     /// <summary>Enum values that aren't plain words: payment modes are acronyms, sources say what AI read.</summary>
@@ -61,6 +75,14 @@ public static class AuditFormat
         ["AiText"] = "AI (text)",
         ["AiPdf"] = "AI (PDF)",
         ["AiImage"] = "AI (photo)",
+        ["GoodsReturn"] = "Goods returned",
+        ["PriceCorrection"] = "Price correction",
+        ["WrongItem"] = "Wrong item",
+        ["QualityIssue"] = "Quality issue",
+        ["ExcessSupplied"] = "Excess supplied",
+        ["RateDifference"] = "Rate difference",
+        ["ShortSupply"] = "Short supply",
+        ["Restock"] = "Back into stock",
     };
 
     /// <summary>"CreditLimit" → "Credit limit", "BillingAddress" + "City" → "Billing address: city".</summary>

@@ -87,7 +87,7 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
 
         builder.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_Invoices_AmountPaid", "[AmountPaid] >= 0 AND [AmountPaid] <= [GrandTotal]");
+            t.HasCheckConstraint("CK_Invoices_AmountPaid", "[AmountPaid] >= 0 AND [AmountCredited] >= 0 AND [AmountPaid] + [AmountCredited] <= [GrandTotal]");
             t.HasCheckConstraint("CK_Invoices_DueDate", "[DueDate] >= [InvoiceDate]");
         });
     }

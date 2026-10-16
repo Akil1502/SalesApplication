@@ -64,8 +64,8 @@ public sealed class SupplierService(AppDbContext db, ILookupService lookups, IBu
             .Select(s => new
             {
                 s.Id, s.Code, s.Name, s.Gstin, s.Address.City, s.Address.StateCode, s.Phone, s.IsActive,
-                Payable = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status)).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid)) ?? 0m,
-                Overdue = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status) && b.DueDate < today).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid)) ?? 0m,
+                Payable = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status)).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited)) ?? 0m,
+                Overdue = db.SupplierBills.Where(b => b.SupplierId == s.Id && OpenBills.Contains(b.Status) && b.DueDate < today).Sum(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited)) ?? 0m,
                 Orders = db.PurchaseOrders.Count(o => o.SupplierId == s.Id && OpenOrders.Contains(o.Status)),
             })
             .ToPagedResultAsync(request, cancellationToken);
@@ -85,8 +85,8 @@ public sealed class SupplierService(AppDbContext db, ILookupService lookups, IBu
 
         var today = clock.Today;
         var open = db.SupplierBills.AsNoTracking().Where(b => b.SupplierId == id && OpenBills.Contains(b.Status));
-        var payable = await open.SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid), cancellationToken) ?? 0m;
-        var overdue = await open.Where(b => b.DueDate < today).SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid), cancellationToken) ?? 0m;
+        var payable = await open.SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited), cancellationToken) ?? 0m;
+        var overdue = await open.Where(b => b.DueDate < today).SumAsync(b => (decimal?)(b.GrandTotal - b.AmountPaid - b.AmountCredited), cancellationToken) ?? 0m;
         var orders = await db.PurchaseOrders.CountAsync(o => o.SupplierId == id && OpenOrders.Contains(o.Status), cancellationToken);
         var companyState = await db.CompanySettings.AsNoTracking().Select(s => s.StateCode).SingleAsync(cancellationToken);
         var states = await lookups.GetStatesAsync(cancellationToken);

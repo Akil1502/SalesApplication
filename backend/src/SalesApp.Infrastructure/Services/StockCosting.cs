@@ -19,6 +19,13 @@ internal static class StockCosting
         product.CostPrice = PurchaseCosting.AfterReceipt(product.CostPrice, onHandBefore, quantity, unitCost);
     }
 
+    /// <summary>Takes goods sent back to the supplier out of the cost at the bill's price. <paramref name="onHandBefore"/> is the stock just before.</summary>
+    public static async Task ApplyReturnAsync(AppDbContext db, int productId, decimal onHandBefore, decimal quantity, decimal unitCost, CancellationToken cancellationToken)
+    {
+        var product = await db.Products.SingleAsync(p => p.Id == productId, cancellationToken);
+        product.CostPrice = PurchaseCosting.AfterReturn(product.CostPrice, onHandBefore, quantity, unitCost);
+    }
+
     /// <summary>
     /// Adds what a bill changes about a delivery's cost (a different price, a share of freight) to the stock still on
     /// hand. A negative amount takes it back off, when the bill is cancelled.

@@ -49,7 +49,7 @@ public sealed class DashboardService(AppDbContext db, IBusinessClock clock) : ID
 
         var monthly = await lines.Where(l => l.InvoiceDate >= trendStart && l.InvoiceDate <= today)
             .GroupBy(l => l.MonthStart)
-            .Select(g => new { Month = g.Key, Taxable = g.Sum(l => l.TaxableValue), Invoices = g.Select(l => l.InvoiceId).Distinct().Count() })
+            .Select(g => new { Month = g.Key, Taxable = g.Sum(l => l.TaxableValue), Invoices = g.Where(l => l.DocumentType == "Invoice").Select(l => l.InvoiceId).Distinct().Count() })
             .ToListAsync(cancellationToken);
         var trend = Enumerable.Range(0, 24)
             .Select(i => trendStart.AddMonths(i))

@@ -365,6 +365,14 @@ public sealed class PurchaseOrderService(
             {
                 errors[$"lines[{i}].purchaseOrderLineId"] = ["This line is listed twice. Combine the quantities."];
             }
+            else if (input.Quantity <= 0 && input.QuantityRejected <= 0)
+            {
+                errors[$"lines[{i}].quantity"] = ["Enter what was accepted or rejected."];
+            }
+            else if (input.QuantityRejected > 0 && Text.NullIfBlank(input.RejectionReason) is null)
+            {
+                errors[$"lines[{i}].rejectionReason"] = ["Say why it was rejected."];
+            }
             else if (input.Quantity > MaxReceivable(line, tolerance))
             {
                 var unit = units[line.ProductId];
@@ -398,13 +406,22 @@ public sealed class PurchaseOrderService(
         foreach (var input in request.Lines)
         {
             var line = order.Lines.Single(l => l.Id == input.PurchaseOrderLineId);
-            receipt.Lines.Add(new StockReceiptLine { PurchaseOrderLineId = line.Id, ProductId = line.ProductId, Quantity = input.Quantity, UnitCost = line.UnitPrice });
+            receipt.Lines.Add(new StockReceiptLine
+            {
+                PurchaseOrderLineId = line.Id,
+                ProductId = line.ProductId,
+                Quantity = input.Quantity,
+                UnitCost = line.UnitPrice,
+                QuantityRejected = input.QuantityRejected,
+                RejectionReason = input.QuantityRejected > 0 ? Text.NullIfBlank(input.RejectionReason) : null,
+            });
         }
 
         db.StockReceipts.Add(receipt);
         await db.SaveChangesAsync(cancellationToken);
 
-        foreach (var receiptLine in receipt.Lines)
+        // Rejected goods never enter stock, and the order still expects them.
+        foreach (var receiptLine in receipt.Lines.Where(l => l.Quantity > 0))
         {
             var line = order.Lines.Single(l => l.Id == receiptLine.PurchaseOrderLineId);
             var movement = await ledger.PostAsync(new StockPosting(
@@ -419,7 +436,9 @@ public sealed class PurchaseOrderService(
             line.QuantityReceived += receiptLine.Quantity;
         }
 
-        order.Status = order.Lines.All(l => l.QuantityReceived >= l.Quantity) ? PurchaseOrderStatus.Received : PurchaseOrderStatus.PartlyReceived;
+        order.Status = order.Lines.All(l => l.QuantityReceived >= l.Quantity) ? PurchaseOrderStatus.Received
+            : order.Lines.Any(l => l.QuantityReceived > 0) ? PurchaseOrderStatus.PartlyReceived
+            : order.Status;
         await db.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

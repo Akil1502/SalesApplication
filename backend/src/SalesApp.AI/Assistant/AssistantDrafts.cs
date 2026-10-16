@@ -135,16 +135,19 @@ public sealed class AssistantDrafts(AppDbContext db, TimeProvider time)
             var orders = await db.SalesOrders.AsNoTracking()
                 .Where(o => numbers.Contains(o.Number) || (o.QuotationNumber != null && numbers.Contains(o.QuotationNumber)))
                 .Select(o => new { o.Number, o.QuotationNumber, o.CustomerId, CustomerName = o.Customer!.Name }).ToListAsync(cancellationToken);
+            var creditNotes = await db.CreditNotes.AsNoTracking().Where(c => numbers.Contains(c.Number))
+                .Select(c => new { c.Number, c.CustomerId, c.CustomerName }).ToListAsync(cancellationToken);
 
             foreach (var number in numbers)
             {
                 var owner = invoices.Where(i => i.Number == number).Select(i => (i.CustomerId, i.CustomerName))
                     .Concat(orders.Where(o => o.Number == number || o.QuotationNumber == number).Select(o => (o.CustomerId, o.CustomerName)))
+                    .Concat(creditNotes.Where(c => c.Number == number).Select(c => (c.CustomerId, c.CustomerName)))
                     .Cast<(int CustomerId, string CustomerName)?>()
                     .FirstOrDefault();
                 if (owner is null)
                 {
-                    warnings.Add($"{number} isn't an invoice, order or quotation in SalesApp.");
+                    warnings.Add($"{number} isn't an invoice, credit note, order or quotation in SalesApp.");
                 }
                 else if (owner.Value.CustomerId != customer.Id)
                 {
@@ -174,16 +177,20 @@ public sealed class AssistantDrafts(AppDbContext db, TimeProvider time)
             var bills = await db.SupplierBills.AsNoTracking()
                 .Where(b => numbers.Contains(b.Number) || numbers.Contains(b.SupplierInvoiceNumber))
                 .Select(b => new { b.Number, b.SupplierInvoiceNumber, b.SupplierId, b.SupplierName }).ToListAsync(cancellationToken);
+            var returns = await db.SupplierReturns.AsNoTracking()
+                .Where(r => numbers.Contains(r.Number) || (r.SupplierCreditNoteNumber != null && numbers.Contains(r.SupplierCreditNoteNumber)))
+                .Select(r => new { r.Number, r.SupplierCreditNoteNumber, r.SupplierId, r.SupplierName }).ToListAsync(cancellationToken);
 
             foreach (var number in numbers)
             {
                 var owner = orders.Where(o => o.Number == number).Select(o => (o.SupplierId, o.SupplierName))
                     .Concat(bills.Where(b => b.Number == number || b.SupplierInvoiceNumber == number).Select(b => (b.SupplierId, b.SupplierName)))
+                    .Concat(returns.Where(r => r.Number == number || r.SupplierCreditNoteNumber == number).Select(r => (r.SupplierId, r.SupplierName)))
                     .Cast<(int SupplierId, string SupplierName)?>()
                     .FirstOrDefault();
                 if (owner is null)
                 {
-                    warnings.Add($"{number} isn't a purchase order or bill in SalesApp.");
+                    warnings.Add($"{number} isn't a purchase order, bill or supplier return in SalesApp.");
                 }
                 else if (owner.Value.SupplierId != supplier.Id)
                 {

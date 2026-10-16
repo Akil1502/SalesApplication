@@ -12,7 +12,7 @@ namespace SalesApp.AI.Assistant;
 public static class AssistantPrompt
 {
     /// <summary>Bump when a tool is added, removed or its description or schema changes.</summary>
-    public const int ToolsVersion = 2;
+    public const int ToolsVersion = 3;
 
     public const string SearchCustomers = "search_customers";
     public const string GetCustomer = "get_customer";
@@ -25,7 +25,7 @@ public static class AssistantPrompt
     public const string CreateDraft = "create_draft";
 
     public static readonly string[] DraftPurposes =
-        ["payment_reminder", "follow_up", "quotation", "order_confirmation", "thank_you", "delivery_follow_up", "bill_query", "other"];
+        ["payment_reminder", "follow_up", "quotation", "order_confirmation", "thank_you", "delivery_follow_up", "bill_query", "credit_note", "other"];
 
     public static string System(string company, string userName, string roleName, bool manager) => $"""
         You are the assistant inside SalesApp, the sales, purchasing and GST billing system of {company}, an Indian
@@ -71,10 +71,13 @@ public static class AssistantPrompt
         - Sales, revenue and turnover mean taxable value, excluding GST, unless the user asks for amounts with GST.
         - The financial year runs 1 April to 31 March; "this year" means the current financial year unless the user
           says calendar year. Invoice numbers look like INV/26-27/00042 (prefix, financial year, number).
-        - Outstanding means unpaid invoice amounts; overdue means past the due date and not fully paid. For
-          suppliers, payable means what we still owe on their bills, and a purchase order is late when goods are
-          still to come after the expected date. Purchase orders look like PO/26-27/00042 and our supplier bill
-          references like PB/26-27/00042.
+        - Outstanding means what's still due on invoices after payments and credit notes; overdue means past the due
+          date and not fully settled. Credit notes (CN/26-27/00042) are for goods a customer returned or a price
+          correction; their credit first comes off the invoice, and any left over is credit the customer can use
+          or have refunded. For suppliers, payable means what we still owe on their bills after goods returned, and
+          a purchase order is late when goods are still to come after the expected date. Purchase orders look like
+          PO/26-27/00042, our supplier bill references like PB/26-27/00042 and supplier returns (our debit notes)
+          like DN/26-27/00042.
         - Quantities are in each product's unit; never add quantities of different units together.
 
         {AskDataPrompt.Views}{(manager ? AskDataPrompt.ManagerViews : "")}
@@ -125,9 +128,10 @@ public static class AssistantPrompt
             },
             InvoicesRequired),
         new(GetDocument,
-            "One invoice, sales order, quotation, purchase order or supplier bill by its number: customer or supplier, " +
-            "dates, status, lines (product, quantity, unit, price, taxable value, GST rate; for purchase orders also " +
-            "received and still to come), totals, and the payments made against invoices and bills.",
+            "One invoice, credit note, sales order, quotation, purchase order, supplier bill or supplier return by its " +
+            "number: customer or supplier, dates, status, lines (product, quantity, unit, price, taxable value, GST rate; " +
+            "for purchase orders also received and still to come), totals, the payments made against invoices and bills, " +
+            "and their credit notes or returns.",
             new Dictionary<string, JsonElement>
             {
                 ["number"] = Schema(new { type = "string", description = "The document number, e.g. INV/26-27/00042." }),

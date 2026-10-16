@@ -168,13 +168,16 @@ public sealed record InvoiceListItemDto(
     string CustomerName,
     decimal GrandTotal,
     decimal AmountPaid,
+    decimal AmountCredited,
     decimal Balance,
     InvoiceStatus Status,
     int? DaysOverdue);
 
 public sealed record InvoiceAddressDto(string Line1, string? Line2, string City, string StateCode, string StateName, string Pincode);
 
+/// <summary>An invoice line. QuantityReturned and ValueCredited are what credit notes have taken back so far.</summary>
 public sealed record InvoiceLineDto(
+    int Id,
     int LineNumber,
     int ProductId,
     string Sku,
@@ -194,7 +197,9 @@ public sealed record InvoiceLineDto(
     decimal SgstAmount,
     decimal IgstRate,
     decimal IgstAmount,
-    decimal LineTotal);
+    decimal LineTotal,
+    decimal QuantityReturned,
+    decimal ValueCredited);
 
 /// <summary>Tax per HSN code and rate, printed under the line items (required on B2B invoices).</summary>
 public sealed record HsnSummaryDto(string HsnCode, decimal GstRate, decimal TaxableValue, decimal CgstAmount, decimal SgstAmount, decimal IgstAmount);
@@ -213,7 +218,11 @@ public sealed record PaymentDto(
     string CreatedByName,
     DateTime CreatedAtUtc);
 
-/// <summary>A tax invoice as printed. Bank details and terms are the company's current ones.</summary>
+/// <summary>
+/// A tax invoice as printed. Bank details and terms are the company's current ones. CancelBlockedReason is null while it
+/// can still be cancelled (unpaid, uncredited, in its own month); GstCreditDeadline is the last day a credit note against
+/// it can reduce GST.
+/// </summary>
 public sealed record InvoiceDto(
     int Id,
     string Number,
@@ -246,10 +255,16 @@ public sealed record InvoiceDto(
     decimal RoundOff,
     decimal GrandTotal,
     decimal AmountPaid,
+    decimal AmountCredited,
     decimal Balance,
     int? DaysOverdue,
     string AmountInWords,
     IReadOnlyList<PaymentDto> Payments,
+    IReadOnlyList<Returns.CreditUseDto> CreditsApplied,
+    IReadOnlyList<Returns.ReturnSummaryDto> CreditNotes,
+    decimal CustomerCreditAvailable,
+    DateOnly GstCreditDeadline,
+    string? CancelBlockedReason,
     DateTime? CancelledAtUtc,
     string? CancellationReason,
     string? BankName,
