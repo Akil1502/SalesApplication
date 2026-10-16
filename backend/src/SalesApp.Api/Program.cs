@@ -26,6 +26,7 @@ builder.Services.AddHttpContextAccessor();
 // The signed-in user of the request, unless a background job has said it acts as the system for its scope.
 builder.Services.AddScoped<CurrentUserOverride>();
 builder.Services.AddScoped<HttpCurrentUser>();
+builder.Services.AddScoped<IAuditActor, HttpAuditActor>();
 builder.Services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserOverride>().User ?? sp.GetRequiredService<HttpCurrentUser>());
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddAi(builder.Configuration);

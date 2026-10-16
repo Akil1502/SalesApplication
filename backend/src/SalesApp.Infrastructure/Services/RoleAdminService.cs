@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
+using SalesApp.Core.Contracts.Audit;
 using SalesApp.Core.Contracts.Users;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
+using SalesApp.Infrastructure.Auditing;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.Security;
 
@@ -27,7 +29,8 @@ public sealed class RoleAdminService(
     AppDbContext db,
     RoleManager<AppRole> roles,
     ICurrentUser currentUser,
-    IPermissionService permissions) : IRoleAdminService
+    IPermissionService permissions,
+    IAuditLog audit) : IRoleAdminService
 {
     public PermissionCatalogDto Catalog() => new(Permissions.Menus, Permissions.SpecialRights, Permissions.NeedsByPermission);
 
@@ -63,6 +66,7 @@ public sealed class RoleAdminService(
             Permissions = [.. Permissions.WithNeeds(request.Permissions).Select(p => new RoleGrant { Permission = p })],
         };
         ThrowIfFailed(await roles.CreateAsync(role));
+        await AuditPermissionsAsync(role, [], role.Permissions.Select(p => p.Permission), cancellationToken);
         permissions.Invalidate();
         return await GetAsync(role.Id, cancellationToken);
     }
@@ -86,6 +90,7 @@ public sealed class RoleAdminService(
         var granted = Permissions.WithNeeds(request.Permissions);
         await EnsureNotLockingOutSelfAsync(role.Id, granted, cancellationToken);
 
+        var before = role.Permissions.Select(p => p.Permission).ToList();
         role.Description = Text.NullIfBlank(request.Description);
         role.Permissions.RemoveAll(p => !granted.Contains(p.Permission));
         role.Permissions.AddRange(granted.Except(role.Permissions.Select(p => p.Permission)).Select(p => new RoleGrant { Permission = p }));
@@ -95,6 +100,7 @@ public sealed class RoleAdminService(
         }
 
         ThrowIfFailed(await roles.UpdateAsync(role));
+        await AuditPermissionsAsync(role, before, granted, cancellationToken);
         permissions.Invalidate();
         return await GetAsync(role.Id, cancellationToken);
     }
@@ -116,6 +122,31 @@ public sealed class RoleAdminService(
 
         ThrowIfFailed(await roles.DeleteAsync(role));
         permissions.Invalidate();
+    }
+
+    /// <summary>Records which permissions a role gained and lost (nothing when they're the same).</summary>
+    private async Task AuditPermissionsAsync(AppRole role, IEnumerable<string> before, IEnumerable<string> after, CancellationToken cancellationToken)
+    {
+        var old = before.ToHashSet(StringComparer.Ordinal);
+        var now = after.ToHashSet(StringComparer.Ordinal);
+        static string? Names(IEnumerable<string> keys) =>
+            string.Join(", ", keys.Select(AuditFormat.Permission).Order(StringComparer.Ordinal)) is { Length: > 0 } text ? text : null;
+
+        var changes = new List<AuditChange>();
+        if (Names(now.Except(old)) is { } gained)
+        {
+            changes.Add(new AuditChange("Permissions added", null, gained));
+        }
+
+        if (Names(old.Except(now)) is { } lost)
+        {
+            changes.Add(new AuditChange("Permissions removed", lost, null));
+        }
+
+        if (changes.Count > 0)
+        {
+            await audit.RecordAsync(new AuditEvent(AuditAction.PermissionsChanged, "Role", role.Id.ToString(), role.Name, Changes: changes), cancellationToken);
+        }
     }
 
     private async Task<RoleDto> GetAsync(Guid id, CancellationToken cancellationToken) =>

@@ -68,6 +68,15 @@ export function formatDate(isoUtc: string | null | undefined): string {
   return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date)
 }
 
+const dateTimeFormatter = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+/** "16 Oct 2026, 11:42 am" in the viewer's local time zone. */
+export function formatDateTime(isoUtc: string | null | undefined): string {
+  if (!isoUtc) return '—'
+  const date = new Date(isoUtc)
+  return Number.isNaN(date.getTime()) ? '—' : dateTimeFormatter.format(date)
+}
+
 const compactFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 })
 
 /**

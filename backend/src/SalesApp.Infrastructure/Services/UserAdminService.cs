@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
+using SalesApp.Core.Contracts.Audit;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Users;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
+using SalesApp.Infrastructure.Auditing;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.Security;
 
@@ -29,6 +31,7 @@ public sealed class UserAdminService(
     UserManager<AppUser> users,
     ICurrentUser currentUser,
     IPermissionService permissions,
+    IAuditLog audit,
     TimeProvider timeProvider) : IUserAdminService
 {
     public async Task<PagedResult<UserDto>> ListAsync(UserListRequest request, CancellationToken cancellationToken)
@@ -117,6 +120,7 @@ public sealed class UserAdminService(
         ThrowIfFailed(await users.CreateAsync(user, request.Password), "password");
         ThrowIfFailed(await users.AddToRoleAsync(user, role.Name!), "role");
         await SetChangesAsync(user.Id, role, request.AddedPermissions, request.RemovedPermissions, cancellationToken);
+        await AuditAccessAsync(user, null, role, [], [], cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         permissions.Invalidate();
@@ -168,7 +172,10 @@ public sealed class UserAdminService(
             ThrowIfFailed(await users.AddToRoleAsync(user, role.Name!), "role");
         }
 
+        var before = await db.UserPermissionChanges.AsNoTracking().Where(p => p.UserId == user.Id).ToListAsync(cancellationToken);
         await SetChangesAsync(user.Id, role, request.AddedPermissions, request.RemovedPermissions, cancellationToken);
+        await AuditAccessAsync(user, currentRole, role, [.. before.Where(c => c.IsGranted).Select(c => c.Permission)],
+            [.. before.Where(c => !c.IsGranted).Select(c => c.Permission)], cancellationToken);
 
         // Rotating the security stamp marks the change; deactivated users are also refused by /me and login.
         if (wasActive && !request.IsActive)
@@ -199,6 +206,8 @@ public sealed class UserAdminService(
         // A reset is how an admin helps a locked-out user, so clear the lockout too.
         await users.SetLockoutEndDateAsync(user, null);
         await users.ResetAccessFailedCountAsync(user);
+        await audit.RecordAsync(new AuditEvent(AuditAction.PasswordReset, "User", user.Id.ToString(), $"{user.FullName} ({user.Email})",
+            "Password reset by an administrator; any lockout was cleared."), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -258,6 +267,37 @@ public sealed class UserAdminService(
         var stored = await db.UserPermissionChanges.AsNoTracking().Where(p => p.UserId == userId).ToListAsync(cancellationToken);
         return addedSet.SetEquals(stored.Where(c => c.IsGranted).Select(c => c.Permission))
             && removedSet.SetEquals(stored.Where(c => !c.IsGranted).Select(c => c.Permission));
+    }
+
+    /// <summary>Records a change to a user's role or own permissions (nothing when neither changed).</summary>
+    private async Task AuditAccessAsync(AppUser user, string? oldRole, AppRole role, List<string> oldAdded, List<string> oldRemoved, CancellationToken cancellationToken)
+    {
+        var stored = await db.UserPermissionChanges.AsNoTracking().Where(p => p.UserId == user.Id).ToListAsync(cancellationToken);
+        static string? Names(IEnumerable<string> keys) =>
+            string.Join(", ", keys.Select(AuditFormat.Permission).Order(StringComparer.Ordinal)) is { Length: > 0 } text ? text : null;
+
+        var changes = new List<AuditChange>();
+        if (oldRole != role.Name)
+        {
+            changes.Add(new AuditChange("Role", oldRole, role.Name));
+        }
+
+        var (addedBefore, addedNow) = (Names(oldAdded), Names(stored.Where(c => c.IsGranted).Select(c => c.Permission)));
+        if (addedBefore != addedNow)
+        {
+            changes.Add(new AuditChange("Added for this user", addedBefore, addedNow));
+        }
+
+        var (removedBefore, removedNow) = (Names(oldRemoved), Names(stored.Where(c => !c.IsGranted).Select(c => c.Permission)));
+        if (removedBefore != removedNow)
+        {
+            changes.Add(new AuditChange("Taken away for this user", removedBefore, removedNow));
+        }
+
+        if (changes.Count > 0)
+        {
+            await audit.RecordAsync(new AuditEvent(AuditAction.PermissionsChanged, "User", user.Id.ToString(), $"{user.FullName} ({user.Email})", Changes: changes), cancellationToken);
+        }
     }
 
     private static List<string> Keys(IEnumerable<UserPermissionChange> changes) => [.. changes.Select(c => c.Permission).Order(StringComparer.Ordinal)];

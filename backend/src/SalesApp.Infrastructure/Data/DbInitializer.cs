@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
+using SalesApp.Infrastructure.Auditing;
 
 namespace SalesApp.Infrastructure.Data;
 
@@ -16,6 +17,8 @@ public static class DbInitializer
 {
     public static async Task InitializeAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
+        // Setting up the database (built-in roles, the first administrator) isn't a change by a person.
+        using var quiet = AuditInterceptor.Suppress();
         using var scope = services.CreateScope();
         var provider = scope.ServiceProvider;
         var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DbInitializer));

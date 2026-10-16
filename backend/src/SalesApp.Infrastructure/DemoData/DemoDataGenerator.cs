@@ -8,6 +8,7 @@ using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Core.Validation;
+using SalesApp.Infrastructure.Auditing;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.Data.Configurations;
 using SalesApp.Infrastructure.Services;
@@ -53,6 +54,8 @@ public sealed class DemoDataGenerator(
 
     public async Task<DemoDataSummary> GenerateAsync(DemoDataOptions options, CancellationToken cancellationToken)
     {
+        // Two years of made-up history would bury the audit trail; the generator isn't someone changing records.
+        using var quiet = AuditInterceptor.Suppress();
         if (options.Months is < 1 or > 60)
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Months must be between 1 and 60.");

@@ -57,6 +57,7 @@ const featureRoutes: RouteObject[] = [
   guarded([P.SettingsEdit], [
     { path: '/admin/settings', lazy: () => import('@/features/settings/CompanySettingsPage').then((m) => ({ Component: m.CompanySettingsPage })) },
   ]),
+  guarded([P.AuditView], [{ path: '/admin/audit', lazy: () => import('@/features/audit/AuditLogPage').then((m) => ({ Component: m.AuditLogPage })) }]),
   guarded([P.AiUsageView], [{ path: '/admin/ai-usage', lazy: () => import('@/features/ai-usage/AiUsagePage').then((m) => ({ Component: m.AiUsagePage })) }]),
 ]
 

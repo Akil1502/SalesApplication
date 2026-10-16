@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { RecordHistory } from '@/features/audit/RecordHistory'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { ProductRatesCard } from '@/features/rates/ProductRatesCard'
@@ -198,6 +199,8 @@ export function ProductFormPage() {
           </CardContent>
         </Card>
       </fieldset>
+
+      {product.data && <RecordHistory entityType="Product" entityId={product.data.id} />}
 
       {canEdit && (
         <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">

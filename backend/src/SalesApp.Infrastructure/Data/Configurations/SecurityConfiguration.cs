@@ -33,3 +33,22 @@ internal sealed class UserPermissionChangeConfiguration : IEntityTypeConfigurati
         builder.HasOne<AppUser>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntry>
+{
+    public void Configure(EntityTypeBuilder<AuditEntry> builder)
+    {
+        builder.Property(a => a.UserName).HasMaxLength(256);
+        builder.Property(a => a.Action).HasConversion<string>().HasMaxLength(30).IsUnicode(false);
+        builder.Property(a => a.EntityType).HasMaxLength(40);
+        builder.Property(a => a.EntityId).HasMaxLength(64).IsUnicode(false);
+        builder.Property(a => a.EntityLabel).HasMaxLength(300);
+        builder.Property(a => a.Summary).HasMaxLength(1000);
+        builder.Property(a => a.IpAddress).HasMaxLength(45).IsUnicode(false);
+
+        // A record's history, and the newest entries first.
+        builder.HasIndex(a => new { a.EntityType, a.EntityId, a.Id });
+        builder.HasIndex(a => a.OccurredAtUtc);
+        builder.HasIndex(a => a.UserId);
+    }
+}

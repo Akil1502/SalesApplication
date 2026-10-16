@@ -1,0 +1,76 @@
+# Runs every test on every push and pull request. A pull request into main can only be merged once both jobs pass.
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+# A newer push to the same branch makes an older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # A throwaway SQL Server for the integration tests, with a password made up for this run only.
+      - name: Start SQL Server
+        run: |
+          password="Ci-$(openssl rand -hex 16)-A1"
+          echo "::add-mask::$password"
+          echo "SALESAPP_TEST_SQL_PASSWORD=$password" >> "$GITHUB_ENV"
+          docker run -d --name sql -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$password" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          for i in $(seq 1 60); do
+            if docker exec sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$password" -C -Q "SELECT 1" > /dev/null 2>&1; then
+              echo "SQL Server is ready"; exit 0
+            fi
+            sleep 2
+          done
+          docker logs sql; exit 1
+
+      - name: Build
+        run: dotnet build backend/SalesApp.slnx -c Release
+
+      - name: Test
+        env:
+          SALESAPP_TEST_SERVER: localhost,1433
+          SALESAPP_TEST_SQL_USER: sa
+        run: dotnet test --solution backend/SalesApp.slnx -c Release --no-build
+
+  web:
+    name: Web app
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

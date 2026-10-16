@@ -59,10 +59,16 @@ public class EvalHost : WebApplicationFactory<Program>, IAsyncLifetime
     private static string SqlServer =>
         Environment.GetEnvironmentVariable("SALESAPP_TEST_SERVER") is { Length: > 0 } custom ? custom : @"(localdb)\MSSQLLocalDB";
 
+    /// <summary>Windows sign-in, unless SALESAPP_TEST_SQL_USER and SALESAPP_TEST_SQL_PASSWORD name a SQL login (the CI server).</summary>
+    private static string SqlCredentials =>
+        Environment.GetEnvironmentVariable("SALESAPP_TEST_SQL_USER") is { Length: > 0 } user
+            ? $"User ID={user};Password={Environment.GetEnvironmentVariable("SALESAPP_TEST_SQL_PASSWORD")}"
+            : "Trusted_Connection=True";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.UseSetting("ConnectionStrings:Default", $"Server={SqlServer};Database={_database};Trusted_Connection=True;TrustServerCertificate=True");
+        builder.UseSetting("ConnectionStrings:Default", $"Server={SqlServer};Database={_database};{SqlCredentials};TrustServerCertificate=True");
         builder.UseSetting("Database:MigrateOnStartup", "false");
         builder.UseSetting("Ai:Insights:NightlyEnabled", "false");
         builder.UseSetting("Ai:DailyBudgetUsdPerUser", EvalSettings.BudgetUsd.ToString(System.Globalization.CultureInfo.InvariantCulture));
