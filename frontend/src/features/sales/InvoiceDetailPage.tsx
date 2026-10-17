@@ -70,6 +70,10 @@ export function InvoiceDetailPage() {
     <div className="flex max-w-6xl flex-col gap-6">
       <PageHeader
         title={`Invoice ${inv.number}`}
+        figures={[
+          { label: 'Total', value: formatINR(inv.grandTotal) },
+          { label: 'Balance due', value: formatINR(inv.balance), emphasis: inv.balance > 0 && !cancelled },
+        ]}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <InvoiceStatusBadge status={inv.status} daysOverdue={inv.daysOverdue} settledByCredit={inv.amountPaid === 0 && inv.amountCredited > 0} />
@@ -163,7 +167,7 @@ export function InvoiceDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>#</TableHead>

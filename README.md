@@ -237,7 +237,18 @@ The app has a calm indigo-and-teal look in light and dark, with depth and motion
   supplier bill, credit note, supplier return or goods receipt grows a panel out of the row, with the list still
   behind it (that row stays marked, and the list keeps its search, filters and page). **Full width** widens the
   panel; Escape, the cross, Back or clicking the list closes it. The address is the record's own
-  (/invoices/42), so it can be bookmarked or shared: the list opens behind it.
+  (/invoices/42), so it can be bookmarked or shared: the list opens behind it. The arrows in the panel's top bar
+  (or J and K) step to the next and previous record in the list without closing it, and the record's title,
+  status, actions and key figures (total, balance due, credit left) stay pinned at the top as it scrolls. Where the
+  panel is too narrow for a line-items table, each line becomes a card with labelled values.
+- **Keyboard shortcuts.** ? shows them all. / jumps to the list's search; J and K move along a list and Enter opens
+  the row; N starts a new order, customer, product, supplier or purchase order on its list; G then a letter jumps to
+  a page (G D dashboard, G O orders, G I invoices, G C customers, G P products, G S stock, G B supplier bills, G R
+  reports). Letter keys never fire while you're typing in a field.
+- **When something goes wrong.** A page that fails shows a friendly screen with Try again (inside the app, so the
+  menus stay; a failing record shows it in the panel) and the technical details to copy for support; after an
+  update it offers to reload. A notice under the top bar says when you're offline or the server can't be reached,
+  checks again every few seconds, and reloads the page's data once it's back.
 - **Light and dark.** The sun/moon button in the top bar switches between them; **Appearance** in the account menu
   also offers *Same as Windows* (the default). Printed documents are always light.
 - **Motion, and how much.** **Motion** in the account menu: *Full* (3D scenes, tilting cards, pages that swing into
@@ -257,6 +268,10 @@ The app has a calm indigo-and-teal look in light and dark, with depth and motion
 - **Success moments.** Saved messages draw a tick; a **PAID** stamp thuds onto settled invoices and supplier bills,
   with a burst of confetti when your payment is the one that settles it; and the dashboard celebrates (once) when
   this month's sales already beat every earlier month.
+- **Accessible.** Checked against WCAG 2.1 AA with axe-core in light and dark and in all three layouts (an automated
+  test in `src/test/a11y.test.tsx` keeps the shared parts honest): text contrast of at least 4.5:1, every list row
+  and control reachable by keyboard, a "Skip to the page" link, labelled icon buttons, and list filters that screen
+  readers announce as a choice of options.
 - **Everywhere else:** cards rise into place one after another, and further down a page they rise as you scroll to
   them; page titles drift as you scroll; table rows cascade in; a soft light follows the pointer across cards and
   main buttons lean towards it; summary and report tiles tilt; numbers count up; dialogs swing forward; empty lists

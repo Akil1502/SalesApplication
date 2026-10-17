@@ -60,7 +60,7 @@ export function RailNav({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   {open ? (
                     <motion.p
                       key="label"
-                      className="absolute inset-x-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/50 uppercase"
+                      className="absolute inset-x-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/65 uppercase"
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0 }}

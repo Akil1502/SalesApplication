@@ -15,7 +15,7 @@ import { UserMenu } from './UserMenu'
  * The frosted bar across the top of every layout: the page title (or, in the top-menus layout, the brand and the
  * menus), the search palette, light/dark, the assistant and the account menu.
  */
-export function TopBar({ layout, onSearch }: { layout: LayoutChoice; onSearch: () => void }) {
+export function TopBar({ layout, onSearch, onShortcuts }: { layout: LayoutChoice; onSearch: () => void; onShortcuts: () => void }) {
   const { active } = useNav()
   const title = active?.title ?? 'SalesApp'
   const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)
@@ -58,6 +58,7 @@ export function TopBar({ layout, onSearch }: { layout: LayoutChoice; onSearch: (
           onClick={onSearch}
           className="group/search mr-1 flex h-9 items-center gap-2 rounded-xl border bg-background/60 px-3 text-sm text-muted-foreground shadow-xs transition-[border-color,box-shadow,color] outline-none hover:border-brand/40 hover:text-foreground hover:shadow-[0_0_0_3px_var(--brand-glow)] focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Search (Ctrl+K)"
+          aria-keyshortcuts="Control+K"
         >
           <Search className="size-4 transition-transform group-hover/search:scale-110" />
           <span className="hidden lg:inline">Search…</span>
@@ -65,7 +66,7 @@ export function TopBar({ layout, onSearch }: { layout: LayoutChoice; onSearch: (
         </button>
         <ThemeToggle />
         <AssistantLauncher />
-        <UserMenu />
+        <UserMenu onShortcuts={onShortcuts} />
       </div>
     </header>
   )

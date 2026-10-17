@@ -1,6 +1,7 @@
 import { PackageSearch, Plus, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
@@ -8,7 +9,6 @@ import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { formatBusinessDate, formatINR, formatPercent } from '@/lib/format'
@@ -89,15 +89,7 @@ export function PurchaseOrdersPage() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })}>
-          <TabsList className="flex-wrap">
-            {tabs.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <SegmentedControl label="Show" value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
         <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search order no., supplier or their ref" />
         {supplierId && (
           <Badge variant="secondary" className="gap-1">

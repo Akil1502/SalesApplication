@@ -41,6 +41,9 @@ export function useOpenRecordId(): string | undefined {
   return useContext(OpenRecordContext)
 }
 
+/** The list's table reports its rows' ids here, so the panel can step to the next and previous record. */
+export const ListRowsContext = createContext<((ids: string[]) => void) | null>(null)
+
 /** True inside the side panel, which scrolls on its own: page effects tied to the window's scroll stay off there. */
 export const InPanelContext = createContext(false)
 

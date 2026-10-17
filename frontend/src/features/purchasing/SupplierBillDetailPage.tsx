@@ -57,6 +57,10 @@ export function SupplierBillDetailPage() {
     <div className="flex max-w-6xl flex-col gap-6">
       <PageHeader
         title={`Bill ${b.number}`}
+        figures={[
+          { label: 'Total', value: formatINR(b.grandTotal) },
+          { label: 'Balance', value: formatINR(b.balance), emphasis: b.balance > 0 && !cancelled },
+        ]}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <MatchBadge status={b.matchStatus} />
@@ -188,7 +192,7 @@ export function SupplierBillDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>#</TableHead>

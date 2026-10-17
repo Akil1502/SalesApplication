@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { FilePlus2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
@@ -12,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { api } from '@/lib/api/client'
@@ -170,15 +170,7 @@ export function SupplierBillsPage() {
       <SummaryCards />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })}>
-          <TabsList>
-            {tabs.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <SegmentedControl label="Show" value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
         <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search bill, their invoice no., supplier or order" />
       </div>
 

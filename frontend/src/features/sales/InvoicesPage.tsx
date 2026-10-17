@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
@@ -6,7 +7,6 @@ import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatBusinessDate, formatINR } from '@/lib/format'
 import { useInvoices, useInvoiceSummary, type InvoiceListItem, type InvoiceStatus } from './api'
 import { InvoiceStatusBadge } from './badges'
@@ -72,15 +72,7 @@ export function InvoicesPage() {
       <SummaryCards />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })}>
-          <TabsList>
-            {tabs.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <SegmentedControl label="Show" value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
         <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search invoice no., customer or GSTIN" />
       </div>
 

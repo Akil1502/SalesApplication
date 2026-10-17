@@ -179,7 +179,7 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>Product</TableHead>

@@ -54,6 +54,10 @@ export function SupplierReturnDetailPage() {
     <div className="flex max-w-6xl flex-col gap-6">
       <PageHeader
         title={`Debit note ${r.number}`}
+        figures={[
+          { label: 'Total', value: formatINR(r.grandTotal) },
+          { label: 'Credit left', value: formatINR(r.creditAvailable), emphasis: r.creditAvailable > 0 },
+        ]}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <ReturnStatusBadge status={r.status} />
@@ -168,7 +172,7 @@ export function SupplierReturnDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>#</TableHead>

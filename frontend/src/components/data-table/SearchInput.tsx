@@ -37,6 +37,9 @@ export function SearchInput({ value, onChange, placeholder = 'Search…', delayM
         placeholder={placeholder}
         className="pl-8"
         aria-label={placeholder}
+        // "/" anywhere on the page jumps here.
+        data-page-search
+        aria-keyshortcuts="/"
       />
     </div>
   )

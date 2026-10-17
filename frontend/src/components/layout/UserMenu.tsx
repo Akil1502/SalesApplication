@@ -1,4 +1,4 @@
-import { LayoutPanelLeft, LogOut, Monitor, Moon, PanelBottom, PanelTop, Sparkles, Sun } from 'lucide-react'
+import { Keyboard, LayoutPanelLeft, LogOut, Monitor, Moon, PanelBottom, PanelTop, Sparkles, Sun } from 'lucide-react'
 import { usePreferences } from '@/components/fx/preferences-context'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -42,7 +42,7 @@ const layouts: { value: LayoutChoice; label: string; hint: string; icon: typeof 
 ]
 
 /** The signed-in user's avatar in the top bar: appearance, motion, layout, and signing out. */
-export function UserMenu() {
+export function UserMenu({ onShortcuts }: { onShortcuts: () => void }) {
   const { user, logout } = useAuth()
   const preferences = usePreferences()
   const ThemeIcon = preferences.theme === 'system' ? Monitor : preferences.resolvedTheme === 'dark' ? Moon : Sun
@@ -122,6 +122,11 @@ export function UserMenu() {
             {!preferences.motionChosen && <p className="px-2 pt-1 pb-1.5 text-xs text-muted-foreground">Following your Windows animation setting.</p>}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+        <DropdownMenuItem onSelect={onShortcuts}>
+          <Keyboard />
+          Keyboard shortcuts
+          <span className="ml-auto text-xs text-muted-foreground">?</span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={logout}>
           <LogOut />

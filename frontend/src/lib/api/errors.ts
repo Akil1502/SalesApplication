@@ -48,12 +48,19 @@ export async function unwrap<T>(call: Promise<ClientResult<T>>): Promise<T> {
 
   const { data, error, response } = result
   if (!response.ok || error !== undefined) {
-    const body: ApiError = isApiError(error)
-      ? error
-      : { message: `The server returned ${response.status} ${response.statusText}.`, traceId: '' }
+    const body: ApiError = isApiError(error) ? error : { message: statusMessage(response), traceId: '' }
     throw new ApiRequestError(response.status, body)
   }
   return data as T
+}
+
+/**
+ * A message for a failed response that carried no ApiError body. A gateway answering for a server that's down or
+ * restarting (502, 503, 504) gets plain words rather than its status code.
+ */
+export function statusMessage(response: Pick<Response, 'status' | 'statusText'>): string {
+  if (response.status >= 502 && response.status <= 504) return "Can't reach the SalesApp server right now. It may be restarting; try again in a moment."
+  return `The server returned ${response.status} ${response.statusText}.`
 }
 
 /** A user-facing message for any thrown value. */

@@ -84,7 +84,7 @@ export function ReceiptDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-hidden rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>SKU</TableHead>

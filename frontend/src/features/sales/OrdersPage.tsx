@@ -1,5 +1,6 @@
 import { Plus, Sparkles } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
@@ -8,7 +9,6 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAiStatus } from '@/features/ai/api'
 import { formatBusinessDate, formatINR } from '@/lib/format'
 import { useOrders, type OrderListItem, type OrderStatus } from './api'
@@ -91,15 +91,7 @@ export function OrdersPage() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={status ?? ALL} onValueChange={(v) => update({ filters: { status: v === ALL ? undefined : v } })}>
-          <TabsList>
-            {statusTabs.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <SegmentedControl label="Show" value={status ?? ALL} onValueChange={(v) => update({ filters: { status: v === ALL ? undefined : v } })} options={statusTabs} />
         <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search order, quotation, customer or PO" />
       </div>
 

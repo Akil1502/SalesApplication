@@ -239,7 +239,7 @@ export function OrderFormPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="min-w-64">Product</TableHead>

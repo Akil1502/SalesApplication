@@ -3,13 +3,13 @@ import { useEffect, useId } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { FormInput, FormSelect, FormTextarea } from '@/components/form/fields'
 import { ProductPicker, type PickedProduct } from '@/components/ProductPicker'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatQuantity, todayInIndia } from '@/lib/format'
 import { adjustmentReasons, useAdjustStock, type AdjustmentMode, type AdjustmentReason } from './api'
@@ -101,12 +101,16 @@ export function AdjustStockDialog({ open, onOpenChange, product = null }: Adjust
               control={control}
               name="mode"
               render={({ field }) => (
-                <Tabs value={field.value} onValueChange={field.onChange}>
-                  <TabsList className="w-full">
-                    <TabsTrigger value="Change">Add or remove</TabsTrigger>
-                    <TabsTrigger value="SetCount">Set counted quantity</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                <SegmentedControl
+                  label="How to adjust"
+                  fullWidth
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  options={[
+                    { value: 'Change', label: 'Add or remove' },
+                    { value: 'SetCount', label: 'Set counted quantity' },
+                  ]}
+                />
               )}
             />
 

@@ -51,6 +51,10 @@ export function CreditNoteDetailPage() {
     <div className="flex max-w-6xl flex-col gap-6">
       <PageHeader
         title={`Credit note ${cn.number}`}
+        figures={[
+          { label: 'Total', value: formatINR(cn.grandTotal) },
+          { label: 'Credit left', value: formatINR(cn.creditAvailable), emphasis: cn.creditAvailable > 0 },
+        ]}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <ReturnStatusBadge status={cn.status} />
@@ -160,7 +164,7 @@ export function CreditNoteDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>#</TableHead>

@@ -2,6 +2,7 @@ import { ArrowLeft, Info } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { UnsavedChangesGuard } from '@/components/form/UnsavedChangesGuard'
 import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -13,7 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useInvoice, type Invoice } from '@/features/sales/api'
 import { ApiRequestError, errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatINR, formatQuantity, todayInIndia } from '@/lib/format'
@@ -163,12 +163,15 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
           <CardDescription>Goods the customer sent back, or a correction to the value with no goods moving: a wrong rate, short supply or a discount agreed later.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <Tabs value={kind} onValueChange={(v) => changeKind(v as CreditNoteKind)}>
-            <TabsList>
-              <TabsTrigger value="GoodsReturn">Goods returned</TabsTrigger>
-              <TabsTrigger value="PriceCorrection">Price correction</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <SegmentedControl
+            label="Kind of credit note"
+            value={kind}
+            onValueChange={(v) => changeKind(v)}
+            options={[
+              { value: 'GoodsReturn' as CreditNoteKind, label: 'Goods returned' },
+              { value: 'PriceCorrection' as CreditNoteKind, label: 'Price correction' },
+            ]}
+          />
           <FieldGroup className="grid gap-4 sm:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="cn-reason">Reason</FieldLabel>
@@ -209,7 +212,7 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>Product</TableHead>

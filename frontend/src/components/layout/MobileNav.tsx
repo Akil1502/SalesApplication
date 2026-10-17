@@ -31,7 +31,7 @@ export function MobileNav() {
         <nav aria-label="Main menu" className="flex-1 overflow-y-auto p-3">
           {groups.map((group, groupIndex) => (
             <div key={group.label} className="mb-3">
-              <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-sidebar-foreground/50 uppercase">{group.label}</p>
+              <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-sidebar-foreground/65 uppercase">{group.label}</p>
               {group.items.map((item, index) => (
                 <motion.div key={item.to} initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.02 * (groupIndex * 3 + index) }}>
                   <NavLink

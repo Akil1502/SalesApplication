@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { RouteError } from '@/components/errors/RouteError'
 import { RecordPanelLayout } from '@/components/layout/RecordPanelLayout'
 import { Spinner } from '@/components/ui/spinner'
 import { LoginPage } from '@/features/auth/LoginPage'
@@ -115,7 +116,8 @@ function withPanel(list: string, load: () => Promise<ComponentType>, children: R
           </RecordPanelLayout>
         ),
       })),
-    children,
+    // A record that fails shows its error in the panel, leaving the list usable.
+    children: [{ errorElement: <RouteError variant="panel" />, children }],
   }
 }
 
@@ -125,9 +127,10 @@ function guarded(anyOf: string[], children: RouteObject[]): RouteObject {
 }
 
 export const routes: RouteObject[] = [
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <LoginPage />, errorElement: <RouteError variant="full" /> },
   {
     element: <RequireAuth />,
+    errorElement: <RouteError variant="full" />,
     // Shown while the first screen's code-split chunk downloads on a fresh page load.
     hydrateFallbackElement: (
       <div className="flex h-svh items-center justify-center">
@@ -138,13 +141,19 @@ export const routes: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          // The dashboard is lazy too: it carries the charting library, which no other screen needs. Users without it
-          // land on the first page they may open.
           {
-            element: <HomeGate />,
-            children: [{ index: true, lazy: () => import('@/features/dashboard/DashboardPage').then((m) => ({ Component: m.DashboardPage })) }],
+            // A page that fails shows its error inside the app, with the menus still there.
+            errorElement: <RouteError />,
+            children: [
+              // The dashboard is lazy too: it carries the charting library, which no other screen needs. Users without
+              // it land on the first page they may open.
+              {
+                element: <HomeGate />,
+                children: [{ index: true, lazy: () => import('@/features/dashboard/DashboardPage').then((m) => ({ Component: m.DashboardPage })) }],
+              },
+              ...featureRoutes,
+            ],
           },
-          ...featureRoutes,
         ],
       },
       // Printable documents render without the sidebar.
