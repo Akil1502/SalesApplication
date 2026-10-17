@@ -89,6 +89,7 @@ export function CustomersPage() {
       </div>
 
       <DataTable
+        settingsKey="customers"
         columns={columns}
         rows={customers.data?.items}
         getRowKey={(c) => c.id}

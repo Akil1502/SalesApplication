@@ -44,6 +44,9 @@ export function useOpenRecordId(): string | undefined {
 /** The list's table reports its rows' ids here, so the panel can step to the next and previous record. */
 export const ListRowsContext = createContext<((ids: string[]) => void) | null>(null)
 
+/** The page in the side panel reports its record's title here (for the star and for "recently viewed"). */
+export const RecordTitleContext = createContext<((path: string, title: string) => void) | null>(null)
+
 /** True inside the side panel, which scrolls on its own: page effects tied to the window's scroll stay off there. */
 export const InPanelContext = createContext(false)
 

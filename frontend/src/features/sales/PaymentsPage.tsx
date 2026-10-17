@@ -71,6 +71,7 @@ export function PaymentsPage() {
       </div>
 
       <DataTable
+        settingsKey="payments"
         columns={columns}
         rows={payments.data?.items}
         getRowKey={(p) => p.id}

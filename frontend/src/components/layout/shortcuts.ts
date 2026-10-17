@@ -42,6 +42,7 @@ export const SHORTCUT_GROUPS: { title: string; items: { keys: string[]; descript
       { keys: ['J'], description: 'Next row' },
       { keys: ['K'], description: 'Previous row' },
       { keys: ['Enter'], description: 'Open the row' },
+      { keys: ['X'], description: 'Tick the row (for export, printing or reminders)' },
     ],
   },
   {

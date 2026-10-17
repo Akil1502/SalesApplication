@@ -96,6 +96,7 @@ export function OrdersPage() {
       </div>
 
       <DataTable
+        settingsKey="orders"
         columns={columns}
         rows={orders.data?.items}
         getRowKey={(o) => o.id}

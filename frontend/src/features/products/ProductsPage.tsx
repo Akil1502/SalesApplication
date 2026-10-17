@@ -151,6 +151,7 @@ export function ProductsPage() {
         />
       ) : (
         <DataTable
+          settingsKey="products"
           columns={columns}
           rows={products.data?.items}
           getRowKey={(p) => p.id}

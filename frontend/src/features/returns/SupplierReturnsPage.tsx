@@ -114,6 +114,7 @@ export function SupplierReturnsPage() {
       </div>
 
       <DataTable
+        settingsKey="supplier-returns"
         columns={columns}
         rows={returns.data?.items}
         getRowKey={(r) => r.id}

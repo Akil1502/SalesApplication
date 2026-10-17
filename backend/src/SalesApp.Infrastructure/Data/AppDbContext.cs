@@ -54,6 +54,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<InsightRun> InsightRuns => Set<InsightRun>();
     public DbSet<RoleGrant> RoleGrants => Set<RoleGrant>();
     public DbSet<UserPermissionChange> UserPermissionChanges => Set<UserPermissionChange>();
+    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)

@@ -66,6 +66,7 @@ public static class DependencyInjection
         services.AddScoped<IRateService, RateService>();
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
+        services.AddScoped<IUserSettingsService, UserSettingsService>();
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddSingleton<PermissionVersion>();
         services.AddScoped<IPermissionService, PermissionService>();

@@ -39,6 +39,7 @@ export function SupplierPaymentsPage() {
       <PageHeader title="Supplier payments" description="Money paid to suppliers against their bills. Record a payment from the bill." />
       <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search bill, their invoice no., supplier or reference" />
       <DataTable
+        settingsKey="supplier-payments"
         columns={columns}
         rows={payments.data?.items}
         getRowKey={(p) => p.id}

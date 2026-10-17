@@ -150,6 +150,7 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
       </div>
 
       <DataTable
+        settingsKey="stock"
         columns={columns}
         rows={levels.data?.items}
         getRowKey={(s) => s.productId}
@@ -257,6 +258,7 @@ function MovementsTab() {
       </div>
 
       <DataTable
+        settingsKey="stock-ledger"
         columns={columns}
         rows={movements.data?.items}
         getRowKey={(m) => m.id}
@@ -298,6 +300,7 @@ function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolea
     <>
       <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search GRN, order no., supplier or their ref" />
       <DataTable
+        settingsKey="stock-receipts"
         columns={columns}
         rows={receipts.data?.items}
         getRowKey={(r) => r.id}

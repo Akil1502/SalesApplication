@@ -34,6 +34,17 @@ internal sealed class UserPermissionChangeConfiguration : IEntityTypeConfigurati
     }
 }
 
+internal sealed class UserSettingConfiguration : IEntityTypeConfiguration<UserSetting>
+{
+    public void Configure(EntityTypeBuilder<UserSetting> builder)
+    {
+        builder.HasKey(s => new { s.UserId, s.Key });
+        builder.Property(s => s.Key).HasMaxLength(64).IsUnicode(false);
+        builder.HasOne<AppUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.ToTable(t => t.HasCheckConstraint("CK_UserSettings_Size", "LEN([ValueJson]) <= 32768"));
+    }
+}
+
 internal sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntry>
 {
     public void Configure(EntityTypeBuilder<AuditEntry> builder)

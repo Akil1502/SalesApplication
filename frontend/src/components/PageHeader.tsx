@@ -1,7 +1,8 @@
 import { motion, useScroll, useTransform } from 'motion/react'
-import type { ReactNode } from 'react'
+import { useContext, useEffect, type ReactNode } from 'react'
+import { useResolvedPath } from 'react-router'
 import { useMotionLevel } from '@/components/fx/preferences-context'
-import { useInPanel } from '@/components/layout/record-panel-state'
+import { RecordTitleContext, useInPanel } from '@/components/layout/record-panel-state'
 import { cn } from '@/lib/utils'
 
 export interface HeaderFigure {
@@ -33,6 +34,14 @@ export function PageHeader({
   const level = useMotionLevel()
   const inPanel = useInPanel()
   const parallax = level === 'full' && !inPanel
+
+  // In the side panel, tell it which record this is. The route's own path, not the address bar's: a page sliding out
+  // must not report its title for the record sliding in.
+  const reportTitle = useContext(RecordTitleContext)
+  const path = useResolvedPath('.').pathname
+  useEffect(() => {
+    if (inPanel) reportTitle?.(path, title)
+  }, [inPanel, reportTitle, path, title])
 
   return (
     <motion.div

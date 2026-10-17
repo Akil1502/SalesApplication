@@ -12,6 +12,8 @@ import {
   ShoppingCart,
   Sun,
   Users,
+  Clock,
+  Star,
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -25,6 +27,7 @@ import { api } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
 import { formatINR } from '@/lib/format'
 import { useDebounced } from '@/lib/use-debounced'
+import { useFavourites, useRecent } from './record-memory'
 import { useNav } from './use-nav'
 
 /** Every word of the query appears in the item's text. */
@@ -114,6 +117,9 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const [search, setSearch] = useState('')
   const q = useDebounced(search.trim(), 200)
   const records = useRecordSearch(q, open)
+  const { favourites } = useFavourites()
+  const { recent } = useRecent()
+  const recentOnly = recent.filter((r) => !favourites.some((f) => f.path === r.path))
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -155,6 +161,29 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         <CommandInput placeholder="Search pages, customers, invoices, orders, products…" value={search} onValueChange={setSearch} />
         <CommandList className="max-h-[min(28rem,60vh)]">
           <CommandEmpty>{records.isFetching ? 'Searching…' : 'Nothing matches.'}</CommandEmpty>
+
+          {favourites.length > 0 && (
+            <CommandGroup heading="Favourites">
+              {favourites.map((item) => (
+                <CommandItem key={`fav-${item.path}`} value={`${item.label} ${item.list} favourite ${item.path}`} onSelect={() => run(() => navigate(item.path))}>
+                  <Star className="fill-amber-400 text-amber-500" />
+                  <span className="truncate">{item.label}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{item.list}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+          {recentOnly.length > 0 && !search.trim() && (
+            <CommandGroup heading="Recently viewed">
+              {recentOnly.slice(0, 6).map((item) => (
+                <CommandItem key={`recent-${item.path}`} value={`${item.label} ${item.list} recent ${item.path}`} onSelect={() => run(() => navigate(item.path))}>
+                  <Clock />
+                  <span className="truncate">{item.label}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{item.list}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
 
           {records.data?.map((result) => (
             <CommandGroup key={result.group} heading={result.group}>

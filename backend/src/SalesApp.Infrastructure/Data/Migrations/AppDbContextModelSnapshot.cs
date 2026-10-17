@@ -3547,6 +3547,31 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.ToTable("UserPermissions", (string)null);
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.UserSetting", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("ValueJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId", "Key");
+
+                    b.ToTable("UserSettings", t =>
+                        {
+                            t.HasCheckConstraint("CK_UserSettings_Size", "LEN([ValueJson]) <= 32768");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Infrastructure.Reporting.RptInvoice", b =>
                 {
                     b.Property<decimal>("AmountCredited")
@@ -4915,6 +4940,15 @@ namespace SalesApp.Infrastructure.Data.Migrations
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.UserSetting", b =>
                 {
                     b.HasOne("SalesApp.Core.Entities.AppUser", null)
                         .WithMany()

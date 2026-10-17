@@ -124,6 +124,7 @@ export function CreditNotesPage() {
       </div>
 
       <DataTable
+        settingsKey="credit-notes"
         columns={columns}
         rows={notes.data?.items}
         getRowKey={(c) => c.id}

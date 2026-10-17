@@ -175,6 +175,7 @@ export function SupplierBillsPage() {
       </div>
 
       <DataTable
+        settingsKey="supplier-bills"
         columns={columns}
         rows={bills.data?.items}
         getRowKey={(b) => b.id}

@@ -1,9 +1,10 @@
 import { MotionConfig } from 'motion/react'
-import { useCallback, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '@/features/auth/auth-context'
 import {
   DEFAULT_LAYOUT,
   loadPreferences,
+  parsePreferences,
   resolveMotion,
   resolveTheme,
   savePreferences,
@@ -12,24 +13,41 @@ import {
   type Preferences,
   type ThemeChoice,
 } from '@/lib/preferences'
+import { useUserSetting } from '@/lib/user-settings'
 import { PreferencesContext, useMediaQuery, type PreferencesContextValue } from './preferences-context'
 
+const NO_SERVER_PREFERENCES = null
+
 /**
- * Applies light/dark and the motion level to the page and remembers each user's choice. Inside the auth provider:
- * signing in switches to that user's own preferences.
+ * Applies light/dark, the motion level and the layout, and remembers each user's choice. The choice is kept on the
+ * server (so it follows the person to any computer) with a copy in this browser for the very first paint and for
+ * the sign-in page. Inside the auth provider: signing in switches to that user's own preferences.
  */
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const userId = user?.id
   const [stored, setStored] = useState(() => ({ userId, preferences: loadPreferences(userId) }))
-  // Another user signed in (or out): switch to their preferences.
+  // Another user signed in (or out): switch to what this browser remembers for them until the server answers.
   if (stored.userId !== userId) {
     setStored({ userId, preferences: loadPreferences(userId) })
   }
 
+  const [serverPreferences, saveServerPreferences, loaded] = useUserSetting<unknown>('prefs', NO_SERVER_PREFERENCES)
+  // Once loaded, the server's copy is the one that counts.
+  const preferences = useMemo<Preferences>(
+    () => (loaded && serverPreferences ? parsePreferences(JSON.stringify(serverPreferences)) : stored.preferences),
+    [loaded, serverPreferences, stored.preferences],
+  )
+
+  // Keep this browser's copy in step for the next first paint; the first time, move this browser's choice up.
+  useEffect(() => {
+    if (!loaded || !userId) return
+    if (serverPreferences) savePreferences(userId, preferences)
+    else saveServerPreferences(stored.preferences)
+  }, [loaded, userId, serverPreferences, preferences, stored.preferences, saveServerPreferences])
+
   const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
   const systemReducesMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
-  const { preferences } = stored
   const resolvedTheme = resolveTheme(preferences.theme, systemDark)
   const motion = resolveMotion(preferences.motion, systemReducesMotion)
 
@@ -40,18 +58,14 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     root.dataset.motion = motion
   }, [resolvedTheme, motion])
 
-  const update = useCallback(
-    (patch: Partial<Preferences>) =>
-      setStored((current) => {
-        const next = { ...current.preferences, ...patch }
-        savePreferences(current.userId, next)
-        return { ...current, preferences: next }
-      }),
-    [],
-  )
-
-  const value = useMemo<PreferencesContextValue>(
-    () => ({
+  const value = useMemo<PreferencesContextValue>(() => {
+    const update = (patch: Partial<Preferences>) => {
+      const next = { ...preferences, ...patch }
+      setStored({ userId, preferences: next })
+      savePreferences(userId, next)
+      if (userId) saveServerPreferences(next)
+    }
+    return {
       theme: preferences.theme,
       resolvedTheme,
       setTheme: (theme: ThemeChoice) => update({ theme }),
@@ -60,9 +74,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setMotion: (level: MotionLevel) => update({ motion: level }),
       layout: preferences.layout ?? DEFAULT_LAYOUT,
       setLayout: (layout: LayoutChoice) => update({ layout }),
-    }),
-    [preferences.theme, preferences.motion, preferences.layout, resolvedTheme, motion, update],
-  )
+    }
+  }, [preferences, resolvedTheme, motion, userId, saveServerPreferences])
 
   return (
     <PreferencesContext value={value}>

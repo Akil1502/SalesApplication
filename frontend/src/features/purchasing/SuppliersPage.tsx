@@ -69,6 +69,7 @@ export function SuppliersPage() {
       </div>
 
       <DataTable
+        settingsKey="suppliers"
         columns={columns}
         rows={suppliers.data?.items}
         getRowKey={(s) => s.id}

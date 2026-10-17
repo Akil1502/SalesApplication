@@ -159,6 +159,7 @@ export const routes: RouteObject[] = [
       // Printable documents render without the sidebar.
       guarded([P.InvoicesView], [
         { path: '/invoices/:id/print', lazy: () => import('@/features/sales/print/InvoicePrintPage').then((m) => ({ Component: m.InvoicePrintPage })) },
+        { path: '/invoices/print', lazy: () => import('@/features/sales/print/InvoicesPrintPage').then((m) => ({ Component: m.InvoicesPrintPage })) },
       ]),
       guarded([P.OrdersView], [
         { path: '/orders/:id/print', lazy: () => import('@/features/sales/print/QuotationPrintPage').then((m) => ({ Component: m.QuotationPrintPage })) },

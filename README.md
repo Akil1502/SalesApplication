@@ -228,11 +228,25 @@ The app has a calm indigo-and-teal look in light and dark, with depth and motion
 - **Three layouts, each user's choice.** **Layout** in the account menu (the avatar, top right): an *icon rail* on
   the left that slides open with labels as you point at it, with the page moving over to make room (the default), *top menus* with large drop-down panels
   describing each page, or a *dock* at the bottom whose icons grow under the pointer and pop up their pages.
-  Switching animates from one to the other and is remembered per user in that browser. Phones always get a menu that
-  slides in from the left.
+  Switching animates from one to the other. Phones always get a menu that slides in from the left.
+- **Your settings follow you.** Layout, light/dark, motion, list columns and spacing, saved views, favourites and
+  recently viewed records are saved on the server against your user (`api/me/settings`), so they're the same on any
+  computer you sign in from. Nobody else can see them. A copy in the browser keeps the first screen right while the
+  server answers.
 - **Search everything: Ctrl+K** (⌘K on a Mac), or the search box in the top bar. Jump to any page, start a new order,
   customer, product or purchase order, or find a customer, invoice, order, product or supplier by name or number
-  (also by GSTIN or phone where the list supports it); also switches layout and light/dark.
+  (also by GSTIN or phone where the list supports it); also switches layout and light/dark. With nothing typed it
+  lists your **favourites** (the star in a record panel's top bar) and the records you **viewed recently**.
+- **Lists you can shape.** On the main lists (customers, suppliers, products, orders, invoices, payments, credit
+  notes, purchase orders, supplier bills, supplier payments, supplier returns and the stock screens):
+  - **Columns** (right of the toolbar) hides and shows columns and switches between comfortable and compact rows.
+  - **Views** saves the current search, filters and sort under a name ("Overdue chase list") to come back to in one
+    click.
+  - **Tick rows** (the boxes on the left, or X on the highlighted row) and a bar offers **Export for Excel**: a CSV of
+    the ticked rows with the visible columns, rupee amounts as plain numbers so Excel can add them up.
+  - On invoices, ticked rows can also be **printed together** (up to 50, one per page) or turned into **payment
+    reminders**: one message per customer with the invoice numbers, amounts and days overdue, which you can edit,
+    copy or open in WhatsApp. The app never sends anything itself.
 - **Records open beside their list.** Clicking an invoice, order, customer, product, supplier, purchase order,
   supplier bill, credit note, supplier return or goods receipt grows a panel out of the row, with the list still
   behind it (that row stays marked, and the list keeps its search, filters and page). **Full width** widens the
@@ -241,8 +255,8 @@ The app has a calm indigo-and-teal look in light and dark, with depth and motion
   (or J and K) step to the next and previous record in the list without closing it, and the record's title,
   status, actions and key figures (total, balance due, credit left) stay pinned at the top as it scrolls. Where the
   panel is too narrow for a line-items table, each line becomes a card with labelled values.
-- **Keyboard shortcuts.** ? shows them all. / jumps to the list's search; J and K move along a list and Enter opens
-  the row; N starts a new order, customer, product, supplier or purchase order on its list; G then a letter jumps to
+- **Keyboard shortcuts.** ? shows them all. / jumps to the list's search; J and K move along a list, Enter opens
+  the row and X ticks it; N starts a new order, customer, product, supplier or purchase order on its list; G then a letter jumps to
   a page (G D dashboard, G O orders, G I invoices, G C customers, G P products, G S stock, G B supplier bills, G R
   reports). Letter keys never fire while you're typing in a field.
 - **When something goes wrong.** A page that fails shows a friendly screen with Try again (inside the app, so the
@@ -549,6 +563,7 @@ frontend/
   src/features/                  Feature folders (auth, customers, products, inventory, sales, dashboard, reports, ...)
   src/components/                App shell and shadcn/ui components
   src/components/layout/         The shell: the three layouts, top bar, Ctrl+K search and the record side panel
+  src/components/data-table/     Lists: columns and spacing, saved views, ticking rows, export and bulk actions
   src/components/fx/             Theme, motion and layout preferences, page transitions, tilt, count-up and other effects
   src/components/three/          The 3D scenes (loaded on demand)
   src/lib/api/                   Typed API client generated from OpenAPI

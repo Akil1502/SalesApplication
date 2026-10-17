@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, ChevronUp, Maximize2, Minimize2, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Maximize2, Minimize2, Star, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
@@ -9,7 +9,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { isTyping, overlayOpen } from '@/lib/keyboard'
 import { findNavItem } from './navigation'
 import { RAIL_WIDTH } from './rail'
-import { InPanelContext, ListRowsContext, OpenRecordContext, recentMorphOrigin, setMorphOrigin } from './record-panel-state'
+import { useFavourites, useRecent } from './record-memory'
+import { InPanelContext, ListRowsContext, OpenRecordContext, RecordTitleContext, recentMorphOrigin, setMorphOrigin } from './record-panel-state'
 
 const spring = { type: 'spring', stiffness: 320, damping: 34 } as const
 const GAP = 8
@@ -56,6 +57,19 @@ function Panel({
   const [expanded, setExpanded] = useState(false)
   const [origin] = useState(recentMorphOrigin)
   const panel = useRef<HTMLElement>(null)
+  const [record, setRecord] = useState<{ path: string; title: string }>()
+  const reportTitle = useCallback((path: string, title: string) => setRecord({ path, title }), [])
+  const current = record?.path === pathname && !pathname.endsWith('/new') ? record : undefined
+  const { isFavourite, toggle } = useFavourites()
+  const { remember } = useRecent()
+
+  // Each record opened goes to the top of "recently viewed" (in Ctrl+K search).
+  const rememberedPath = useRef<string>(undefined)
+  useEffect(() => {
+    if (!current || rememberedPath.current === current.path) return
+    rememberedPath.current = current.path
+    remember({ path: current.path, label: current.title, list: listTitle })
+  }, [current, listTitle, remember])
   const left = layout === 'rail' && window.innerWidth >= 768 ? RAIL_WIDTH + GAP : GAP
   const width = expanded ? `calc(100vw - ${left + GAP}px)` : `min(54rem, calc(100vw - ${left + GAP * 2}px))`
 
@@ -126,6 +140,18 @@ function Panel({
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
             {listTitle} <ChevronRight className="size-3.5" />
           </span>
+          {current && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-pressed={isFavourite(current.path)}
+              aria-label={isFavourite(current.path) ? 'Remove from favourites' : 'Add to favourites'}
+              title={isFavourite(current.path) ? 'Remove from favourites' : 'Add to favourites (shown in Ctrl+K search)'}
+              onClick={() => toggle({ path: current.path, label: current.title, list: listTitle })}
+            >
+              <Star className={isFavourite(current.path) ? 'fill-amber-400 text-amber-500' : undefined} />
+            </Button>
+          )}
           {steps && (
             <span className="ml-2 flex items-center gap-0.5">
               <StepButton label="Previous" keys="K Alt+ArrowUp" disabled={!steps.previous} onClick={() => steps.previous && onStep(steps.previous)}>
@@ -155,7 +181,9 @@ function Panel({
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <InPanelContext value={true}>{children}</InPanelContext>
+              <InPanelContext value={true}>
+                <RecordTitleContext value={reportTitle}>{children}</RecordTitleContext>
+              </InPanelContext>
             </motion.div>
           </AnimatePresence>
         </div>

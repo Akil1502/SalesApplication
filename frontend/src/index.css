@@ -679,3 +679,14 @@ html[data-motion='full'] [data-slot='card'][data-reveal='shown'] {
   }
 }
 
+
+/* Compact rows, for those who like to see more of a list at once. */
+table[data-density='compact'] td {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* A ticked row is tinted, so a selection reads at a glance. */
+[data-slot='table-body'] > tr[data-ticked] {
+  background: color-mix(in oklch, var(--brand) 7%, transparent);
+}

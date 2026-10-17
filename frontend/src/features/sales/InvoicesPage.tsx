@@ -1,6 +1,8 @@
+import { MessageSquareText, Printer } from 'lucide-react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { SegmentedControl } from '@/components/SegmentedControl'
-import { DataTable, type Column } from '@/components/data-table/DataTable'
+import { DataTable, type BulkAction, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
 import { useListParams } from '@/components/data-table/use-list-params'
@@ -10,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatBusinessDate, formatINR } from '@/lib/format'
 import { useInvoices, useInvoiceSummary, type InvoiceListItem, type InvoiceStatus } from './api'
 import { InvoiceStatusBadge } from './badges'
+import { ReminderDialog } from './ReminderDialog'
 
 const ALL = 'all'
 const OVERDUE = 'overdue'
@@ -59,6 +62,22 @@ function SummaryCards() {
 }
 
 export function InvoicesPage() {
+  const [reminding, setReminding] = useState<InvoiceListItem[] | null>(null)
+  const bulkActions: BulkAction<InvoiceListItem>[] = [
+    {
+      label: 'Print together',
+      icon: Printer,
+      // A new tab, like each invoice's own Print button.
+      run: (rows) => window.open(`/invoices/print?ids=${rows.map((r) => r.id).join(',')}`, '_blank'),
+      unavailable: (rows) => (rows.length > 50 ? 'Print at most 50 invoices at a time' : undefined),
+    },
+    {
+      label: 'Payment reminders',
+      icon: MessageSquareText,
+      run: (rows) => setReminding(rows),
+      unavailable: (rows) => (rows.some((r) => r.balance > 0 && r.status !== 'Cancelled') ? undefined : 'None of these has anything due'),
+    },
+  ]
   const navigate = useNavigate()
   const [params, update] = useListParams()
   const tab = params.filters.view ?? ALL
@@ -77,6 +96,8 @@ export function InvoicesPage() {
       </div>
 
       <DataTable
+        settingsKey="invoices"
+        bulkActions={bulkActions}
         columns={columns}
         rows={invoices.data?.items}
         getRowKey={(i) => i.id}
@@ -95,6 +116,7 @@ export function InvoicesPage() {
           onPageChange={(page) => update({ page })}
         />
       )}
+      <ReminderDialog invoices={reminding} onOpenChange={(open) => !open && setReminding(null)} />
     </>
   )
 }
