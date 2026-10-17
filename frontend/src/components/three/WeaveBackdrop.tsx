@@ -1,6 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
 import { Color, ShaderMaterial } from 'three'
+import { useSceneColours } from '@/features/branding/apply'
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -53,6 +54,8 @@ const fragmentShader = /* glsl */ `
 `
 
 function Weave({ dark }: { dark: boolean }) {
+  // The cloth is woven in the brand colour and its second colour, when the company has chosen one.
+  const brand = useSceneColours(dark)
   const size = useThree((state) => state.size)
   const invalidate = useThree((state) => state.invalidate)
   const material = useMemo(
@@ -75,11 +78,11 @@ function Weave({ dark }: { dark: boolean }) {
   useEffect(() => () => material.dispose(), [material])
 
   useEffect(() => {
-    material.uniforms.uWarp!.value.set(dark ? '#7f86f5' : '#4a52d4')
-    material.uniforms.uWeft!.value.set(dark ? '#4fc3d4' : '#2a9fb0')
+    material.uniforms.uWarp!.value.set(brand?.[0] ?? (dark ? '#7f86f5' : '#4a52d4'))
+    material.uniforms.uWeft!.value.set(brand?.[1] ?? (dark ? '#4fc3d4' : '#2a9fb0'))
     material.uniforms.uStrength!.value = dark ? 0.16 : 0.09
     invalidate()
-  }, [dark, material, invalidate])
+  }, [dark, brand, material, invalidate])
 
   useEffect(() => {
     material.uniforms.uResolution!.value = [size.width, size.height]

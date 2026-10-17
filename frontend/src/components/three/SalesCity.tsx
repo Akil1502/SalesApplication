@@ -2,6 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BoxGeometry, CanvasTexture, Color, Group, MathUtils, Mesh, RepeatWrapping, SRGBColorSpace } from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { useSceneColours } from '@/features/branding/apply'
 import { SceneCanvas } from './SceneCanvas'
 import { Fibres, SoftShadow, StudioLights } from './models'
 import { palette } from './palette'
@@ -23,8 +24,16 @@ interface CityProps {
   className?: string
 }
 
-const low = new Color(palette.indigo)
-const high = new Color(palette.teal)
+const STANDARD_COLOURS: [string, string] = [palette.indigo, palette.teal]
+
+/** The ground, road and night fog, tinted towards the company's colour when it has chosen one. */
+function groundColours(dark: boolean, brand: string | undefined) {
+  const tinted = (standard: string, neutral: string, amount: number) =>
+    brand ? `#${new Color(neutral).lerp(new Color(brand), amount).getHexString()}` : standard
+  return dark
+    ? { ground: tinted('#151b38', '#14141a', 0.22), road: tinted('#0d1128', '#0c0c10', 0.18), fog: tinted('#10152e', '#101014', 0.2) }
+    : { ground: tinted('#e6eaf6', '#ececee', 0.08), road: tinted('#cfd5ea', '#d4d4d8', 0.12), fog: '#ffffff' }
+}
 const PER_ROW = 12
 const SPACING = 0.78
 const ROW_GAP = 2.1
@@ -81,6 +90,7 @@ function Building({
   width,
   height,
   share,
+  colours,
   partial,
   dark,
   hovered,
@@ -92,6 +102,8 @@ function Building({
   width: number
   height: number
   share: number
+  /** The smallest month's colour and the biggest's: the brand colour and its second. */
+  colours: [string, string]
   partial: boolean
   dark: boolean
   hovered: boolean
@@ -111,7 +123,7 @@ function Building({
     },
     [facade, glow],
   )
-  const colour = useMemo(() => low.clone().lerp(high, share), [share])
+  const colour = useMemo(() => new Color(colours[0]).lerp(new Color(colours[1]), share), [colours, share])
 
   useFrame(({ clock }) => {
     const building = group.current
@@ -224,6 +236,9 @@ function City({ months, dark, formatValue, onHover }: Omit<CityProps, 'className
   const length = PER_ROW * SPACING + 1.6
   const labelColour = dark ? '#aab3cf' : '#5b6380'
   const valueColour = dark ? '#ffffff' : '#1f2a5c'
+  const brand = useSceneColours(false)
+  const colours = brand ?? STANDARD_COLOURS
+  const surface = groundColours(dark, brand?.[0])
 
   const placeOf = (i: number): [number, number, number] => {
     const row = Math.floor(i / PER_ROW)
@@ -248,12 +263,12 @@ function City({ months, dark, formatValue, onHover }: Omit<CityProps, 'className
       {/* The ground, and the road between the years. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
         <planeGeometry args={[length + 2, rows * ROW_GAP + 2.4]} />
-        <meshStandardMaterial color={dark ? '#151b38' : '#e6eaf6'} roughness={1} />
+        <meshStandardMaterial color={surface.ground} roughness={1} />
       </mesh>
       {rows > 1 && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
           <planeGeometry args={[length, 0.7]} />
-          <meshStandardMaterial color={dark ? '#0d1128' : '#cfd5ea'} roughness={0.9} />
+          <meshStandardMaterial color={surface.road} roughness={0.9} />
         </mesh>
       )}
       {rows > 1 && <Traffic length={length} dark={dark} />}
@@ -270,6 +285,7 @@ function City({ months, dark, formatValue, onHover }: Omit<CityProps, 'className
               width={width}
               height={heightOf(month.value)}
               share={month.value / max}
+              colours={colours}
               partial={month.partial}
               dark={dark}
               hovered={hovered === i}
@@ -295,9 +311,10 @@ function City({ months, dark, formatValue, onHover }: Omit<CityProps, 'className
  * turns slowly and can be dragged around. Point at a building for its month.
  */
 export default function SalesCity({ className, ...props }: CityProps) {
+  const brand = useSceneColours(false)
   return (
     <SceneCanvas className={className} camera={{ position: [7.5, 5.2, 9.5], fov: 34 }}>
-      {props.dark && <fog attach="fog" args={['#10152e', 13, 30]} />}
+      {props.dark && <fog attach="fog" args={[groundColours(true, brand?.[0]).fog, 13, 30]} />}
       <StudioLights intensity={props.dark ? 0.55 : 0.95} />
       <City {...props} />
       <Fibres count={120} width={14} height={5} depth={8} opacity={props.dark ? 0.6 : 0.35} color={props.dark ? '#bfefff' : '#ffffff'} />

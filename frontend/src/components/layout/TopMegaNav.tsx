@@ -45,7 +45,7 @@ export function TopMegaNav() {
   const panel = groups.find((group) => group.label === open)
 
   return (
-    <nav aria-label="Main menu" className="relative hidden h-full items-center md:flex" onPointerLeave={hideSoon} onPointerEnter={() => clearTimeout(closeTimer.current)}>
+    <nav aria-label="Main menu" data-tour="nav" className="relative hidden h-full items-center md:flex" onPointerLeave={hideSoon} onPointerEnter={() => clearTimeout(closeTimer.current)}>
       <ul className="flex h-full items-center gap-0.5">
         {groups.map((group) => {
           const single = group.items.length === 1 ? group.items[0] : undefined

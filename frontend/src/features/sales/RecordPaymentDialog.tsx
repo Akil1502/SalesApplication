@@ -14,7 +14,8 @@ import { useRecordPayment, type Invoice, type PaymentMode } from './api'
 import { paymentModes } from './labels'
 
 interface RecordPaymentDialogProps {
-  invoice: Invoice
+  /** A full invoice or a list row: only these are needed. */
+  invoice: Pick<Invoice, 'id' | 'number' | 'customerName' | 'balance' | 'invoiceDate'>
   open: boolean
   onOpenChange: (open: boolean) => void
 }

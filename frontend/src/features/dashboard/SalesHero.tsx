@@ -58,8 +58,8 @@ export function SalesHero({ greeting, description, months }: { greeting: string;
       className="relative h-[320px] overflow-hidden rounded-2xl border shadow-[var(--shadow-elevated)] md:h-[380px]"
       style={{
         background: dark
-          ? 'radial-gradient(circle at 70% 20%, oklch(0.32 0.1 268 / 70%), transparent 60%), linear-gradient(180deg, oklch(0.2 0.045 268), oklch(0.15 0.03 268))'
-          : 'radial-gradient(circle at 70% 15%, oklch(0.9 0.05 230 / 80%), transparent 60%), linear-gradient(180deg, oklch(0.97 0.012 255), oklch(0.92 0.02 265))',
+          ? 'radial-gradient(circle at 70% 20%, color-mix(in oklch, var(--brand) 30%, transparent), transparent 60%), linear-gradient(180deg, var(--card), color-mix(in oklch, var(--background) 85%, black))'
+          : 'radial-gradient(circle at 70% 15%, color-mix(in oklch, var(--brand-2) 22%, transparent), transparent 60%), linear-gradient(180deg, var(--background), var(--accent))',
       }}
     >
       {points.length > 0 && (
@@ -76,7 +76,7 @@ export function SalesHero({ greeting, description, months }: { greeting: string;
       <div
         aria-hidden
         className="pointer-events-none absolute inset-y-0 left-0 w-full md:w-1/2"
-        style={{ background: `linear-gradient(90deg, ${dark ? 'oklch(0.17 0.035 268 / 85%)' : 'oklch(0.97 0.012 255 / 85%)'}, transparent)` }}
+        style={{ background: `linear-gradient(90deg, color-mix(in oklch, var(--background) 85%, transparent), transparent)` }}
       />
 
       <div className="pointer-events-none relative z-10 flex h-full flex-col justify-between p-5 md:p-7">

@@ -45,7 +45,10 @@ public sealed class ReportsController(IReportService reports, ICompanySettingsSe
 [RequirePermission(Permissions.DashboardView)]
 public sealed class DashboardController(IDashboardService dashboard) : ApiControllerBase
 {
+    /// <param name="period">The span the sales figures and rankings cover (this financial year unless chosen).</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
     [HttpGet]
     [ProducesResponseType<DashboardDto>(StatusCodes.Status200OK)]
-    public Task<DashboardDto> Get(CancellationToken cancellationToken) => dashboard.GetAsync(cancellationToken);
+    public Task<DashboardDto> Get([FromQuery] DashboardPeriod period = DashboardPeriod.Year, CancellationToken cancellationToken = default) =>
+        dashboard.GetAsync(period, cancellationToken);
 }

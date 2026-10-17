@@ -1,6 +1,7 @@
 import { Printer } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { useBranding } from '@/features/branding/api'
 
 /**
  * A4 page for printed documents: no app chrome, black on white regardless of theme, and a toolbar that
@@ -21,6 +22,12 @@ export function PrintShell({ title, children }: { title: string; children: React
       </article>
     </div>
   )
+}
+
+/** The company's logo above its name on printed documents, when it has one. */
+export function PrintLogo() {
+  const logoUrl = useBranding().data?.logoUrl
+  return logoUrl ? <img src={logoUrl} alt="" className="mb-1.5 block h-[14mm] w-auto max-w-[50mm] object-contain object-left" /> : null
 }
 
 /** Bordered table cell styles shared by printed documents. */

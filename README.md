@@ -223,14 +223,46 @@ returns** (Purchases → Supplier returns) send goods back against a supplier's 
 
 ## Look and feel: layouts, 3D, motion and photos
 
-The app has a calm indigo-and-teal look in light and dark, with depth and motion on every screen.
+The app has a calm indigo-and-teal look in light and dark, with depth and motion on every screen, or the company's
+own logo and colour.
+
+- **Your logo and colour.** **Company settings → Logo and colour** (needs Settings: Change):
+  - **Logo**: drop a PNG (transparent background works best), JPEG or WebP on the logo area or choose **Add logo**.
+    The browser shrinks it to at most 512 px and it's saved straight away. It then appears in the menu, on the
+    sign-in page, in the browser tab and above the company name on printed invoices, quotations, purchase orders,
+    credit notes and debit notes, and the company's trade name (or legal name) replaces "SalesApp". SVG isn't
+    accepted, because it can carry script. Logo changes appear in the company settings' history.
+  - **Colour**: any colour, from the picker or as `#rrggbb`. The whole app (buttons, menu, highlights, the 3D city and
+    the woven backdrop) is redrawn in it as you choose, for everyone once saved. Shades that carry text are moved
+    lighter or darker just enough to stay readable (at least 4.5:1) in light and dark mode, and the page says when
+    it has done so (bright yellow, say, becomes a deeper gold on buttons). The reset button goes back to the standard
+    indigo.
+  - The sign-in page needs the name, colour and logo before anyone has signed in, so `GET /api/branding` and the logo
+    itself are open without signing in (only those three things; rate-limited per address). The browser keeps the
+    last copy so the next visit opens in the right colours straight away.
 
 - **Three layouts, each user's choice.** **Layout** in the account menu (the avatar, top right): an *icon rail* on
   the left that slides open with labels as you point at it, with the page moving over to make room (the default), *top menus* with large drop-down panels
   describing each page, or a *dock* at the bottom whose icons grow under the pointer and pop up their pages.
-  Switching animates from one to the other. Phones always get a menu that slides in from the left.
-- **Your settings follow you.** Layout, light/dark, motion, list columns and spacing, saved views, favourites and
-  recently viewed records are saved on the server against your user (`api/me/settings`), so they're the same on any
+  Switching animates from one to the other.
+- **On phones**, a bar along the bottom has **Home**, **Orders**, a big **＋** and **Invoices** within reach of a
+  thumb, and **Menu** for every other page. **＋** slides up a menu to start a new order, read an order with smart
+  order entry, record a payment (pick the invoice; the most overdue are listed first) or add a customer. Each person
+  only sees what their role allows.
+- **A dashboard you can arrange.** Choose the period at the top (**this month**, **this quarter**, **this financial
+  year** or **last financial year**): sales (against the same days of the previous month or quarter, or the year
+  before), money collected and the top customers, products and states follow it. **Customise** lets you:
+  - drag cards by their handle (or focus the handle and use the arrow keys, Home and End);
+  - make cards wide or narrow, hide them, or switch the 3D city off;
+  - add cards: **Invoices to chase** (most overdue first, with a payment reminder per customer or for all),
+    **Recent payments**, **Purchases needing action** (orders awaiting approval, bills on hold or overdue) and
+    **Quick actions**.
+  **Done** saves your layout and **Cancel** drops the changes. Cards for things your role can't see aren't offered.
+- **A guided tour** the first time you open the dashboard: about a minute, pointing at the menu, search, dashboard
+  and account menu, with steps that match your role (smart order entry, approvals), your layout and your screen.
+  **Take the tour** in the account menu runs it again. The arrow keys step through it and Esc leaves.
+- **Your settings follow you.** Layout, light/dark, motion, list columns and spacing, saved views, favourites,
+  recently viewed records, your dashboard and whether you've seen the tour are saved on the server against your user (`api/me/settings`), so they're the same on any
   computer you sign in from. Nobody else can see them. A copy in the browser keeps the first screen right while the
   server answers.
 - **Search everything: Ctrl+K** (⌘K on a Mac), or the search box in the top bar. Jump to any page, start a new order,
@@ -347,6 +379,7 @@ environment variables (for example `Jwt__SigningKey`).
 | `Seed:DemoUserPassword` | `appsettings.Development.json` (dev only) | Password for the demo team created by `--seed-demo` |
 | `Anthropic:ApiKey` | user-secrets / `Anthropic__ApiKey` env | Turns on the AI features. Without it the app works normally and hides them. |
 | `Ai:*` | `appsettings.json` | Model and effort per feature, daily budget per user, requests per minute, price list. See [AI features](#ai-features). |
+| `Security:PublicRequestsPerMinute` | `appsettings.json` (optional) | Requests per minute per address to the few things open before sign-in (the company's name and logo). Default 120. |
 
 ## AI features
 
@@ -565,6 +598,9 @@ frontend/
   src/components/layout/         The shell: the three layouts, top bar, Ctrl+K search and the record side panel
   src/components/data-table/     Lists: columns and spacing, saved views, ticking rows, export and bulk actions
   src/components/fx/             Theme, motion and layout preferences, page transitions, tilt, count-up and other effects
+  src/components/tour/           The guided tour (steps by role, layout and screen)
+  src/features/branding/         The company's logo and colour: the theme built from any colour, applied before first paint
+  src/features/dashboard/        The dashboard: cards, periods, customising (layout.ts) and the 3D city hero
   src/components/three/          The 3D scenes (loaded on demand)
   src/lib/api/                   Typed API client generated from OpenAPI
 scripts/setup-dev.ps1            One-time developer setup

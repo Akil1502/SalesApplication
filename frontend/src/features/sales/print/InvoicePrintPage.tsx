@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/lib/api/errors'
 import { formatAmount, formatBusinessDate, formatPercent, formatQuantity } from '@/lib/format'
 import { useInvoice, type Invoice } from '../api'
-import { cell, headCell, numCell, PrintShell } from './PrintShell'
+import { PrintLogo, PrintShell, cell, headCell, numCell } from './PrintShell'
 
 function Address({ a }: { a: Invoice['billingAddress'] }) {
   return (
@@ -25,9 +25,10 @@ export function InvoicePrintPage() {
   // The title becomes the default PDF file name; restore it when leaving the page.
   useEffect(() => {
     if (!invoice.data) return
+    const previous = document.title
     document.title = `Invoice ${invoice.data.number}`
     return () => {
-      document.title = 'SalesApp'
+      document.title = previous
     }
   }, [invoice.data])
 
@@ -56,6 +57,7 @@ export function InvoiceDocument({ inv }: { inv: Invoice }) {
 
       <header className="mb-3 flex items-start justify-between gap-6 border-b-2 border-neutral-800 pb-3">
         <div>
+          <PrintLogo />
           <h1 className="text-xl font-bold">{inv.sellerName}</h1>
           <p className="max-w-[95mm]">{inv.sellerAddress}</p>
           <p className="mt-1 font-semibold">GSTIN: {inv.sellerGstin}</p>

@@ -121,6 +121,28 @@ public sealed class UsersAndSettingsEndpointsTests(SalesAppFactory factory)
         Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
     }
 
+    [Fact]
+    public async Task The_brand_colour_is_saved_and_shown_before_sign_in()
+    {
+        var (admin, _) = await factory.CreateClientAsync(Roles.Admin);
+        var settings = await (await admin.GetAsync("/api/settings/company", Ct)).ReadAsync<CompanySettingsDto>();
+
+        var notAColour = await admin.PutAsJsonAsync("/api/settings/company", ToRequest(settings) with { BrandColour = "maroon" }, Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, notAColour.StatusCode);
+        Assert.Contains("brandColour", (await notAColour.ReadAsync<ApiError>()).Errors!.Keys);
+
+        var saved = await (await admin.PutAsJsonAsync("/api/settings/company", ToRequest(settings) with { BrandColour = "#7A1F2B" }, Ct))
+            .ReadAsync<CompanySettingsDto>();
+        Assert.Equal("#7a1f2b", saved.BrandColour);
+
+        var branding = await (await factory.CreateClient().GetAsync("/api/branding", Ct)).ReadAsync<BrandingDto>();
+        Assert.Equal("#7a1f2b", branding.BrandColour);
+        Assert.Equal(saved.TradeName ?? saved.LegalName, branding.CompanyName);
+
+        var reset = await (await admin.PutAsJsonAsync("/api/settings/company", ToRequest(saved) with { BrandColour = "" }, Ct)).ReadAsync<CompanySettingsDto>();
+        Assert.Null(reset.BrandColour);
+    }
+
     private static CompanySettingsSaveRequest ToRequest(CompanySettingsDto s) => new()
     {
         LegalName = s.LegalName,
@@ -144,6 +166,7 @@ public sealed class UsersAndSettingsEndpointsTests(SalesAppFactory factory)
         PurchaseApprovalLimit = s.PurchaseApprovalLimit,
         OverReceiptTolerancePercent = s.OverReceiptTolerancePercent,
         BillPriceTolerancePercent = s.BillPriceTolerancePercent,
+        BrandColour = s.BrandColour,
         RowVersion = s.RowVersion,
     };
 }

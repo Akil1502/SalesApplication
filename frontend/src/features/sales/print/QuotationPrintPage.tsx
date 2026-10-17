@@ -6,7 +6,7 @@ import { api } from '@/lib/api/client'
 import { errorMessage, unwrap } from '@/lib/api/errors'
 import { formatAmount, formatBusinessDate, formatPercent, formatQuantity } from '@/lib/format'
 import { useOrder } from '../api'
-import { cell, headCell, numCell, PrintShell } from './PrintShell'
+import { PrintLogo, PrintShell, cell, headCell, numCell } from './PrintShell'
 
 /** Quotation (or order confirmation, once confirmed) laid out for A4 printing. */
 export function QuotationPrintPage() {
@@ -22,9 +22,10 @@ export function QuotationPrintPage() {
   // The title becomes the default PDF file name; restore it when leaving the page.
   useEffect(() => {
     if (!o) return
+    const previous = document.title
     document.title = `${isQuote ? 'Quotation' : 'Order'} ${docNumber}`
     return () => {
-      document.title = 'SalesApp'
+      document.title = previous
     }
   }, [o, isQuote, docNumber])
 
@@ -39,6 +40,7 @@ export function QuotationPrintPage() {
     <PrintShell title={`${isQuote ? 'Quotation' : 'Order'} ${docNumber}`}>
       <header className="mb-3 flex items-start justify-between gap-6 border-b-2 border-neutral-800 pb-3">
         <div>
+          <PrintLogo />
           <h1 className="text-xl font-bold">{c.legalName}</h1>
           <p className="max-w-[95mm]">
             {c.addressLine1}

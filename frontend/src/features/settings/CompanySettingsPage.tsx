@@ -25,10 +25,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FieldGroup } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { brandingKey } from '@/features/branding/api'
 import { api, type Schemas } from '@/lib/api/client'
 import { ApiRequestError, applyFieldErrors, errorMessage, unwrap } from '@/lib/api/errors'
 import { gstinStateCode, validateGstin } from '@/lib/gstin'
 import { useStates } from '@/lib/lookups'
+import { BrandSettingsCard } from './BrandSettingsCard'
 
 type CompanySettings = Schemas['CompanySettingsDto']
 
@@ -59,6 +61,7 @@ const schema = z
     purchaseApprovalLimit: moneyString({ optional: true, max: 999_999_999 }),
     overReceiptTolerancePercent: z.string().trim().regex(/^\d{1,2}(\.\d{1,2})?$/, { error: 'Use 0 to 50, up to 2 decimals.' }).refine((v) => Number(v) <= 50, { error: 'At most 50%.' }),
     billPriceTolerancePercent: z.string().trim().regex(/^\d{1,2}(\.\d{1,2})?$/, { error: 'Use 0 to 50, up to 2 decimals.' }).refine((v) => Number(v) <= 50, { error: 'At most 50%.' }),
+    brandColour: z.string().trim().regex(/^(#[0-9a-fA-F]{6})?$/, { error: 'Use a colour like #3655CD, or pick one.' }),
   })
   .refine((v) => validateGstin(v.gstin) !== null || !v.stateCode || gstinStateCode(v.gstin) === v.stateCode, {
     path: ['gstin'],
@@ -91,6 +94,7 @@ function toValues(s: CompanySettings): Values {
     purchaseApprovalLimit: s.purchaseApprovalLimit?.toString() ?? '',
     overReceiptTolerancePercent: s.overReceiptTolerancePercent.toString(),
     billPriceTolerancePercent: s.billPriceTolerancePercent.toString(),
+    brandColour: s.brandColour ?? '',
   }
 }
 
@@ -108,7 +112,10 @@ export function CompanySettingsPage() {
   const settings = useQuery({ queryKey: settingsKey, queryFn: () => unwrap(api.GET('/api/settings/company')) })
   const save = useMutation({
     mutationFn: (body: Schemas['CompanySettingsSaveRequest']) => unwrap(api.PUT('/api/settings/company', { body })),
-    onSuccess: (data) => queryClient.setQueryData(settingsKey, data),
+    onSuccess: (data) => {
+      queryClient.setQueryData(settingsKey, data)
+      void queryClient.invalidateQueries({ queryKey: brandingKey })
+    },
   })
   const [conflict, setConflict] = useState(false)
 
@@ -140,6 +147,7 @@ export function CompanySettingsPage() {
         purchaseApprovalLimit: toNumberOrNull(values.purchaseApprovalLimit),
         overReceiptTolerancePercent: Number(values.overReceiptTolerancePercent),
         billPriceTolerancePercent: Number(values.billPriceTolerancePercent),
+        brandColour: toNullIfBlank(values.brandColour)?.toLowerCase() ?? null,
         rowVersion: settings.data!.rowVersion,
       })
       toast.success('Company settings saved')
@@ -191,6 +199,8 @@ export function CompanySettingsPage() {
           </FieldGroup>
         </CardContent>
       </Card>
+
+      <BrandSettingsCard control={control} name="brandColour" />
 
       <Card>
         <CardHeader>

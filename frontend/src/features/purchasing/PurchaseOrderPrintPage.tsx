@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cell, headCell, numCell, PrintShell } from '@/features/sales/print/PrintShell'
+import { PrintLogo, PrintShell, cell, headCell, numCell } from '@/features/sales/print/PrintShell'
 import { errorMessage } from '@/lib/api/errors'
 import { formatAmount, formatBusinessDate, formatPercent, formatQuantity } from '@/lib/format'
 import { usePurchaseOrder } from './api'
@@ -16,9 +16,10 @@ export function PurchaseOrderPrintPage() {
   // The title becomes the default PDF file name; restore it when leaving the page.
   useEffect(() => {
     if (!o) return
+    const previous = document.title
     document.title = `Purchase order ${o.number}`
     return () => {
-      document.title = 'SalesApp'
+      document.title = previous
     }
   }, [o])
 
@@ -32,6 +33,7 @@ export function PurchaseOrderPrintPage() {
     <PrintShell title={`Purchase order ${p.number}`}>
       <header className="mb-3 flex items-start justify-between gap-6 border-b-2 border-neutral-800 pb-3">
         <div>
+          <PrintLogo />
           <h1 className="text-xl font-bold">{p.companyName}</h1>
           <p className="max-w-[95mm]">{p.companyAddress}</p>
           <p className="mt-1 font-semibold">GSTIN: {p.companyGstin}</p>

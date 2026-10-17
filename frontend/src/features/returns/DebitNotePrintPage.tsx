@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cell, headCell, numCell, PrintShell } from '@/features/sales/print/PrintShell'
+import { PrintLogo, PrintShell, cell, headCell, numCell } from '@/features/sales/print/PrintShell'
 import { errorMessage } from '@/lib/api/errors'
 import { formatAmount, formatBusinessDate, formatPercent, formatQuantity } from '@/lib/format'
 import { useSupplierReturn } from './api'
@@ -13,9 +13,10 @@ export function DebitNotePrintPage() {
 
   useEffect(() => {
     if (!ret.data) return
+    const previous = document.title
     document.title = `Debit note ${ret.data.number}`
     return () => {
-      document.title = 'SalesApp'
+      document.title = previous
     }
   }, [ret.data])
 
@@ -36,6 +37,7 @@ export function DebitNotePrintPage() {
 
         <header className="mb-3 flex items-start justify-between gap-6 border-b-2 border-neutral-800 pb-3">
           <div>
+            <PrintLogo />
             <h1 className="text-xl font-bold">{r.companyName}</h1>
             <p className="max-w-[95mm]">{r.companyAddress}</p>
             <p className="mt-1 font-semibold">GSTIN: {r.companyGstin}</p>

@@ -427,7 +427,7 @@ button > [data-slot='card']:hover,
 }
 [data-slot='dialog-overlay'],
 [data-slot='alert-dialog-overlay'] {
-  background: oklch(0.2 0.05 268 / 28%);
+  background: color-mix(in oklch, var(--sidebar) 28%, transparent);
   backdrop-filter: blur(6px);
 }
 
@@ -689,4 +689,20 @@ table[data-density='compact'] td {
 /* A ticked row is tinted, so a selection reads at a glance. */
 [data-slot='table-body'] > tr[data-ticked] {
   background: color-mix(in oklch, var(--brand) 7%, transparent);
+}
+
+/* Customising the dashboard: cards sway gently so it's clear they can be moved (full motion only). */
+@keyframes fx-wiggle {
+  from {
+    rotate: -0.3deg;
+  }
+  to {
+    rotate: 0.3deg;
+  }
+}
+html[data-motion='full'] [data-dashboard-editing] [data-dashboard-item]:not([data-dragging]) {
+  animation: fx-wiggle 0.45s ease-in-out infinite alternate;
+}
+html[data-motion='full'] [data-dashboard-editing] [data-dashboard-item]:nth-child(2n) {
+  animation-delay: -0.22s;
 }

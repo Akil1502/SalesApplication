@@ -659,6 +659,33 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.CompanyLogo", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CompanyLogo", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CompanyLogo_SingleRow", "[Id] = 1");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.CompanySettings", b =>
                 {
                     b.Property<int>("Id")
@@ -694,6 +721,11 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.Property<decimal>("BillPriceTolerancePercent")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("BrandColour")
+                        .HasMaxLength(7)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(7)");
 
                     b.Property<string>("City")
                         .IsRequired()

@@ -20,10 +20,14 @@ public static class RateLimits
     public const string Ai = "ai";
     public const string Login = "login";
 
+    /// <summary>The few things open before sign-in besides signing in itself (the company's name and logo).</summary>
+    public const string Public = "public";
+
     public static IServiceCollection AddAppRateLimits(this IServiceCollection services, IConfiguration configuration)
     {
         var aiPerMinute = configuration.GetSection(AiOptions.SectionName).Get<AiOptions>()?.RequestsPerMinutePerUser ?? 10;
         var loginsPerMinute = configuration.GetValue("Security:LoginAttemptsPerMinute", 10);
+        var publicPerMinute = configuration.GetValue("Security:PublicRequestsPerMinute", 120);
 
         return services.AddRateLimiter(options =>
         {
@@ -35,14 +39,21 @@ public static class RateLimits
                 context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                 _ => new FixedWindowRateLimiterOptions { PermitLimit = loginsPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 
+            options.AddPolicy(Public, context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = publicPerMinute, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+
             options.OnRejected = async (context, cancellationToken) =>
             {
                 var policy = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
                 await context.HttpContext.Response.WriteAsJsonAsync(new ApiError(
-                    policy == Login
-                        ? "Too many sign-in attempts. Wait a minute and try again."
-                        : "You're sending AI requests too quickly. Wait a minute and try again.",
+                    policy switch
+                    {
+                        Login => "Too many sign-in attempts. Wait a minute and try again.",
+                        Public => "Too many requests. Wait a minute and try again.",
+                        _ => "You're sending AI requests too quickly. Wait a minute and try again.",
+                    },
                     Activity.Current?.Id ?? context.HttpContext.TraceIdentifier), cancellationToken);
             };
         });

@@ -36,6 +36,11 @@ public sealed class InvoiceService(
 {
     private static readonly InvoiceStatus[] Open = [InvoiceStatus.Unpaid, InvoiceStatus.PartiallyPaid];
 
+    private static readonly SortMap<Invoice> Sorts = new SortMap<Invoice>()
+        .Add("invoiceDate", i => i.InvoiceDate)
+        .Add("dueDate", i => i.DueDate)
+        .Add("number", i => i.Number);
+
     public async Task<PagedResult<InvoiceListItemDto>> ListAsync(InvoiceListRequest request, CancellationToken cancellationToken)
     {
         var today = clock.Today;
@@ -72,8 +77,8 @@ public sealed class InvoiceService(
                                      (i.CustomerGstin != null && i.CustomerGstin.Contains(q)));
         }
 
-        var page = await query
-            .OrderByDescending(i => i.InvoiceDate)
+        // Newest first unless asked; "dueDate" with OverdueOnly lists the invoices to chase first.
+        var page = await Sorts.Apply(query, request.Sort, "-invoiceDate")
             .ThenByDescending(i => i.Id)
             .Select(i => new { i.Id, i.Number, i.InvoiceDate, i.DueDate, i.CustomerId, i.CustomerName, i.GrandTotal, i.AmountPaid, i.AmountCredited, i.Status })
             .ToPagedResultAsync(request, cancellationToken);

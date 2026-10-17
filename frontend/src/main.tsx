@@ -6,6 +6,7 @@ import { PreferencesProvider } from '@/components/fx/PreferencesProvider'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/features/auth/AuthProvider'
+import { BrandingSync } from '@/features/branding/BrandingSync'
 import { ApiRequestError } from '@/lib/api/errors'
 import { connection } from '@/lib/connection'
 import { router } from './routes'
@@ -29,6 +30,7 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
+      <BrandingSync />
       <AuthProvider>
         <PreferencesProvider>
           <TooltipProvider>

@@ -1,5 +1,6 @@
-import { Keyboard, LayoutPanelLeft, LogOut, Monitor, Moon, PanelBottom, PanelTop, Sparkles, Sun } from 'lucide-react'
+import { Compass, Keyboard, LayoutPanelLeft, LogOut, Monitor, Moon, PanelBottom, PanelTop, Sparkles, Sun } from 'lucide-react'
 import { usePreferences } from '@/components/fx/preferences-context'
+import { useTour } from '@/components/tour/tour-context'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -45,6 +46,7 @@ const layouts: { value: LayoutChoice; label: string; hint: string; icon: typeof 
 export function UserMenu({ onShortcuts }: { onShortcuts: () => void }) {
   const { user, logout } = useAuth()
   const preferences = usePreferences()
+  const tour = useTour()
   const ThemeIcon = preferences.theme === 'system' ? Monitor : preferences.resolvedTheme === 'dark' ? Moon : Sun
   const LayoutIcon = layouts.find((l) => l.value === preferences.layout)?.icon ?? LayoutPanelLeft
 
@@ -53,7 +55,7 @@ export function UserMenu({ onShortcuts }: { onShortcuts: () => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full" aria-label={`Account menu for ${user.fullName}`}>
+        <Button variant="ghost" size="icon" className="rounded-full" aria-label={`Account menu for ${user.fullName}`} data-tour="account">
           <Avatar className="size-8">
             <AvatarFallback className="text-xs font-semibold text-white" style={{ background: 'var(--gradient-brand)' }}>
               {initials(user.fullName)}
@@ -122,10 +124,14 @@ export function UserMenu({ onShortcuts }: { onShortcuts: () => void }) {
             {!preferences.motionChosen && <p className="px-2 pt-1 pb-1.5 text-xs text-muted-foreground">Following your Windows animation setting.</p>}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <DropdownMenuItem onSelect={onShortcuts}>
+        <DropdownMenuItem onSelect={onShortcuts} className="hidden md:flex">
           <Keyboard />
           Keyboard shortcuts
           <span className="ml-auto text-xs text-muted-foreground">?</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={tour.start}>
+          <Compass />
+          Take the tour
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={logout}>

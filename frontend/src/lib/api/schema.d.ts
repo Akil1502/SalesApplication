@@ -835,6 +835,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BrandingDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/branding/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The logo. Each address names one version of it, so browsers may keep it for a year. */
+        get: {
+            parameters: {
+                query?: {
+                    v?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                        "image/png": unknown;
+                        "image/jpeg": unknown;
+                        "image/webp": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": components["schemas"]["ProblemDetails"];
+                        "image/jpeg": components["schemas"]["ProblemDetails"];
+                        "image/webp": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -3672,7 +3760,10 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The span the sales figures and rankings cover (this financial year unless chosen). */
+                    period?: components["schemas"]["DashboardPeriod"];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -5641,6 +5732,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/company/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets the company logo (menu, sign-in page, browser tab, printed documents). The browser has already shrunk it
+         *     to at most 512 px; PNG keeps a transparent background. SVG isn't accepted, as it can carry script.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        Logo?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BrandingDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BrandingDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/summary": {
         parameters: {
             query?: never;
@@ -6564,6 +6755,18 @@ export interface components {
          * @enum {unknown}
          */
         BillSource: "Manual" | "AiPdf" | "AiImage";
+        /**
+         * @description What the app shows before anyone signs in (the sign-in page and the browser tab): only the company's name, colour
+         *     and logo, nothing else from the settings.
+         */
+        BrandingDto: {
+            /** @description The trade name, or the legal name when there isn't one. */
+            companyName: string;
+            /** @description #rrggbb, or null for the standard indigo. */
+            brandColour: null | string;
+            /** @description Changes with every new logo, so browsers can cache each one for good; null when there's no logo. */
+            logoUrl: null | string;
+        };
         CategoryDto: {
             /** Format: int32 */
             id: number;
@@ -6604,6 +6807,8 @@ export interface components {
             overReceiptTolerancePercent: number;
             /** Format: double */
             billPriceTolerancePercent: number;
+            brandColour: null | string;
+            logoUrl: null | string;
             rowVersion: string;
         };
         CompanySettingsSaveRequest: {
@@ -6635,6 +6840,8 @@ export interface components {
             overReceiptTolerancePercent?: number;
             /** Format: double */
             billPriceTolerancePercent?: number;
+            /** @description The app's colour as #rrggbb; empty keeps the standard indigo. */
+            brandColour?: null | string;
             rowVersion: string;
         };
         /** @description Credit set against another invoice or bill of the same customer or supplier. */
@@ -7003,37 +7210,96 @@ export interface components {
         };
         /** @description Everything the home dashboard shows. Sales values are taxable value (excluding GST). */
         DashboardDto: {
+            /** @description The financial year the period falls in, e.g. "26-27". */
             financialYear: string;
+            /** @description The days shown and the days they're compared with. */
+            period: components["schemas"]["DashboardPeriodDto"];
+            /** @description The headline figures. */
             kpis: components["schemas"]["DashboardKpisDto"];
+            /** @description The last 24 months, whatever the period. */
             monthlySales: components["schemas"]["MonthlySalesDto"][];
+            /** @description The period's top five customers. */
             topCustomers: components["schemas"]["RankedItemDto"][];
+            /** @description The period's top five products. */
             topProducts: components["schemas"]["RankedItemDto"][];
+            /** @description The period's sales by place of supply. */
             salesByState: components["schemas"]["RankedItemDto"][];
+            /** @description Today's receivables by how late they are. */
             ageing: components["schemas"]["ReceivablesAgeingDto"];
         };
         DashboardKpisDto: {
-            /** Format: double */
-            salesMonthToDate: number;
-            /** Format: double */
-            salesLastMonthSamePeriod: number;
-            /** Format: int32 */
-            invoicesMonthToDate: number;
-            /** Format: double */
-            salesFinancialYearToDate: number;
-            /** Format: double */
-            salesPreviousYearSamePeriod: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Taxable value invoiced in the period, less credit notes.
+             */
+            sales: number;
+            /**
+             * Format: double
+             * @description The same for the comparison days.
+             */
+            salesComparison: number;
+            /**
+             * Format: int32
+             * @description Invoices issued in the period.
+             */
+            invoices: number;
+            /**
+             * Format: double
+             * @description Payments received in the period.
+             */
+            collected: number;
+            /**
+             * Format: int32
+             * @description How many payments that was.
+             */
+            payments: number;
+            /**
+             * Format: double
+             * @description Owed by customers today.
+             */
             outstanding: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description The part of it past its due date.
+             */
             overdue: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description How many invoices that is.
+             */
             overdueInvoices: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Confirmed orders waiting to be invoiced, with GST.
+             */
             openOrdersValue: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description How many orders that is.
+             */
             openOrders: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Active products at or below their reorder level.
+             */
             lowStockProducts: number;
+        };
+        /**
+         * @description The span the dashboard shows. Point-in-time figures (receivables, orders to invoice, stock) ignore it.
+         * @enum {unknown}
+         */
+        DashboardPeriod: "Month" | "Quarter" | "Year" | "LastYear";
+        /** @description The days a dashboard covers and the earlier days its sales are compared with. */
+        DashboardPeriodDto: {
+            period: components["schemas"]["DashboardPeriod"];
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: date */
+            comparisonFrom: string;
+            /** Format: date */
+            comparisonTo: string;
         };
         EntityTagHeaderValue: {
             tag?: components["schemas"]["StringSegment"];

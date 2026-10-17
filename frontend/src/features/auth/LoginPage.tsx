@@ -7,12 +7,14 @@ import { Navigate, useLocation } from 'react-router'
 import { z } from 'zod'
 import { TiltCard } from '@/components/fx/TiltCard'
 import { TextileHero3D } from '@/components/three/scenes'
+import { BrandMark } from '@/components/layout/BrandMark'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { brandName, useBranding, useDocumentTitle } from '@/features/branding/api'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { useAuth } from './auth-context'
 import { authStore } from './auth-store'
@@ -63,6 +65,9 @@ function StillTextileArt() {
 export function LoginPage() {
   const { status, user, login } = useAuth()
   const location = useLocation()
+  const branding = useBranding().data
+  const name = brandName(branding)
+  useDocumentTitle('Sign in')
 
   // Read once on mount: was the user sent here because their session expired?
   const [expiredNotice] = useState(() => authStore.takeSignOutReason() === 'expired')
@@ -98,16 +103,20 @@ export function LoginPage() {
         className="relative hidden overflow-hidden text-white lg:block"
         style={{
           background:
-            'radial-gradient(circle at 25% 20%, oklch(0.45 0.16 268 / 70%), transparent 55%), radial-gradient(circle at 80% 85%, oklch(0.5 0.12 205 / 45%), transparent 50%), linear-gradient(160deg, oklch(0.18 0.04 268), oklch(0.24 0.07 268) 50%, oklch(0.3 0.11 266))',
+            'radial-gradient(circle at 25% 20%, color-mix(in oklch, var(--brand) 70%, transparent), transparent 55%), radial-gradient(circle at 80% 85%, color-mix(in oklch, var(--brand-2) 45%, transparent), transparent 50%), linear-gradient(160deg, color-mix(in oklch, var(--sidebar) 85%, black), var(--sidebar) 50%, color-mix(in oklch, var(--sidebar) 70%, var(--brand)))',
         }}
       >
         <TextileHero3D className="absolute inset-0" fallback={<StillTextileArt />} />
         <div className="pointer-events-none relative z-10 flex h-full flex-col justify-between p-10 xl:p-14">
-          <div className="flex items-center gap-2 text-lg font-semibold">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur">
-              <ChartNoAxesCombined className="size-5" />
-            </span>
-            SalesApp
+          <div className="flex items-center gap-3 text-lg font-semibold">
+            {branding?.logoUrl ? (
+              <BrandMark className="size-11" />
+            ) : (
+              <span className="flex size-9 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur">
+                <ChartNoAxesCombined className="size-5" />
+              </span>
+            )}
+            {name}
           </div>
 
           <div className="max-w-md space-y-6">
@@ -161,10 +170,8 @@ export function LoginPage() {
           style={{ transformPerspective: 1200 }}
         >
           <div className="flex items-center justify-center gap-2 text-lg font-semibold lg:hidden">
-            <span className="flex size-8 items-center justify-center rounded-md text-white" style={{ background: 'var(--gradient-brand)' }}>
-              <ChartNoAxesCombined className="size-4" />
-            </span>
-            SalesApp
+            <BrandMark className="size-9" />
+            {name}
           </div>
 
           <TiltCard max={4}>

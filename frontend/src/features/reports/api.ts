@@ -27,8 +27,13 @@ export const reportKeys = {
   dashboard: ['dashboard'] as const,
 }
 
-export function useDashboard() {
-  return useQuery({ queryKey: reportKeys.dashboard, queryFn: () => unwrap(api.GET('/api/dashboard')) })
+/** The dashboard's figures for a period; the previous period's stay on screen while the next one loads. */
+export function useDashboard(period: Schemas['DashboardPeriod']) {
+  return useQuery({
+    queryKey: [...reportKeys.dashboard, period],
+    queryFn: () => unwrap(api.GET('/api/dashboard', { params: { query: { period } } })),
+    placeholderData: keepPreviousData,
+  })
 }
 
 export function useReportDefinitions() {

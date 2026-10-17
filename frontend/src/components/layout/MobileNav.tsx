@@ -1,30 +1,23 @@
-import { Menu } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
-import { Button } from '@/components/ui/button'
+import { NavLink } from 'react-router'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
+import { useBrandName } from '@/features/branding/api'
 import { BrandMark } from './BrandMark'
 import { useNav } from './use-nav'
 
-/** On phones every layout uses this: a menu button that slides the full menu in from the left. */
-export function MobileNav() {
+/** On phones every layout uses this: the full menu, sliding in from the left (opened from the bottom bar's Menu). */
+export function MobileNav({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { groups, active } = useNav()
-  const location = useLocation()
-  // Open only on the navigation it was opened at: following a link closes it.
-  const [openAt, setOpenAt] = useState<string | null>(null)
+  const name = useBrandName()
 
   return (
-    <Sheet open={openAt === location.key} onOpenChange={(next) => setOpenAt(next ? location.key : null)}>
-      <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open the menu" onClick={() => setOpenAt(location.key)}>
-        <Menu />
-      </Button>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="w-72 gap-0 bg-sidebar p-0 text-sidebar-foreground">
         <div className="flex h-14 items-center gap-3 border-b border-sidebar-border px-4">
           <BrandMark className="size-8" />
-          <div>
-            <SheetTitle className="text-sidebar-foreground">SalesApp</SheetTitle>
+          <div className="min-w-0">
+            <SheetTitle className="truncate text-sidebar-foreground">{name}</SheetTitle>
             <SheetDescription className="text-xs text-sidebar-foreground/60">Sales &amp; GST billing</SheetDescription>
           </div>
         </div>

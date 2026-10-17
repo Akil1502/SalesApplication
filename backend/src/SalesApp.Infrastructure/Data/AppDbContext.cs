@@ -15,6 +15,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<State> States => Set<State>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<CompanyLogo> CompanyLogos => Set<CompanyLogo>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<HsnCode> HsnCodes => Set<HsnCode>();
     public DbSet<Product> Products => Set<Product>();

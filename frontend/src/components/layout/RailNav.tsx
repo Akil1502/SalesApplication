@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router'
 import { cn } from '@/lib/utils'
+import { useBrandName } from '@/features/branding/api'
 import { BrandMark } from './BrandMark'
 import { RAIL_OPEN_WIDTH, RAIL_WIDTH, railSpring } from './rail'
 import { useNav } from './use-nav'
@@ -15,6 +16,7 @@ const MARGIN = 8
  */
 export function RailNav({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { groups, active } = useNav()
+  const name = useBrandName()
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(timer.current), [])
 
@@ -39,15 +41,16 @@ export function RailNav({ open, onOpenChange }: { open: boolean; onOpenChange: (
       }}
     >
       <motion.div
+        data-tour="nav"
         className="flex h-full flex-col overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[0_20px_50px_-20px_oklch(0.2_0.08_268/60%)]"
         animate={{ width: (open ? RAIL_OPEN_WIDTH : RAIL_WIDTH) - MARGIN * 2 }}
         initial={false}
         transition={railSpring}
       >
-        <NavLink to="/" className="flex h-14 shrink-0 items-center gap-3 px-2.5" aria-label="SalesApp home">
+        <NavLink to="/" className="flex h-14 shrink-0 items-center gap-3 px-2.5" aria-label={`${name} home`}>
           <BrandMark />
-          <RailLabel open={open} className="font-semibold tracking-tight">
-            SalesApp
+          <RailLabel open={open} className="min-w-0 font-semibold tracking-tight">
+            <span className="block truncate">{name}</span>
             <span className="block text-xs font-normal text-sidebar-foreground/60">Sales &amp; GST billing</span>
           </RailLabel>
         </NavLink>
@@ -97,7 +100,7 @@ export function RailNav({ open, onOpenChange }: { open: boolean; onOpenChange: (
                             aria-hidden
                             className="absolute inset-0 -z-10 rounded-xl"
                             style={{
-                              background: 'linear-gradient(90deg, oklch(0.6 0.16 268 / 45%), oklch(0.6 0.16 268 / 10%))',
+                              background: 'linear-gradient(90deg, color-mix(in oklch, var(--sidebar-primary) 45%, transparent), color-mix(in oklch, var(--sidebar-primary) 10%, transparent))',
                               boxShadow: 'inset 2px 0 0 var(--sidebar-primary), 0 6px 18px -8px var(--brand-glow)',
                             }}
                             transition={railSpring}

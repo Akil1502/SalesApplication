@@ -113,6 +113,7 @@ export function DockNav() {
       transition={spring}
     >
       <div
+        data-tour="nav"
         className="fx-glass flex h-[66px] items-end gap-2.5 rounded-[22px] border px-3 pb-2.5 shadow-[0_24px_60px_-20px_oklch(0.2_0.08_268/55%)]"
         onPointerMove={(event) => mouseX.set(event.clientX)}
         onPointerLeave={() => mouseX.set(Infinity)}

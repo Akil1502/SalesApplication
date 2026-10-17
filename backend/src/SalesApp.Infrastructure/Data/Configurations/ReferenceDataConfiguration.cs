@@ -57,6 +57,16 @@ internal sealed class StateConfiguration : IEntityTypeConfiguration<State>
     private static State S(string code, string name, bool utgst = false) => new() { Code = code, Name = name, UsesUtgst = utgst };
 }
 
+internal sealed class CompanyLogoConfiguration : IEntityTypeConfiguration<CompanyLogo>
+{
+    public void Configure(EntityTypeBuilder<CompanyLogo> builder)
+    {
+        builder.ToTable("CompanyLogo", t => t.HasCheckConstraint("CK_CompanyLogo_SingleRow", "[Id] = 1"));
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.ContentType).HasMaxLength(20).IsUnicode(false);
+    }
+}
+
 internal sealed class CompanySettingsConfiguration : IEntityTypeConfiguration<CompanySettings>
 {
     public void Configure(EntityTypeBuilder<CompanySettings> builder)
@@ -83,6 +93,7 @@ internal sealed class CompanySettingsConfiguration : IEntityTypeConfiguration<Co
         builder.Property(c => c.PurchaseOrderTerms).HasMaxLength(2000);
         builder.Property(c => c.OverReceiptTolerancePercent).HasPrecision(5, 2);
         builder.Property(c => c.BillPriceTolerancePercent).HasPrecision(5, 2);
+        builder.Property(c => c.BrandColour).HasMaxLength(7).IsUnicode(false);
         builder.Property(c => c.RowVersion).IsRowVersion();
         builder.HasOne(c => c.State).WithMany().HasForeignKey(c => c.StateCode).OnDelete(DeleteBehavior.Restrict);
 

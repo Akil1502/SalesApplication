@@ -38,12 +38,35 @@ public sealed record ReportResult(
     IReadOnlyList<Dictionary<string, object?>> Rows,
     Dictionary<string, object?> Totals);
 
+/// <summary>The span the dashboard shows. Point-in-time figures (receivables, orders to invoice, stock) ignore it.</summary>
+public enum DashboardPeriod
+{
+    Month,
+    Quarter,
+    Year,
+    LastYear,
+}
+
+/// <summary>The days a dashboard covers and the earlier days its sales are compared with.</summary>
+public sealed record DashboardPeriodDto(DashboardPeriod Period, DateOnly From, DateOnly To, DateOnly ComparisonFrom, DateOnly ComparisonTo);
+
+/// <param name="Sales">Taxable value invoiced in the period, less credit notes.</param>
+/// <param name="SalesComparison">The same for the comparison days.</param>
+/// <param name="Invoices">Invoices issued in the period.</param>
+/// <param name="Collected">Payments received in the period.</param>
+/// <param name="Payments">How many payments that was.</param>
+/// <param name="Outstanding">Owed by customers today.</param>
+/// <param name="Overdue">The part of it past its due date.</param>
+/// <param name="OverdueInvoices">How many invoices that is.</param>
+/// <param name="OpenOrdersValue">Confirmed orders waiting to be invoiced, with GST.</param>
+/// <param name="OpenOrders">How many orders that is.</param>
+/// <param name="LowStockProducts">Active products at or below their reorder level.</param>
 public sealed record DashboardKpisDto(
-    decimal SalesMonthToDate,
-    decimal SalesLastMonthSamePeriod,
-    int InvoicesMonthToDate,
-    decimal SalesFinancialYearToDate,
-    decimal SalesPreviousYearSamePeriod,
+    decimal Sales,
+    decimal SalesComparison,
+    int Invoices,
+    decimal Collected,
+    int Payments,
     decimal Outstanding,
     decimal Overdue,
     int OverdueInvoices,
@@ -58,8 +81,17 @@ public sealed record RankedItemDto(string Label, decimal Value, decimal Share, s
 public sealed record ReceivablesAgeingDto(decimal NotDue, decimal Days1To30, decimal Days31To60, decimal Days61To90, decimal Over90);
 
 /// <summary>Everything the home dashboard shows. Sales values are taxable value (excluding GST).</summary>
+/// <param name="FinancialYear">The financial year the period falls in, e.g. "26-27".</param>
+/// <param name="Period">The days shown and the days they're compared with.</param>
+/// <param name="Kpis">The headline figures.</param>
+/// <param name="TopCustomers">The period's top five customers.</param>
+/// <param name="TopProducts">The period's top five products.</param>
+/// <param name="SalesByState">The period's sales by place of supply.</param>
+/// <param name="MonthlySales">The last 24 months, whatever the period.</param>
+/// <param name="Ageing">Today's receivables by how late they are.</param>
 public sealed record DashboardDto(
     string FinancialYear,
+    DashboardPeriodDto Period,
     DashboardKpisDto Kpis,
     IReadOnlyList<MonthlySalesDto> MonthlySales,
     IReadOnlyList<RankedItemDto> TopCustomers,

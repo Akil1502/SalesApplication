@@ -5,10 +5,14 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { DataTable } from '@/components/data-table/DataTable'
 import { RouteError } from '@/components/errors/RouteError'
+import { MobileTabBar } from '@/components/layout/MobileTabBar'
 import { ShortcutsDialog } from '@/components/layout/ShortcutsDialog'
+import { TourOverlay } from '@/components/tour/GuidedTour'
+import { tourSteps } from '@/components/tour/tour-steps'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { SortableGrid } from '@/features/dashboard/SortableGrid'
 
 /**
  * Automated accessibility checks (axe-core) on the shared building blocks. Colour contrast can't be measured in jsdom
@@ -78,5 +82,41 @@ describe('accessibility', () => {
     const { container } = render(<RouterProvider router={router} />)
     await screen.findByText('Something went wrong on this page')
     await expectAccessible(container)
+  })
+
+  it('the phone bar', async () => {
+    const { container } = withProviders(<MobileTabBar onMenu={vi.fn()} />)
+    await screen.findByRole('navigation', { name: 'Quick menu' })
+    await expectAccessible(container)
+  })
+
+  it('dashboard cards while customising', async () => {
+    const items = [
+      { id: 'a', title: 'Monthly sales' },
+      { id: 'b', title: 'Top customers' },
+    ]
+    const { container } = withProviders(
+      <SortableGrid
+        items={items}
+        editing
+        titleOf={(id) => items.find((i) => i.id === id)!.title}
+        onMove={vi.fn()}
+        renderItem={(item) => <section aria-label={item.title}>{item.title}</section>}
+        renderControls={(item) => (
+          <button type="button" aria-label={`Hide ${item.title}`}>
+            x
+          </button>
+        )}
+      />,
+    )
+    await screen.findByRole('button', { name: 'Move Monthly sales' })
+    await expectAccessible(container)
+  })
+
+  it('a step of the guided tour', async () => {
+    const steps = tourSteps({ appName: 'SalesApp', firstName: 'Meena', layout: 'rail', phone: false, can: () => true, aiEnabled: true })
+    withProviders(<TourOverlay steps={steps} onClose={vi.fn()} />)
+    const dialog = await screen.findByRole('dialog', { name: 'Welcome to SalesApp, Meena' })
+    await expectAccessible(dialog)
   })
 })

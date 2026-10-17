@@ -27,9 +27,10 @@ export function InvoicesPrintPage() {
   })
 
   useEffect(() => {
+    const previous = document.title
     document.title = `${ids.length} invoices`
     return () => {
-      document.title = 'SalesApp'
+      document.title = previous
     }
   }, [ids.length])
 
