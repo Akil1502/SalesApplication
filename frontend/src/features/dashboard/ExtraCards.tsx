@@ -1,11 +1,13 @@
-import { BellRing, ClipboardPlus, FileWarning, HandCoins, ScanText, ShoppingBag, Timer, UserPlus } from 'lucide-react'
+import { BellRing, CheckCheck, ClipboardPlus, FileWarning, HandCoins, ScanText, ShoppingBag, Timer, UserPlus } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAiStatus } from '@/features/ai/api'
 import { useAuth } from '@/features/auth/auth-context'
+import { useMarkAllRead, useMarkRead, useNotifications } from '@/features/notifications/api'
+import { NotificationList } from '@/features/notifications/NotificationList'
 import { Permissions } from '@/features/auth/permissions'
 import { usePurchaseOrders, useSupplierBills } from '@/features/purchasing/api'
 import { useInvoices, usePayments, type InvoiceListItem } from '@/features/sales/api'
@@ -216,6 +218,46 @@ export function QuickActionsCard() {
         {actions.length ? <div className="grid grid-cols-2 gap-2">{actions}</div> : <p className="text-sm text-muted-foreground">Nothing here for your role yet.</p>}
       </CardContent>
       {can(Permissions.PaymentsEdit) && <RecordPaymentPicker open={paying} onOpenChange={setPaying} />}
+    </Card>
+  )
+}
+
+/** The latest notifications, as in the bell: open one to go to it. */
+export function NotificationsCard() {
+  const navigate = useNavigate()
+  const notifications = useNotifications()
+  const markRead = useMarkRead()
+  const markAllRead = useMarkAllRead()
+  const data = notifications.data
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle>Notifications</CardTitle>
+        <CardDescription>{data?.unreadCount ? `${data.unreadCount} unread` : 'All caught up'}</CardDescription>
+        <CardAction>
+          <Button variant="ghost" size="sm" disabled={!data?.unreadCount} onClick={() => data?.items[0] && markAllRead.mutate(data.items[0].id)}>
+            <CheckCheck /> Mark all read
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="-mx-3">
+        {notifications.isPending ? (
+          <div className="flex flex-col gap-3 px-3">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : (
+          <NotificationList
+            items={(data?.items ?? []).slice(0, 6)}
+            onOpen={(item) => {
+              if (!item.read) markRead.mutate(item.id)
+              navigate(item.link)
+            }}
+            emptyText="Nothing yet. Payments, orders and anything waiting for you will show up here."
+          />
+        )}
+      </CardContent>
     </Card>
   )
 }

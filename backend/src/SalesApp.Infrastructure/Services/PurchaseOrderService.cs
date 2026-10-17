@@ -10,6 +10,7 @@ using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.Data.Configurations;
+using SalesApp.Infrastructure.Notifications;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -42,6 +43,7 @@ public sealed class PurchaseOrderService(
     ILookupService lookups,
     IBusinessClock clock,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider timeProvider) : IPurchaseOrderService
 {
     private const string OrderPrefix = "PO";
@@ -242,6 +244,15 @@ public sealed class PurchaseOrderService(
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        if (order.Status == PurchaseOrderStatus.PendingApproval)
+        {
+            await notifications.RaiseAsync(new NotificationEvent(
+                NotificationKind.PurchaseOrderApproval,
+                $"Purchase order {order.Number} needs your approval",
+                $"{supplier.Name} · {NotificationText.Money(order.GrandTotal)}, above the {NotificationText.Money(settings.PurchaseApprovalLimit ?? 0)} limit",
+                $"/purchase-orders/{order.Id}"), cancellationToken);
+        }
+
         return await GetAsync(id, cancellationToken);
     }
 

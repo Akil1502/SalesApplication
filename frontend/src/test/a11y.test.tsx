@@ -13,6 +13,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/features/auth/AuthProvider'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { SortableGrid } from '@/features/dashboard/SortableGrid'
+import { NotificationList } from '@/features/notifications/NotificationList'
 
 /**
  * Automated accessibility checks (axe-core) on the shared building blocks. Colour contrast can't be measured in jsdom
@@ -118,5 +119,22 @@ describe('accessibility', () => {
     withProviders(<TourOverlay steps={steps} onClose={vi.fn()} />)
     const dialog = await screen.findByRole('dialog', { name: 'Welcome to SalesApp, Meena' })
     await expectAccessible(dialog)
+  })
+
+  it('the notifications list', async () => {
+    const now = new Date().toISOString()
+    const { container } = withProviders(
+      <NotificationList
+        items={[
+          { id: 2, kind: 'PaymentReceived', title: '₹50,000 received from Pandian Knits', body: 'UPI against INV/26-27/00184', link: '/invoices/1', createdAtUtc: now, read: false, important: true },
+          { id: 1, kind: 'LowStock', title: 'Cotton yarn 40s is low on stock', body: '80 Kg left; reorder level 100 Kg', link: '/products/3', createdAtUtc: now, read: true, important: false },
+        ]}
+        newAfter={1}
+        onOpen={vi.fn()}
+        emptyText="Nothing yet."
+      />,
+    )
+    await screen.findByText('₹50,000 received from Pandian Knits')
+    await expectAccessible(container)
   })
 })

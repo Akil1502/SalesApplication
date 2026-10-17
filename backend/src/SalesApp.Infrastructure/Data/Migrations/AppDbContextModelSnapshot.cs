@@ -1727,6 +1727,80 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.ToTable("InvoiceLines");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.Notification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DedupKey")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<Guid?>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("DedupKey")
+                        .IsUnique()
+                        .HasFilter("[DedupKey] IS NOT NULL");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.NotificationRead", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("NotificationId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("UserId", "NotificationId");
+
+                    b.HasIndex("NotificationId");
+
+                    b.ToTable("NotificationReads");
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -3559,6 +3633,27 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.UserNotificationState", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("LastOpenedUpToId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("MutedKinds")
+                        .HasMaxLength(400)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(400)");
+
+                    b.Property<long>("ReadUpToId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserNotificationStates");
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -4461,6 +4556,21 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.NotificationRead", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.Payment", b =>
                 {
                     b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
@@ -4965,6 +5075,15 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.HasOne("SalesApp.Core.Entities.SupplierReturn", null)
                         .WithMany("Lines")
                         .HasForeignKey("SupplierReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.UserNotificationState", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

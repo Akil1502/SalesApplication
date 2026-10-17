@@ -1726,6 +1726,236 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description How many, newest first (at most 100). */
+                    take?: number;
+                    /** @description Only the unread ones. */
+                    unreadOnly?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationListDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationMarkRequest"];
+                    "text/json": components["schemas"]["NotificationMarkRequest"];
+                    "application/*+json": components["schemas"]["NotificationMarkRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The bell was opened; what's there now is no longer "since your last visit". */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationMarkRequest"];
+                    "text/json": components["schemas"]["NotificationMarkRequest"];
+                    "application/*+json": components["schemas"]["NotificationMarkRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The kinds this person may receive, and which they've switched off. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationKindDto"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesRequest"];
+                    "text/json": components["schemas"]["NotificationPreferencesRequest"];
+                    "application/*+json": components["schemas"]["NotificationPreferencesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationKindDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/products": {
         parameters: {
             query?: never;
@@ -7696,6 +7926,50 @@ export interface components {
          * @enum {unknown}
          */
         NarrativeStatus: "AiOff" | "Verified" | "Trimmed" | "Failed";
+        /** @description One notification for the signed-in person. Important ones (payments received, things waiting for approval) pop up when they arrive. */
+        NotificationDto: {
+            /** Format: int64 */
+            id: number;
+            kind: components["schemas"]["NotificationKind"];
+            title: string;
+            body: null | string;
+            link: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            read: boolean;
+            important: boolean;
+        };
+        /** @enum {unknown} */
+        NotificationKind: "PaymentReceived" | "OrderCreated" | "OrderConfirmed" | "OverdueSummary" | "LowStock" | "PurchaseOrderApproval" | "BillApproval" | "InsightsReady";
+        /** @description A kind this person may receive, and whether they've switched it off. */
+        NotificationKindDto: {
+            kind: components["schemas"]["NotificationKind"];
+            label: string;
+            description: string;
+            muted: boolean;
+        };
+        NotificationListDto: {
+            /** @description The newest first. */
+            items: components["schemas"]["NotificationDto"][];
+            /**
+             * Format: int32
+             * @description All unread ones this person may see, not only those listed.
+             */
+            unreadCount: number;
+            /**
+             * Format: int64
+             * @description Items newer than this arrived since the bell was last opened.
+             */
+            lastOpenedUpToId: number;
+        };
+        /** @description Up to which notification (the newest one on screen), so one arriving meanwhile isn't marked unseen. */
+        NotificationMarkRequest: {
+            /** Format: int64 */
+            upToId?: number;
+        };
+        NotificationPreferencesRequest: {
+            muted: components["schemas"]["NotificationKind"][];
+        };
         /** @description Status changes carry the row version the user was looking at, so nobody acts on a stale screen. */
         OrderActionRequest: {
             rowVersion: string;

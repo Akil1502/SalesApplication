@@ -4,7 +4,7 @@ import type { Schemas } from '@/lib/api/client'
 export type DashboardPeriod = Schemas['DashboardPeriod']
 
 export const TILE_IDS = ['sales', 'collected', 'receivables', 'orders', 'stock'] as const
-export const CARD_IDS = ['trend', 'ageing', 'top-customers', 'top-products', 'states', 'chase', 'payments', 'purchases', 'quick-actions'] as const
+export const CARD_IDS = ['trend', 'ageing', 'top-customers', 'top-products', 'states', 'chase', 'payments', 'purchases', 'quick-actions', 'notifications'] as const
 
 export type TileId = (typeof TILE_IDS)[number]
 export type CardId = (typeof CARD_IDS)[number]
@@ -63,6 +63,7 @@ export const CARD_INFO: Record<CardId, { title: string; description: string; per
     permissions: [Permissions.PurchaseOrdersView, Permissions.SupplierBillsView],
   },
   'quick-actions': { title: 'Quick actions', description: 'Big buttons for what you do most.' },
+  notifications: { title: 'Notifications', description: 'Your latest notifications, as in the bell.' },
 }
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
@@ -80,6 +81,7 @@ export const DEFAULT_LAYOUT: DashboardLayout = {
     { id: 'payments', size: 'normal', hidden: true },
     { id: 'purchases', size: 'normal', hidden: true },
     { id: 'quick-actions', size: 'normal', hidden: true },
+    { id: 'notifications', size: 'normal', hidden: true },
   ],
 }
 

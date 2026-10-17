@@ -6,6 +6,7 @@ using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Notifications;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -31,6 +32,7 @@ public sealed class OrderService(
     IBusinessClock clock,
     ICurrentUser currentUser,
     IPriceService prices,
+    INotificationWriter notifications,
     TimeProvider timeProvider) : IOrderService
 {
     private const string OrderPrefix = "SO";
@@ -143,6 +145,12 @@ public sealed class OrderService(
 
         db.SalesOrders.Add(order);
         await db.SaveChangesAsync(cancellationToken);
+        await notifications.RaiseAsync(new NotificationEvent(
+            NotificationKind.OrderCreated,
+            $"New order {order.Number} for {customer.Name}",
+            $"{order.Lines.Count} {(order.Lines.Count == 1 ? "line" : "lines")} · {NotificationText.Money(order.GrandTotal)}",
+            $"/orders/{order.Id}",
+            customer.Id), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return await GetAsync(order.Id, cancellationToken);
@@ -208,6 +216,12 @@ public sealed class OrderService(
         order.Status = SalesOrderStatus.Confirmed;
         order.ConfirmedAtUtc = Now;
         await db.SaveChangesAsync(cancellationToken);
+        await notifications.RaiseAsync(new NotificationEvent(
+            NotificationKind.OrderConfirmed,
+            $"Order {order.Number} confirmed for {customer.Name}",
+            $"{NotificationText.Money(order.GrandTotal)}, ready to invoice",
+            $"/orders/{order.Id}",
+            customer.Id), cancellationToken);
         return await GetAsync(id, cancellationToken);
     }
 

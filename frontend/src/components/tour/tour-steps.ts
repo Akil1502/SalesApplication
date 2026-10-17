@@ -59,6 +59,12 @@ export function tourSteps({ appName, firstName, layout, phone, can, aiEnabled }:
         ? 'Tap the magnifier to find a customer, invoice, order or product by name or number, or jump to a page.'
         : 'Press Ctrl+K (⌘K on a Mac) to find a customer, invoice, order or product by name or number, jump to a page or start something new.',
     },
+    {
+      id: 'notifications',
+      target: 'notifications',
+      title: 'Notifications',
+      body: 'The bell tells you about payments received, new orders, overdue invoices and anything waiting for you, only for what your role lets you see. The gear inside chooses which kinds you get.',
+    },
     can(Permissions.DashboardView) && {
       id: 'dashboard',
       target: 'dashboard-controls',

@@ -6,6 +6,7 @@ using SalesApp.Core.Common;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Notifications;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -58,6 +59,7 @@ public interface IStockLedger
 public sealed class StockLedger(
     AppDbContext db,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider timeProvider,
     IOptions<InventoryOptions> options) : IStockLedger
 {
@@ -133,7 +135,35 @@ public sealed class StockLedger(
         };
         db.StockMovements.Add(movement);
         await db.SaveChangesAsync(cancellationToken);
+        if (quantity < 0)
+        {
+            await NotifyIfNowLowAsync(posting.ProductId, balanceAfter - quantity, balanceAfter, cancellationToken);
+        }
+
         return movement;
+    }
+
+    /// <summary>
+    /// Tells people when a product falls to its reorder level: only on the way down past it, so a product that stays
+    /// low isn't reported again until it has been restocked above the level.
+    /// </summary>
+    private async Task NotifyIfNowLowAsync(int productId, decimal before, decimal after, CancellationToken cancellationToken)
+    {
+        var product = await db.Products.AsNoTracking()
+            .Where(p => p.Id == productId && p.IsActive)
+            .Select(p => new { p.Name, p.Unit, p.ReorderLevel })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (product is null || before <= product.ReorderLevel || after > product.ReorderLevel)
+        {
+            return;
+        }
+
+        await notifications.RaiseAsync(new NotificationEvent(
+            NotificationKind.LowStock,
+            after <= 0 ? $"{product.Name} is out of stock" : $"{product.Name} is low on stock",
+            $"{NotificationText.Quantity(after, product.Unit.ToString())} left; reorder level {NotificationText.Quantity(product.ReorderLevel, product.Unit.ToString())}",
+            $"/products/{productId}",
+            ByCurrentUser: false), cancellationToken);
     }
 
     private async Task<Exception> InsufficientStockOrMissingAsync(int productId, decimal requested, CancellationToken cancellationToken)

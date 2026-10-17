@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
+import { useUnreadCount } from '@/lib/unread-count'
 import { fitWithin } from '@/features/sales/smart-entry/image'
 import { cachedBranding } from './apply'
 
@@ -37,12 +38,13 @@ export function useBrandName(): string {
   return brandName(useBranding().data)
 }
 
-/** Sets the browser tab's title: the page, then the company (or SalesApp). */
+/** Sets the browser tab's title: unread notifications, the page, then the company (or SalesApp), e.g. "(3) Invoices · Demo Textiles". */
 export function useDocumentTitle(page: string | undefined) {
   const name = useBrandName()
+  const unread = useUnreadCount()
   useEffect(() => {
-    document.title = page ? `${page} · ${name}` : name
-  }, [page, name])
+    document.title = `${unread > 0 ? `(${unread > 99 ? '99+' : unread}) ` : ''}${page ? `${page} · ${name}` : name}`
+  }, [page, name, unread])
 }
 
 async function encode(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob | null> {

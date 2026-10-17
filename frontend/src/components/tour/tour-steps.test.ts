@@ -30,6 +30,6 @@ describe('guided tour', () => {
     expect(ids({ can: rep })).toContain('smart-entry')
     expect(ids({ can: rep })).not.toContain('approvals')
     expect(ids({ aiEnabled: false })).not.toContain('smart-entry')
-    expect(ids({ can: () => false })).toEqual(['welcome', 'menu', 'search', 'records', 'account', 'done'])
+    expect(ids({ can: () => false })).toEqual(['welcome', 'menu', 'search', 'notifications', 'records', 'account', 'done'])
   })
 })

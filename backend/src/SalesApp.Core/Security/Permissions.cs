@@ -58,6 +58,12 @@ public static class Permissions
     public const string SupplierBillsApprove = "supplier-bills.approve";
     public const string BillReadingUse = "bill-reading.use";
 
+    /// <summary>
+    /// Notifications about every customer's orders, payments and overdue invoices. Without it, people hear only about
+    /// the customers they look after (their assigned sales rep).
+    /// </summary>
+    public const string AllCustomersActivity = "customers.all-activity";
+
     /// <summary>The menus, in sidebar order: a View permission, and an Add &amp; change one where the menu changes data.</summary>
     public static readonly IReadOnlyList<PermissionMenuDto> Menus =
     [
@@ -98,6 +104,7 @@ public static class Permissions
         new(PurchaseOrdersApprove, "Approve purchase orders", "Approve orders above the approval limit in Company settings, and place them without waiting for approval."),
         new(SupplierBillsApprove, "Approve bill differences", "Accept a supplier bill whose prices, quantities or totals don't match the order, so it can be paid."),
         new(BillReadingUse, "Read supplier bills with AI", "Fill in a supplier bill from a PDF or photo of their invoice. Uses AI credit."),
+        new(AllCustomersActivity, "Hear about every customer", "Notifications about every customer's orders, payments and overdue invoices, not just the customers they look after."),
     ];
 
     public static readonly IReadOnlySet<string> All = Menus

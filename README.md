@@ -111,7 +111,7 @@ Administration → **Users & roles** decides who can do what.
 - **Permissions** follow the menus: each has **View**, and **Add & change** where the menu changes data (orders,
   invoices, payments, credit notes, customers, products, categories, stock, suppliers, purchase orders, supplier
   bills, supplier payments, supplier returns, users). A few special rights sit beside them: see cost prices and margins, set credit terms, override
-  credit limits, can be a customer's sales rep, approve purchase orders above the limit, approve bill differences,
+  credit limits, can be a customer's sales rep, hear about every customer (notifications), approve purchase orders above the limit, approve bill differences,
   and read supplier bills with AI.
 - **Roles** are sets of permissions. Three are built in: **Administrator** (everything, and it can't be changed),
   **Sales manager** (everything except administration, rate updates and the two purchase approvals) and **Sales representative** (orders, customers, smart order
@@ -258,6 +258,19 @@ own logo and colour.
     **Recent payments**, **Purchases needing action** (orders awaiting approval, bills on hold or overdue) and
     **Quick actions**.
   **Done** saves your layout and **Cancel** drops the changes. Cards for things your role can't see aren't offered.
+- **Notifications.** The bell in the top bar counts what's new for you; the browser tab shows it too ("(3) Invoices ·
+  Demo Textiles") and the tab's icon gets a dot. Click it for the latest, under Today / Yesterday / Earlier, with
+  **All** / **Unread**, **Mark all read** and a "New since your last visit" label; opening one takes you to the record.
+  - **What you hear about**, only what your role lets you see: payments received, new and confirmed orders, a
+    morning summary of overdue invoices (after 9:00, `Notifications:DailyAt`), a product falling to its reorder level
+    (once, and again only after it has been restocked), purchase orders and supplier bills waiting for your approval,
+    and new AI insights. Never about things you did yourself.
+  - **Whose customers**: sales reps hear about orders, payments and overdue invoices of the customers they look after;
+    people with **Hear about every customer** (on for Sales manager, in Users & roles) hear about everyone's.
+  - **Pop-ups**: payments received and things waiting for your approval pop up as they arrive (the app checks every 45
+    seconds, and straight away when you come back to the tab). The gear in the bell switches kinds off, and turns on
+    **Windows notifications** for those important ones while the browser is in the background (on that computer).
+  - A **Notifications** card can be added to the dashboard. Notifications are kept for 90 days.
 - **A guided tour** the first time you open the dashboard: about a minute, pointing at the menu, search, dashboard
   and account menu, with steps that match your role (smart order entry, approvals), your layout and your screen.
   **Take the tour** in the account menu runs it again. The arrow keys step through it and Esc leaves.
@@ -379,6 +392,7 @@ environment variables (for example `Jwt__SigningKey`).
 | `Seed:DemoUserPassword` | `appsettings.Development.json` (dev only) | Password for the demo team created by `--seed-demo` |
 | `Anthropic:ApiKey` | user-secrets / `Anthropic__ApiKey` env | Turns on the AI features. Without it the app works normally and hides them. |
 | `Ai:*` | `appsettings.json` | Model and effort per feature, daily budget per user, requests per minute, price list. See [AI features](#ai-features). |
+| `Notifications:DailyEnabled`, `Notifications:DailyAt` | `appsettings.json` (optional) | The morning overdue summary (and clearing out notifications older than 90 days): on by default, after `09:00` India time. |
 | `Security:PublicRequestsPerMinute` | `appsettings.json` (optional) | Requests per minute per address to the few things open before sign-in (the company's name and logo). Default 120. |
 
 ## AI features
@@ -585,7 +599,7 @@ execution policy blocks scripts. Run the setup once with
 backend/
   src/SalesApp.Api/              Controllers, auth, error handling, OpenAPI
   src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET)
-  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data, insight metrics
+  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data, insight metrics, notifications
                                  Sql/*.sql: reporting views (rpt, rpt_mgr), the AI read-only users and the assistant's
                                  append-only rule, applied after migrations
   src/SalesApp.AI/               Claude gateway (budget, caching, usage log) and the AI features
@@ -601,6 +615,7 @@ frontend/
   src/components/tour/           The guided tour (steps by role, layout and screen)
   src/features/branding/         The company's logo and colour: the theme built from any colour, applied before first paint
   src/features/dashboard/        The dashboard: cards, periods, customising (layout.ts) and the 3D city hero
+  src/features/notifications/    The bell: list, settings, pop-ups and Windows notifications
   src/components/three/          The 3D scenes (loaded on demand)
   src/lib/api/                   Typed API client generated from OpenAPI
 scripts/setup-dev.ps1            One-time developer setup
@@ -610,7 +625,8 @@ docs/DEPLOYMENT-IIS.md           Publishing to IIS
 ## Conventions
 
 - **One error shape** for every API failure: `{ message, traceId, errors? }`. `errors` is keyed by camelCase field name, so forms can show messages next to the right input.
-- **UTC timestamps** everywhere (`*Utc` columns, `TimeProvider` for testability).
+- **UTC timestamps** everywhere (`*Utc` columns, `TimeProvider` for testability), sent to the browser with a `Z` so it
+  shows them in the viewer's own time zone.
 - **`CancellationToken`** passed through every async layer.
 - **Money is `decimal(18,2)`**; quantities are `decimal(18,3)` (kg to the gram, metres to the millimetre).
 - **Optimistic concurrency**: editable records carry a `rowVersion`; saving a stale copy returns 409 and the UI offers a reload.

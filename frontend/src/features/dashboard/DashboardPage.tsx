@@ -16,7 +16,7 @@ import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatINRCompact } from '@/lib/format'
 import { useUserSetting } from '@/lib/user-settings'
 import { cn } from '@/lib/utils'
-import { ChaseCard, PurchasesCard, QuickActionsCard, RecentPaymentsCard } from './ExtraCards'
+import { ChaseCard, NotificationsCard, PurchasesCard, QuickActionsCard, RecentPaymentsCard } from './ExtraCards'
 import { change } from './kpi'
 import {
   allowedCards,
@@ -239,6 +239,8 @@ export function DashboardPage() {
         return <PurchasesCard />
       case 'quick-actions':
         return <QuickActionsCard />
+      case 'notifications':
+        return <NotificationsCard />
     }
   }
 

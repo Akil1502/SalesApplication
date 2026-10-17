@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using SalesApp.AI;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Json;
 using SalesApp.Api.OpenApi;
 using SalesApp.Api.Security;
 using SalesApp.Core.Security;
@@ -45,6 +46,7 @@ builder.Services
     {
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter());
         // Numbers must be JSON numbers. The web default also accepts "12" strings, which makes the
         // OpenAPI document (and the generated TypeScript) type every number as number | string.
         options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict;
@@ -64,6 +66,7 @@ builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.Converters.Add(new UtcDateTimeConverter());
     options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
 });
 builder.Services.AddOpenApi(options =>

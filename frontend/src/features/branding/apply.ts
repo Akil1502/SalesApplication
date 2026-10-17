@@ -42,16 +42,54 @@ function styleElement(): HTMLStyleElement {
   return element
 }
 
+// The tab's icon: the logo (or the app's mark), with a small dot while there are unread notifications.
+let iconUrl: string | null = null
+let iconDot = false
+let iconDrawing = 0
+
 function setFavicon(logoUrl: string | null | undefined) {
+  iconUrl = logoUrl ?? null
+  drawFavicon()
+}
+
+/** Puts a dot on the tab's icon (unread notifications) or takes it off. */
+export function setFaviconDot(on: boolean) {
+  if (on === iconDot) return
+  iconDot = on
+  drawFavicon()
+}
+
+function drawFavicon() {
   const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
   if (!link) return
-  if (logoUrl) {
-    link.removeAttribute('type')
-    link.href = logoUrl
-  } else {
-    link.type = 'image/svg+xml'
-    link.href = '/favicon.svg'
+  const source = iconUrl ?? '/favicon.svg'
+  const drawing = ++iconDrawing
+  if (!iconDot) {
+    if (iconUrl) link.removeAttribute('type')
+    else link.type = 'image/svg+xml'
+    link.href = source
+    return
   }
+
+  const image = new Image()
+  image.onload = () => {
+    if (drawing !== iconDrawing) return
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 64
+    const context = canvas.getContext('2d')
+    if (!context) return
+    context.drawImage(image, 0, 0, 64, 64)
+    context.beginPath()
+    context.arc(50, 14, 13, 0, Math.PI * 2)
+    context.fillStyle = '#e5484d'
+    context.fill()
+    context.lineWidth = 4
+    context.strokeStyle = '#ffffff'
+    context.stroke()
+    link.removeAttribute('type')
+    link.href = canvas.toDataURL('image/png')
+  }
+  image.src = source
 }
 
 // The colour on screen: the saved one, or one being tried on the settings page before saving.

@@ -4,8 +4,9 @@ import { Link } from 'react-router'
 import { ThemeToggle } from '@/components/fx/ThemeToggle'
 import { TopProgress } from '@/components/fx/TopProgress'
 import { AssistantLauncher } from '@/features/assistant/AssistantLauncher'
-import type { LayoutChoice } from '@/lib/preferences'
 import { useBrandName } from '@/features/branding/api'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
+import type { LayoutChoice } from '@/lib/preferences'
 import { BrandMark } from './BrandMark'
 import { TopMegaNav } from './TopMegaNav'
 import { useNav } from './use-nav'
@@ -13,7 +14,7 @@ import { UserMenu } from './UserMenu'
 
 /**
  * The frosted bar across the top of every layout: the page title (or, in the top-menus layout, the brand and the
- * menus), the search palette, light/dark, the assistant and the account menu.
+ * menus), the search palette, light/dark, notifications, the assistant and the account menu.
  */
 export function TopBar({ layout, onSearch, onShortcuts }: { layout: LayoutChoice; onSearch: () => void; onShortcuts: () => void }) {
   const { active } = useNav()
@@ -70,6 +71,7 @@ export function TopBar({ layout, onSearch, onShortcuts }: { layout: LayoutChoice
           <kbd className="hidden rounded-md border bg-muted px-1.5 py-0.5 font-mono text-[10px] lg:inline">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
         </button>
         <ThemeToggle />
+        <NotificationBell />
         <AssistantLauncher />
         <UserMenu onShortcuts={onShortcuts} />
       </div>

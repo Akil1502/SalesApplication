@@ -10,6 +10,7 @@ using SalesApp.Core.Contracts.Insights;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Notifications;
 using SalesApp.Infrastructure.Insights;
 
 namespace SalesApp.AI.Insights;
@@ -32,6 +33,7 @@ public sealed class InsightsService(
     IClaudeGateway claude,
     AppDbContext db,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider time,
     IOptionsMonitor<AiOptions> aiOptions,
     ILogger<InsightsService> logger) : IInsightsService
@@ -71,6 +73,11 @@ public sealed class InsightsService(
         };
         db.InsightRuns.Add(run);
         await db.SaveChangesAsync(CancellationToken.None);
+        await notifications.RaiseAsync(new NotificationEvent(
+            NotificationKind.InsightsReady,
+            briefing.Narrative is { } narrative ? $"New insights: {narrative.Headline}" : "New insights are ready",
+            briefing.Narrative?.Summary ?? "Forecasts, unusual months and reorder suggestions have been worked out again.",
+            "/insights"), CancellationToken.None);
         return ToDto(run);
     }
 

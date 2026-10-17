@@ -67,6 +67,12 @@ public static class DependencyInjection
         services.AddScoped<ICustomerService, CustomerService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<IUserSettingsService, UserSettingsService>();
+        services.AddScoped<Notifications.INotificationWriter, Notifications.NotificationWriter>();
+        services.AddScoped<Notifications.INotificationService, Notifications.NotificationService>();
+        services.AddScoped<Notifications.INotificationDigest, Notifications.NotificationDigest>();
+        services.Configure<Notifications.NotificationOptions>(configuration.GetSection(Notifications.NotificationOptions.SectionName));
+        services.TryAddScoped<CurrentUserOverride>();
+        services.AddHostedService<Notifications.NotificationScheduler>();
         services.AddScoped<IRoleAdminService, RoleAdminService>();
         services.AddSingleton<PermissionVersion>();
         services.AddScoped<IPermissionService, PermissionService>();

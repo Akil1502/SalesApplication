@@ -9,6 +9,7 @@ using SalesApp.Core.Purchasing;
 using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Notifications;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -33,6 +34,7 @@ public sealed class SupplierBillService(
     ILookupService lookups,
     IBusinessClock clock,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider timeProvider) : ISupplierBillService
 {
     private const string BillPrefix = "PB";
@@ -348,6 +350,14 @@ public sealed class SupplierBillService(
 
         db.SupplierBills.Add(bill);
         await db.SaveChangesAsync(cancellationToken);
+        if (bill.MatchStatus == BillMatchStatus.NeedsApproval)
+        {
+            await notifications.RaiseAsync(new NotificationEvent(
+                NotificationKind.BillApproval,
+                $"Bill {bill.Number} from {supplier.Name} needs approval",
+                $"{issues.FirstOrDefault() ?? "A line doesn't match its order."} {NotificationText.Money(bill.GrandTotal)}",
+                $"/supplier-bills/{bill.Id}"), cancellationToken);
+        }
 
         foreach (var line in bill.Lines)
         {
