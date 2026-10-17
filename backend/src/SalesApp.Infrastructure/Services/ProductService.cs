@@ -78,7 +78,10 @@ public sealed class ProductService(AppDbContext db, ICurrentUser currentUser, IB
             .Include(p => p.PreferredSupplier)
             .SingleOrDefaultAsync(p => p.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Product {id} was not found.");
-        var imageVersion = await db.ProductImages.Where(i => i.ProductId == id).Select(i => (int?)i.Version).SingleOrDefaultAsync(cancellationToken);
+        var imageVersion = await db.ProductImages
+            .Where(i => i.ProductId == id && i.ImageData != null)
+            .Select(i => (int?)i.Version)
+            .SingleOrDefaultAsync(cancellationToken);
 
         return ToDto(product, imageVersion);
     }

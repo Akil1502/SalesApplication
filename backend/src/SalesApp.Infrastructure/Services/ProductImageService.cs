@@ -76,6 +76,7 @@ public sealed class ProductImageService(AppDbContext db, IProductImageUrls urls,
     public async Task<IReadOnlyList<ProductImageDto>> ListAsync(CancellationToken cancellationToken)
     {
         var images = await db.ProductImages.AsNoTracking()
+            .Where(i => i.ImageData != null)
             .OrderBy(i => i.ProductId)
             .Select(i => new { i.ProductId, i.Version })
             .ToListAsync(cancellationToken);
@@ -87,54 +88,59 @@ public sealed class ProductImageService(AppDbContext db, IProductImageUrls urls,
         var imageType = Check("image", image, MaxImageBytes);
         var thumbnailType = Check("thumbnail", thumbnail, MaxThumbnailBytes);
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var product = await ProductLabelAsync(productId, cancellationToken);
-
-        // Locked (a missing row's key too), so two uploads at once can't both become the same version.
-        var current = await db.ProductImages
-            .FromSql($"SELECT * FROM ProductImages WITH (UPDLOCK, HOLDLOCK) WHERE ProductId = {productId}")
-            .SingleOrDefaultAsync(cancellationToken);
-        var replaced = current is not null;
-        if (current is null)
+        var version = await ChangeAsync(productId, hadPhoto => hadPhoto ? ("Earlier photo", "New photo") : (null, "Added"), photo =>
         {
-            current = new ProductImage { ProductId = productId, ContentType = imageType, ImageData = image, ThumbnailContentType = thumbnailType, ThumbnailData = thumbnail };
-            db.ProductImages.Add(current);
-        }
-        else
-        {
-            current.ContentType = imageType;
-            current.ImageData = image;
-            current.ThumbnailContentType = thumbnailType;
-            current.ThumbnailData = thumbnail;
-        }
-
-        current.Version++;
-        await db.SaveChangesAsync(cancellationToken);
-        await audit.RecordAsync(PhotoChanged(productId, product, replaced ? "Earlier photo" : null, replaced ? "New photo" : "Added"), cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
-        return urls.Create(productId, current.Version);
+            photo.ContentType = imageType;
+            photo.ImageData = image;
+            photo.ThumbnailContentType = thumbnailType;
+            photo.ThumbnailData = thumbnail;
+        }, cancellationToken);
+        return urls.Create(productId, version);
     }
 
-    public async Task DeleteAsync(int productId, CancellationToken cancellationToken)
-    {
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
-        var product = await ProductLabelAsync(productId, cancellationToken);
-        if (await db.ProductImages.Where(i => i.ProductId == productId).ExecuteDeleteAsync(cancellationToken) == 0)
+    public Task DeleteAsync(int productId, CancellationToken cancellationToken) =>
+        ChangeAsync(productId, hadPhoto => hadPhoto ? ("Photo", "Removed") : throw new NotFoundException("This product has no photo."), photo =>
         {
-            throw new NotFoundException("This product has no photo.");
-        }
-
-        await audit.RecordAsync(PhotoChanged(productId, product, "Photo", "Removed"), cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-    }
+            photo.ContentType = null;
+            photo.ImageData = null;
+            photo.ThumbnailContentType = null;
+            photo.ThumbnailData = null;
+        }, cancellationToken);
 
     public async Task<ImageFile?> ReadAsync(int productId, int version, ProductImageSize size, CancellationToken cancellationToken)
     {
-        var image = db.ProductImages.AsNoTracking().Where(i => i.ProductId == productId && i.Version == version);
+        var image = db.ProductImages.AsNoTracking().Where(i => i.ProductId == productId && i.Version == version && i.ImageData != null);
         return size == ProductImageSize.Thumb
-            ? await image.Select(i => new ImageFile(i.ThumbnailData, i.ThumbnailContentType)).SingleOrDefaultAsync(cancellationToken)
-            : await image.Select(i => new ImageFile(i.ImageData, i.ContentType)).SingleOrDefaultAsync(cancellationToken);
+            ? await image.Select(i => new ImageFile(i.ThumbnailData!, i.ThumbnailContentType!)).SingleOrDefaultAsync(cancellationToken)
+            : await image.Select(i => new ImageFile(i.ImageData!, i.ContentType!)).SingleOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Changes the photo under a lock and records it; describe gives the history entry from whether there was a photo,
+    /// or throws to refuse. Returns the new version.
+    /// </summary>
+    private async Task<int> ChangeAsync(int productId, Func<bool, (string? Before, string After)> describe, Action<ProductImage> change, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        var product = await ProductLabelAsync(productId, cancellationToken);
+
+        // Locked (a missing row's key too), so two changes at once can't both become the same version.
+        var photo = await db.ProductImages
+            .FromSql($"SELECT * FROM ProductImages WITH (UPDLOCK, HOLDLOCK) WHERE ProductId = {productId}")
+            .SingleOrDefaultAsync(cancellationToken);
+        var (before, after) = describe(photo?.ImageData is not null);
+        if (photo is null)
+        {
+            photo = new ProductImage { ProductId = productId };
+            db.ProductImages.Add(photo);
+        }
+
+        change(photo);
+        photo.Version++;
+        await db.SaveChangesAsync(cancellationToken);
+        await audit.RecordAsync(PhotoChanged(productId, product, before, after), cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return photo.Version;
     }
 
     private static string Check(string field, byte[] data, int maxBytes)

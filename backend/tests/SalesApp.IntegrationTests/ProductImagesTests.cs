@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Headers;
+using Microsoft.Extensions.DependencyInjection;
 using SalesApp.Api.Errors;
 using SalesApp.Core.Contracts.Audit;
 using SalesApp.Core.Contracts.Common;
 using SalesApp.Core.Contracts.Masters;
 using SalesApp.Core.Security;
+using SalesApp.Infrastructure.Services;
 
 namespace SalesApp.IntegrationTests;
 
@@ -104,6 +106,38 @@ public sealed class ProductImagesTests(SalesAppFactory factory)
         var history = (await (await admin.GetAsync($"/api/audit?pageSize=10&entityType=Product&entityId={product.Id}", Ct)).ReadAsync<PagedResult<AuditEntryDto>>()).Items;
         Assert.Equal(
             [new AuditChange("Photo", "Photo", "Removed"), new AuditChange("Photo", "Earlier photo", "New photo"), new AuditChange("Photo", null, "Added")],
+            history.Where(h => h.Changes.Any(c => c.Field == "Photo")).Select(h => Assert.Single(h.Changes)));
+    }
+
+    [Fact]
+    public async Task A_photo_added_after_one_was_removed_never_reuses_its_address()
+    {
+        var (admin, _) = await factory.CreateClientAsync(Roles.Admin);
+        var product = await TestData.CreateProductAsync(admin);
+        var anonymous = factory.CreateClient();
+        var first = await (await UploadAsync(admin, product.Id, Jpeg(1000), Png())).ReadAsync<ProductImageDto>();
+
+        Assert.Equal(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/products/{product.Id}/image", Ct)).StatusCode);
+        Assert.DoesNotContain(await (await admin.GetAsync("/api/products/images", Ct)).ReadAsync<List<ProductImageDto>>(), i => i.ProductId == product.Id);
+
+        // The removal took a version of its own, and there's no picture behind it.
+        var removed = factory.Services.GetRequiredService<IProductImageUrls>().Create(product.Id, first.Version + 1);
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(removed.ImageUrl, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(removed.ThumbnailUrl, Ct)).StatusCode);
+
+        // Browsers keep a picture for a year, so the new photo must not come back at the first one's address.
+        var again = await (await UploadAsync(admin, product.Id, Jpeg(3000), Png())).ReadAsync<ProductImageDto>();
+        Assert.NotEqual(first.ImageUrl, again.ImageUrl);
+        Assert.NotEqual(first.ThumbnailUrl, again.ThumbnailUrl);
+        Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync(first.ImageUrl, Ct)).StatusCode);
+        Assert.Equal(3004, (await (await anonymous.GetAsync(again.ImageUrl, Ct)).Content.ReadAsByteArrayAsync(Ct)).Length);
+        Assert.Equal(again, (await (await admin.GetAsync($"/api/products/{product.Id}", Ct)).ReadAsync<ProductDto>()).Image);
+        Assert.Contains(again, await (await admin.GetAsync("/api/products/images", Ct)).ReadAsync<List<ProductImageDto>>());
+
+        // A photo added after a removal shows as added, not as replacing the removed one.
+        var history = (await (await admin.GetAsync($"/api/audit?pageSize=10&entityType=Product&entityId={product.Id}", Ct)).ReadAsync<PagedResult<AuditEntryDto>>()).Items;
+        Assert.Equal(
+            [new AuditChange("Photo", null, "Added"), new AuditChange("Photo", "Photo", "Removed"), new AuditChange("Photo", null, "Added")],
             history.Where(h => h.Changes.Any(c => c.Field == "Photo")).Select(h => Assert.Single(h.Changes)));
     }
 

@@ -1884,7 +1884,6 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ContentType")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
@@ -1893,17 +1892,14 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasColumnType("datetime2(0)");
 
                     b.Property<byte[]>("ImageData")
-                        .IsRequired()
                         .HasColumnType("varbinary(max)");
 
                     b.Property<string>("ThumbnailContentType")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
 
                     b.Property<byte[]>("ThumbnailData")
-                        .IsRequired()
                         .HasColumnType("varbinary(max)");
 
                     b.Property<DateTime>("UpdatedAtUtc")
@@ -1916,6 +1912,8 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
                     b.ToTable("ProductImages", t =>
                         {
+                            t.HasCheckConstraint("CK_ProductImages_Picture", "([ImageData] IS NULL AND [ContentType] IS NULL AND [ThumbnailData] IS NULL AND [ThumbnailContentType] IS NULL) OR ([ImageData] IS NOT NULL AND [ContentType] IS NOT NULL AND [ThumbnailData] IS NOT NULL AND [ThumbnailContentType] IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_ProductImages_Size", "DATALENGTH([ImageData]) <= 2097152 AND DATALENGTH([ThumbnailData]) <= 262144");
 
                             t.HasCheckConstraint("CK_ProductImages_Version", "[Version] >= 1");

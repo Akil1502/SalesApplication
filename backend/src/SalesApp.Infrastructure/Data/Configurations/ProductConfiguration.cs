@@ -70,6 +70,11 @@ internal sealed class ProductImageConfiguration : IEntityTypeConfiguration<Produ
         {
             t.HasCheckConstraint("CK_ProductImages_Version", "[Version] >= 1");
             t.HasCheckConstraint("CK_ProductImages_Size", "DATALENGTH([ImageData]) <= 2097152 AND DATALENGTH([ThumbnailData]) <= 262144");
+
+            // A removed photo clears both sizes together, so "has a picture" can be read from ImageData alone.
+            t.HasCheckConstraint("CK_ProductImages_Picture",
+                "([ImageData] IS NULL AND [ContentType] IS NULL AND [ThumbnailData] IS NULL AND [ThumbnailContentType] IS NULL)"
+                + " OR ([ImageData] IS NOT NULL AND [ContentType] IS NOT NULL AND [ThumbnailData] IS NOT NULL AND [ThumbnailContentType] IS NOT NULL)");
         });
     }
 }
