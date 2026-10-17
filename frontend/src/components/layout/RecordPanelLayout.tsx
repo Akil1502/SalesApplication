@@ -6,7 +6,7 @@ import { useLocation, useNavigate, useOutlet } from 'react-router'
 import { useMotionLevel, usePreferences } from '@/components/fx/preferences-context'
 import { Button } from '@/components/ui/button'
 import { findNavItem } from './navigation'
-import { RAIL_WIDTH } from './RailNav'
+import { RAIL_WIDTH } from './rail'
 import { InPanelContext, OpenRecordContext, recentMorphOrigin, setMorphOrigin } from './record-panel-state'
 
 const spring = { type: 'spring', stiffness: 320, damping: 34 } as const
@@ -32,7 +32,7 @@ function Panel({
   const [expanded, setExpanded] = useState(false)
   const [origin] = useState(recentMorphOrigin)
   const panel = useRef<HTMLElement>(null)
-  const left = layout === 'rail' ? RAIL_WIDTH + GAP : GAP
+  const left = layout === 'rail' && window.innerWidth >= 768 ? RAIL_WIDTH + GAP : GAP
   const width = expanded ? `calc(100vw - ${left + GAP}px)` : `min(54rem, calc(100vw - ${left + GAP * 2}px))`
 
   // Focus moves into the panel as it opens; the row it grew from is used up.

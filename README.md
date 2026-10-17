@@ -226,7 +226,7 @@ returns** (Purchases → Supplier returns) send goods back against a supplier's 
 The app has a calm indigo-and-teal look in light and dark, with depth and motion on every screen.
 
 - **Three layouts, each user's choice.** **Layout** in the account menu (the avatar, top right): an *icon rail* on
-  the left that slides open with labels as you point at it (the default), *top menus* with large drop-down panels
+  the left that slides open with labels as you point at it, with the page moving over to make room (the default), *top menus* with large drop-down panels
   describing each page, or a *dock* at the bottom whose icons grow under the pointer and pop up their pages.
   Switching animates from one to the other and is remembered per user in that browser. Phones always get a menu that
   slides in from the left.

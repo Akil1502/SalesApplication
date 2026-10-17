@@ -1,21 +1,27 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router'
 import { cn } from '@/lib/utils'
 import { BrandMark } from './BrandMark'
+import { RAIL_OPEN_WIDTH, RAIL_WIDTH, railSpring } from './rail'
 import { useNav } from './use-nav'
 
-export const RAIL_WIDTH = 72
-const OPEN_WIDTH = 264
-const spring = { type: 'spring', stiffness: 380, damping: 34 } as const
+const MARGIN = 8
 
 /**
  * A slim frosted rail of icons on the left that slides open with labels while the pointer (or keyboard focus) is on
- * it. It floats over the page when open, so the page never jumps. The lit pill glides to the current page.
+ * it; the page moves over to make room rather than being covered. A short pause before opening and closing means
+ * the mouse passing across it doesn't make the page jump. The lit pill glides to the current page.
  */
-export function RailNav() {
+export function RailNav({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { groups, active } = useNav()
-  const [open, setOpen] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  const setSoon = (next: boolean, delay: number) => {
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => onOpenChange(next), delay)
+  }
 
   return (
     <motion.nav
@@ -24,19 +30,19 @@ export function RailNav() {
       initial={{ x: -96, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: -96, opacity: 0 }}
-      transition={spring}
-      onPointerEnter={() => setOpen(true)}
-      onPointerLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
+      transition={railSpring}
+      onPointerEnter={() => setSoon(true, 140)}
+      onPointerLeave={() => setSoon(false, 220)}
+      onFocus={() => setSoon(true, 0)}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpen(false)
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSoon(false, 0)
       }}
     >
       <motion.div
         className="flex h-full flex-col overflow-hidden rounded-2xl border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[0_20px_50px_-20px_oklch(0.2_0.08_268/60%)]"
-        animate={{ width: open ? OPEN_WIDTH : RAIL_WIDTH - 16 }}
+        animate={{ width: (open ? RAIL_OPEN_WIDTH : RAIL_WIDTH) - MARGIN * 2 }}
         initial={false}
-        transition={spring}
+        transition={railSpring}
       >
         <NavLink to="/" className="flex h-14 shrink-0 items-center gap-3 px-2.5" aria-label="SalesApp home">
           <BrandMark />
@@ -94,7 +100,7 @@ export function RailNav() {
                               background: 'linear-gradient(90deg, oklch(0.6 0.16 268 / 45%), oklch(0.6 0.16 268 / 10%))',
                               boxShadow: 'inset 2px 0 0 var(--sidebar-primary), 0 6px 18px -8px var(--brand-glow)',
                             }}
-                            transition={spring}
+                            transition={railSpring}
                           />
                         )}
                         <span aria-hidden className="absolute inset-0 -z-20 rounded-xl bg-sidebar-accent opacity-0 transition-opacity group-hover/item:opacity-60" />

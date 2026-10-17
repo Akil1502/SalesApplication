@@ -1,14 +1,15 @@
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Outlet, ScrollRestoration } from 'react-router'
 import { Backdrop } from '@/components/fx/Backdrop'
 import { PageTransition } from '@/components/fx/PageTransition'
-import { usePreferences } from '@/components/fx/preferences-context'
+import { useMediaQuery, usePreferences } from '@/components/fx/preferences-context'
 import { useCursorEffects } from '@/components/fx/use-cursor-effects'
 import { useScrollReveal } from '@/components/fx/use-scroll-reveal'
 import { cn } from '@/lib/utils'
 import { CommandPalette } from './CommandPalette'
 import { DockNav } from './DockNav'
+import { RAIL_OPEN_WIDTH, RAIL_WIDTH, railSpring } from './rail'
 import { RailNav } from './RailNav'
 import { scrollKey } from './record-panel-state'
 import { TopBar } from './TopBar'
@@ -21,6 +22,10 @@ import { TopBar } from './TopBar'
 export function AppLayout() {
   const { layout } = usePreferences()
   const [searchOpen, setSearchOpen] = useState(false)
+  const [railOpen, setRailOpen] = useState(false)
+  const desktop = useMediaQuery('(min-width: 768px)')
+  // The page makes room for the rail, and moves over (with the same spring) while the rail is open.
+  const railRoom = layout === 'rail' && desktop ? (railOpen ? RAIL_OPEN_WIDTH : RAIL_WIDTH) : 0
   useScrollReveal()
   useCursorEffects()
 
@@ -31,16 +36,15 @@ export function AppLayout() {
       <Backdrop />
 
       <AnimatePresence>
-        {layout === 'rail' && <RailNav key="rail" />}
+        {layout === 'rail' && <RailNav key="rail" open={railOpen} onOpenChange={setRailOpen} />}
         {layout === 'dock' && <DockNav key="dock" />}
       </AnimatePresence>
 
-      <div
-        className={cn(
-          'flex min-h-svh min-w-0 flex-col transition-[padding] duration-500 ease-[var(--ease-out)]',
-          layout === 'rail' && 'md:pl-[72px]',
-          layout === 'dock' && 'md:pb-24',
-        )}
+      <motion.div
+        className={cn('flex min-h-svh min-w-0 flex-col', layout === 'dock' && 'md:pb-24')}
+        initial={false}
+        animate={{ paddingLeft: railRoom }}
+        transition={railSpring}
       >
         <TopBar layout={layout} onSearch={() => setSearchOpen(true)} />
         <main className="flex min-w-0 flex-1 flex-col p-4 md:p-6">
@@ -48,7 +52,7 @@ export function AppLayout() {
             <Outlet />
           </PageTransition>
         </main>
-      </div>
+      </motion.div>
 
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
