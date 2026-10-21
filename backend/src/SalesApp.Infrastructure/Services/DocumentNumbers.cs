@@ -1,3 +1,5 @@
+using System.Data;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SalesApp.Core.Common;
 using SalesApp.Infrastructure.Data;
@@ -22,6 +24,11 @@ public interface IDocumentNumbers
 /// It replaces MERGE ... HOLDLOCK, whose key-range locks deadlocked when several transactions created
 /// the first number of a year for different document types at the same moment.
 /// </para>
+/// <para>
+/// The type goes to SQL as varchar(20), like the key column. EF's default nvarchar made SQL Server convert the
+/// column and scan every type's counter row instead of seeking its own, so a purchase order and a supplier bill
+/// numbered at the same moment could still deadlock.
+/// </para>
 /// </summary>
 public sealed class DocumentNumbers(AppDbContext db) : IDocumentNumbers
 {
@@ -37,6 +44,7 @@ public sealed class DocumentNumbers(AppDbContext db) : IDocumentNumbers
 
         var financialYear = FinancialYear.StartYear(documentDate);
         var lockName = $"DocumentNumber:{documentType}:{financialYear}";
+        var type = new SqlParameter { SqlDbType = SqlDbType.VarChar, Size = 20, Value = documentType };
 
         // ToListAsync: composing would wrap MERGE in a subquery, which SQL Server doesn't allow.
         var allocated = (await db.Database.SqlQuery<int>($"""
@@ -44,7 +52,7 @@ public sealed class DocumentNumbers(AppDbContext db) : IDocumentNumbers
             EXEC @locked = sp_getapplock @Resource = {lockName}, @LockMode = 'Exclusive', @LockOwner = 'Transaction';
             IF @locked < 0 THROW 51000, 'Could not lock the document number counter.', 1;
             MERGE [dbo].[DocumentSequences] AS target
-            USING (SELECT {documentType} AS [DocumentType], {financialYear} AS [FinancialYear]) AS source
+            USING (SELECT {type} AS [DocumentType], {financialYear} AS [FinancialYear]) AS source
                ON target.[DocumentType] = source.[DocumentType] AND target.[FinancialYear] = source.[FinancialYear]
             WHEN MATCHED THEN
                 UPDATE SET [NextNumber] = target.[NextNumber] + 1
