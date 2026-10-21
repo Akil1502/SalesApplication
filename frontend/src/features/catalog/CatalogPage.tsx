@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { errorMessage } from '@/lib/api/errors'
+import { msg, t } from '@/lib/i18n'
 import { formatPercent } from '@/lib/format'
 import { useCategories, useHsnCodes } from '@/lib/lookups'
 import { useDeleteCategory, useDeleteHsnCode, type Category, type HsnCode } from './api'
@@ -18,7 +19,7 @@ import { CategoryDialog, HsnCodeDialog } from './CatalogDialogs'
 function RowActions({ onEdit, onDelete, canDelete, label }: { onEdit: () => void; onDelete: () => void; canDelete: boolean; label: string }) {
   return (
     <div className="flex justify-end gap-1">
-      <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label={`Edit ${label}`}>
+      <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label={t('Edit {name}', { name: label })}>
         <Pencil />
       </Button>
       <Button
@@ -26,8 +27,8 @@ function RowActions({ onEdit, onDelete, canDelete, label }: { onEdit: () => void
         size="icon-sm"
         onClick={onDelete}
         disabled={!canDelete}
-        aria-label={`Delete ${label}`}
-        title={canDelete ? undefined : 'In use by products. Mark it inactive instead.'}
+        aria-label={t('Delete {name}', { name: label })}
+        title={canDelete ? undefined : t('In use by products. Mark it inactive instead.')}
       >
         <Trash2 />
       </Button>
@@ -48,10 +49,10 @@ export function CatalogPage() {
   const [pendingDelete, setPendingDelete] = useState<{ kind: 'category'; item: Category } | { kind: 'hsn'; item: HsnCode } | null>(null)
 
   const categoryColumns: Column<Category>[] = [
-    { key: 'name', header: 'Name', cell: (c) => <span className="font-medium">{c.name}</span> },
-    { key: 'description', header: 'Description', cell: (c) => c.description ?? '—' },
-    { key: 'products', header: 'Products', align: 'right', cell: (c) => c.productCount },
-    { key: 'status', header: 'Status', cell: (c) => <ActiveBadge active={c.isActive} /> },
+    { key: 'name', header: msg('Name'), cell: (c) => <span className="font-medium">{c.name}</span> },
+    { key: 'description', header: msg('Description'), cell: (c) => c.description ?? '—' },
+    { key: 'products', header: msg('Products'), align: 'right', cell: (c) => c.productCount },
+    { key: 'status', header: msg('Status'), cell: (c) => <ActiveBadge active={c.isActive} /> },
   ]
   if (canEdit)
     categoryColumns.push({
@@ -70,10 +71,10 @@ export function CatalogPage() {
 
   const hsnColumns: Column<HsnCode>[] = [
     { key: 'code', header: 'HSN', cell: (h) => <span className="font-mono">{h.code}</span>, className: 'w-24' },
-    { key: 'description', header: 'Description', cell: (h) => h.description },
+    { key: 'description', header: msg('Description'), cell: (h) => h.description },
     { key: 'rate', header: 'GST', align: 'right', cell: (h) => formatPercent(h.gstRate) },
-    { key: 'products', header: 'Products', align: 'right', cell: (h) => h.productCount },
-    { key: 'status', header: 'Status', cell: (h) => <ActiveBadge active={h.isActive} /> },
+    { key: 'products', header: msg('Products'), align: 'right', cell: (h) => h.productCount },
+    { key: 'status', header: msg('Status'), cell: (h) => <ActiveBadge active={h.isActive} /> },
   ]
   if (canEdit)
     hsnColumns.push({
@@ -95,10 +96,10 @@ export function CatalogPage() {
     try {
       if (pendingDelete.kind === 'category') {
         await deleteCategory.mutateAsync(pendingDelete.item.id)
-        toast.success(`Category "${pendingDelete.item.name}" deleted`)
+        toast.success(t('Category "{name}" deleted', { name: pendingDelete.item.name }))
       } else {
         await deleteHsn.mutateAsync(pendingDelete.item.id)
-        toast.success(`HSN ${pendingDelete.item.code} deleted`)
+        toast.success(t('HSN {code} deleted', { code: pendingDelete.item.code }))
       }
     } catch (error) {
       toast.error(errorMessage(error))
@@ -109,12 +110,12 @@ export function CatalogPage() {
 
   return (
     <>
-      <PageHeader title="Categories & HSN codes" description="Reference data for products. HSN codes carry the GST rate used on invoices." />
+      <PageHeader title={t('Categories & HSN codes')} description={t('Reference data for products. HSN codes carry the GST rate used on invoices.')} />
 
       <Tabs defaultValue="categories">
         <TabsList>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="hsn">HSN codes &amp; GST rates</TabsTrigger>
+          <TabsTrigger value="categories">{t('Categories')}</TabsTrigger>
+          <TabsTrigger value="hsn">{t('HSN codes & GST rates')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="categories" className="flex flex-col gap-4 pt-2">
@@ -122,7 +123,7 @@ export function CatalogPage() {
             <div className="flex justify-end">
               <Button onClick={() => setCategoryDialog({ open: true, item: null })}>
                 <Plus />
-                New category
+                {t('New category')}
               </Button>
             </div>
           )}
@@ -131,11 +132,11 @@ export function CatalogPage() {
 
         <TabsContent value="hsn" className="flex flex-col gap-4 pt-2">
           <div className="flex items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">Starter rates are illustrative. Confirm current rates with your tax advisor.</p>
+            <p className="text-sm text-muted-foreground">{t('Starter rates are illustrative. Confirm current rates with your tax advisor.')}</p>
             {canEdit && (
               <Button onClick={() => setHsnDialog({ open: true, item: null })}>
                 <Plus />
-                New HSN code
+                {t('New HSN code')}
               </Button>
             )}
           </div>
@@ -152,13 +153,13 @@ export function CatalogPage() {
       <ConfirmDialog
         open={pendingDelete !== null}
         onOpenChange={(open) => !open && setPendingDelete(null)}
-        title="Delete permanently?"
+        title={t('Delete permanently?')}
         description={
           pendingDelete?.kind === 'category'
-            ? `Category "${pendingDelete.item.name}" will be removed.`
-            : `HSN ${pendingDelete?.item.code} will be removed.`
+            ? t('Category "{name}" will be removed.', { name: pendingDelete.item.name })
+            : t('HSN {code} will be removed.', { code: pendingDelete?.item.code ?? '' })
         }
-        confirmLabel="Delete"
+        confirmLabel={t('Delete')}
         destructive
         onConfirm={() => void confirmDelete()}
       />

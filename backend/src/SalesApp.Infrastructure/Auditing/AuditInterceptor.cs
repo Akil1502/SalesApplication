@@ -194,46 +194,46 @@ internal static class AuditedTypes
 
     internal static readonly Dictionary<Type, Spec> Specs = new()
     {
-        [typeof(Customer)] = new("Customer", (e, _) => Value<string>(e, nameof(Customer.Name)), IncludeOwned: true),
-        [typeof(Product)] = new("Product", (e, _) => $"{Value<string>(e, nameof(Product.Sku))} · {Value<string>(e, nameof(Product.Name))}"),
-        [typeof(ProductRate)] = new("Rate", (e, l) =>
-            $"{l.Name(nameof(ProductRate.ProductId), Value<int>(e, nameof(ProductRate.ProductId)))} from {AuditFormat.Value(Value<DateOnly>(e, nameof(ProductRate.EffectiveFrom)), nameof(ProductRate.EffectiveFrom))}"),
-        [typeof(Category)] = new("Category", (e, _) => Value<string>(e, nameof(Category.Name))),
-        [typeof(HsnCode)] = new("HSN code", (e, _) => Value<string>(e, nameof(HsnCode.Code))),
-        [typeof(CompanySettings)] = new("Company settings", (e, _) => Value<string>(e, nameof(CompanySettings.LegalName))),
-        [typeof(SalesOrder)] = new("Order", (e, _) => Value<string>(e, nameof(SalesOrder.Number))),
-        [typeof(Invoice)] = new("Invoice", (e, _) => Value<string>(e, nameof(Invoice.Number)),
+        [typeof(Customer)] = new(L.Msg("Customer"), (e, _) => Value<string>(e, nameof(Customer.Name)), IncludeOwned: true),
+        [typeof(Product)] = new(L.Msg("Product"), (e, _) => L.Msg($"{Value<string>(e, nameof(Product.Sku))} · {Value<string>(e, nameof(Product.Name))}")),
+        [typeof(ProductRate)] = new(L.Msg("Rate"), (e, l) =>
+            L.Msg($"{l.Name(nameof(ProductRate.ProductId), Value<int>(e, nameof(ProductRate.ProductId)))} from {AuditFormat.Value(Value<DateOnly>(e, nameof(ProductRate.EffectiveFrom)), nameof(ProductRate.EffectiveFrom))}")),
+        [typeof(Category)] = new(L.Msg("Category"), (e, _) => Value<string>(e, nameof(Category.Name))),
+        [typeof(HsnCode)] = new(L.Msg("HSN code"), (e, _) => Value<string>(e, nameof(HsnCode.Code))),
+        [typeof(CompanySettings)] = new(L.Msg("Company settings"), (e, _) => Value<string>(e, nameof(CompanySettings.LegalName))),
+        [typeof(SalesOrder)] = new(L.Msg("Order"), (e, _) => Value<string>(e, nameof(SalesOrder.Number))),
+        [typeof(Invoice)] = new(L.Msg("Invoice"), (e, _) => Value<string>(e, nameof(Invoice.Number)),
             CreatedFields: [nameof(Invoice.InvoiceDate), nameof(Invoice.DueDate), nameof(Invoice.CustomerId), nameof(Invoice.TaxableValue), nameof(Invoice.GrandTotal), nameof(Invoice.Status)]),
-        [typeof(Payment)] = new("Payment", (e, l) =>
-            $"{AuditFormat.Money(Value<decimal>(e, nameof(Payment.Amount)))} for {l.Name(nameof(Payment.InvoiceId), Value<int>(e, nameof(Payment.InvoiceId)))}"),
-        [typeof(StockReceipt)] = new("Goods receipt", (e, _) => Value<string>(e, nameof(StockReceipt.Number))),
-        [typeof(Supplier)] = new("Supplier", (e, _) => Value<string>(e, nameof(Supplier.Name)), IncludeOwned: true),
-        [typeof(PurchaseOrder)] = new("Purchase order", (e, _) => Value<string>(e, nameof(PurchaseOrder.Number))),
-        [typeof(SupplierBill)] = new("Supplier bill", (e, _) =>
-            $"{Value<string>(e, nameof(SupplierBill.Number))} ({Value<string>(e, nameof(SupplierBill.SupplierName))} {Value<string>(e, nameof(SupplierBill.SupplierInvoiceNumber))})",
+        [typeof(Payment)] = new(L.Msg("Payment"), (e, l) =>
+            L.Msg($"{AuditFormat.Money(Value<decimal>(e, nameof(Payment.Amount)))} for {l.Name(nameof(Payment.InvoiceId), Value<int>(e, nameof(Payment.InvoiceId)))}")),
+        [typeof(StockReceipt)] = new(L.Msg("Goods receipt"), (e, _) => Value<string>(e, nameof(StockReceipt.Number))),
+        [typeof(Supplier)] = new(L.Msg("Supplier"), (e, _) => Value<string>(e, nameof(Supplier.Name)), IncludeOwned: true),
+        [typeof(PurchaseOrder)] = new(L.Msg("Purchase order"), (e, _) => Value<string>(e, nameof(PurchaseOrder.Number))),
+        [typeof(SupplierBill)] = new(L.Msg("Supplier bill"), (e, _) =>
+            L.Msg($"{Value<string>(e, nameof(SupplierBill.Number))} ({Value<string>(e, nameof(SupplierBill.SupplierName))} {Value<string>(e, nameof(SupplierBill.SupplierInvoiceNumber))})"),
             CreatedFields: [nameof(SupplierBill.SupplierInvoiceNumber), nameof(SupplierBill.BillDate), nameof(SupplierBill.DueDate), nameof(SupplierBill.SupplierId),
                 nameof(SupplierBill.PurchaseOrderId), nameof(SupplierBill.TaxableValue), nameof(SupplierBill.ChargesAmount), nameof(SupplierBill.GrandTotal),
                 nameof(SupplierBill.MatchStatus), nameof(SupplierBill.Source)]),
-        [typeof(SupplierPayment)] = new("Supplier payment", (e, l) =>
-            $"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierPayment.Amount)))} for {l.Name(nameof(SupplierPayment.SupplierBillId), Value<int>(e, nameof(SupplierPayment.SupplierBillId)))}"),
-        [typeof(CreditNote)] = new("Credit note", (e, _) => $"{Value<string>(e, nameof(CreditNote.Number))} ({Value<string>(e, nameof(CreditNote.CustomerName))})",
+        [typeof(SupplierPayment)] = new(L.Msg("Supplier payment"), (e, l) =>
+            L.Msg($"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierPayment.Amount)))} for {l.Name(nameof(SupplierPayment.SupplierBillId), Value<int>(e, nameof(SupplierPayment.SupplierBillId)))}")),
+        [typeof(CreditNote)] = new(L.Msg("Credit note"), (e, _) => L.Msg($"{Value<string>(e, nameof(CreditNote.Number))} ({Value<string>(e, nameof(CreditNote.CustomerName))})"),
             CreatedFields: [nameof(CreditNote.CreditNoteDate), nameof(CreditNote.Kind), nameof(CreditNote.Reason), nameof(CreditNote.ReasonNote),
                 nameof(CreditNote.InvoiceId), nameof(CreditNote.CustomerId), nameof(CreditNote.WithGst), nameof(CreditNote.TaxableValue), nameof(CreditNote.GrandTotal)]),
-        [typeof(CreditAdjustment)] = new("Credit used", (e, l) =>
-            $"{AuditFormat.Money(Value<decimal>(e, nameof(CreditAdjustment.Amount)))} of {l.Name(nameof(CreditAdjustment.CreditNoteId), Value<int>(e, nameof(CreditAdjustment.CreditNoteId)))} against {l.Name(nameof(CreditAdjustment.InvoiceId), Value<int>(e, nameof(CreditAdjustment.InvoiceId)))}"),
-        [typeof(CreditRefund)] = new("Credit refund", (e, l) =>
-            $"{AuditFormat.Money(Value<decimal>(e, nameof(CreditRefund.Amount)))} from {l.Name(nameof(CreditRefund.CreditNoteId), Value<int>(e, nameof(CreditRefund.CreditNoteId)))}"),
-        [typeof(SupplierReturn)] = new("Supplier return", (e, _) => $"{Value<string>(e, nameof(SupplierReturn.Number))} ({Value<string>(e, nameof(SupplierReturn.SupplierName))})",
+        [typeof(CreditAdjustment)] = new(L.Msg("Credit used"), (e, l) =>
+            L.Msg($"{AuditFormat.Money(Value<decimal>(e, nameof(CreditAdjustment.Amount)))} of {l.Name(nameof(CreditAdjustment.CreditNoteId), Value<int>(e, nameof(CreditAdjustment.CreditNoteId)))} against {l.Name(nameof(CreditAdjustment.InvoiceId), Value<int>(e, nameof(CreditAdjustment.InvoiceId)))}")),
+        [typeof(CreditRefund)] = new(L.Msg("Credit refund"), (e, l) =>
+            L.Msg($"{AuditFormat.Money(Value<decimal>(e, nameof(CreditRefund.Amount)))} from {l.Name(nameof(CreditRefund.CreditNoteId), Value<int>(e, nameof(CreditRefund.CreditNoteId)))}")),
+        [typeof(SupplierReturn)] = new(L.Msg("Supplier return"), (e, _) => L.Msg($"{Value<string>(e, nameof(SupplierReturn.Number))} ({Value<string>(e, nameof(SupplierReturn.SupplierName))})"),
             CreatedFields: [nameof(SupplierReturn.ReturnDate), nameof(SupplierReturn.Reason), nameof(SupplierReturn.ReasonNote), nameof(SupplierReturn.SupplierBillId),
                 nameof(SupplierReturn.SupplierId), nameof(SupplierReturn.WithGst), nameof(SupplierReturn.TaxableValue), nameof(SupplierReturn.GrandTotal),
                 nameof(SupplierReturn.SupplierCreditNoteNumber)]),
-        [typeof(SupplierCreditAdjustment)] = new("Supplier credit used", (e, l) =>
-            $"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierCreditAdjustment.Amount)))} of {l.Name(nameof(SupplierCreditAdjustment.SupplierReturnId), Value<int>(e, nameof(SupplierCreditAdjustment.SupplierReturnId)))} against {l.Name(nameof(SupplierCreditAdjustment.SupplierBillId), Value<int>(e, nameof(SupplierCreditAdjustment.SupplierBillId)))}"),
-        [typeof(SupplierRefund)] = new("Supplier refund", (e, l) =>
-            $"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierRefund.Amount)))} from {l.Name(nameof(SupplierRefund.SupplierReturnId), Value<int>(e, nameof(SupplierRefund.SupplierReturnId)))}"),
-        [typeof(StockMovement)] = new("Stock adjustment", (e, l) => l.Name(nameof(StockMovement.ProductId), Value<int>(e, nameof(StockMovement.ProductId)))),
-        [typeof(AppUser)] = new("User", (e, _) => $"{Value<string>(e, nameof(AppUser.FullName))} ({Value<string>(e, nameof(AppUser.Email))})"),
-        [typeof(AppRole)] = new("Role", (e, _) => Value<string>(e, nameof(IdentityRole<Guid>.Name))),
+        [typeof(SupplierCreditAdjustment)] = new(L.Msg("Supplier credit used"), (e, l) =>
+            L.Msg($"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierCreditAdjustment.Amount)))} of {l.Name(nameof(SupplierCreditAdjustment.SupplierReturnId), Value<int>(e, nameof(SupplierCreditAdjustment.SupplierReturnId)))} against {l.Name(nameof(SupplierCreditAdjustment.SupplierBillId), Value<int>(e, nameof(SupplierCreditAdjustment.SupplierBillId)))}")),
+        [typeof(SupplierRefund)] = new(L.Msg("Supplier refund"), (e, l) =>
+            L.Msg($"{AuditFormat.Money(Value<decimal>(e, nameof(SupplierRefund.Amount)))} from {l.Name(nameof(SupplierRefund.SupplierReturnId), Value<int>(e, nameof(SupplierRefund.SupplierReturnId)))}")),
+        [typeof(StockMovement)] = new(L.Msg("Stock adjustment"), (e, l) => l.Name(nameof(StockMovement.ProductId), Value<int>(e, nameof(StockMovement.ProductId)))),
+        [typeof(AppUser)] = new(L.Msg("User"), (e, _) => L.Msg($"{Value<string>(e, nameof(AppUser.FullName))} ({Value<string>(e, nameof(AppUser.Email))})")),
+        [typeof(AppRole)] = new(L.Msg("Role"), (e, _) => Value<string>(e, nameof(IdentityRole<Guid>.Name))),
     };
 
     /// <summary>Never listed: keys, timestamps, concurrency tokens, credentials and Identity's internal fields.</summary>

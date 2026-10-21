@@ -60,3 +60,6 @@ backend/tests/SalesApp.Evals/results/
 
 # Original photos handed over for the demo catalogue: resized copies are committed, never the originals.
 photos-incoming/
+
+# The Tamil review sheet (scripts/translations.cs export); it goes to the reviewer, not into the repo
+translations-review/

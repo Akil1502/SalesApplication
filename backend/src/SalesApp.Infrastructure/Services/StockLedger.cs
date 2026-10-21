@@ -158,10 +158,11 @@ public sealed class StockLedger(
             return;
         }
 
+        var (title, body) = NotificationText.LowStock(product.Name, after, product.ReorderLevel, product.Unit);
         await notifications.RaiseAsync(new NotificationEvent(
             NotificationKind.LowStock,
-            after <= 0 ? $"{product.Name} is out of stock" : $"{product.Name} is low on stock",
-            $"{NotificationText.Quantity(after, product.Unit.ToString())} left; reorder level {NotificationText.Quantity(product.ReorderLevel, product.Unit.ToString())}",
+            title,
+            body,
             $"/products/{productId}",
             ByCurrentUser: false), cancellationToken);
     }

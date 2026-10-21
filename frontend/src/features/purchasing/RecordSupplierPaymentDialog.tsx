@@ -12,6 +12,7 @@ import type { PaymentMode } from '@/features/sales/api'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, todayInIndia } from '@/lib/format'
 import { useRecordSupplierPayment, type SupplierBill } from './api'
+import { t } from '@/lib/i18n'
 
 interface RecordSupplierPaymentDialogProps {
   bill: SupplierBill
@@ -33,11 +34,11 @@ function PaymentForm({ bill, onDone }: { bill: SupplierBill; onDone: () => void 
     amount: z
       .string()
       .trim()
-      .regex(/^\d+(\.\d{1,2})?$/, { error: 'Enter an amount like 5000 or 5000.50.' })
-      .refine((v) => Number(v) > 0, { error: 'More than zero.' })
-      .refine((v) => Number(v) <= bill.balance, { error: `Only ${formatINR(bill.balance)} is due.` }),
+      .regex(/^\d+(\.\d{1,2})?$/, { error: t('Enter an amount like 5000 or 5000.50.') })
+      .refine((v) => Number(v) > 0, { error: t('More than zero.') })
+      .refine((v) => Number(v) <= bill.balance, { error: t('Only {amount} is due.', { amount: formatINR(bill.balance) }) }),
     mode: z.string().min(1),
-    paymentDate: z.string().min(1, { error: 'Choose a date.' }),
+    paymentDate: z.string().min(1, { error: t('Choose a date.') }),
     reference: z.string().trim().max(50),
     notes: z.string().trim().max(500),
   })
@@ -59,7 +60,7 @@ function PaymentForm({ bill, onDone }: { bill: SupplierBill; onDone: () => void 
         reference: values.reference || null,
         notes: values.notes || null,
       })
-      toast.success(`${formatINR(payment.amount)} paid against ${bill.number}`)
+      toast.success(t('{amount} paid against {bill}', { amount: formatINR(payment.amount), bill: bill.number }))
       onDone()
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['amount', 'paymentDate', 'reference', 'notes'])) toast.error(errorMessage(error))
@@ -69,33 +70,38 @@ function PaymentForm({ bill, onDone }: { bill: SupplierBill; onDone: () => void 
   return (
     <form onSubmit={onSubmit} noValidate>
       <DialogHeader>
-        <DialogTitle>Record payment to supplier</DialogTitle>
+        <DialogTitle>{t('Record payment to supplier')}</DialogTitle>
         <DialogDescription>
-          {bill.number} · {bill.supplierName} (their {bill.supplierInvoiceNumber}) · {formatINR(bill.balance)} to pay
+          {t('{bill} · {supplier} (their {invoice}) · {amount} to pay', {
+            bill: bill.number,
+            supplier: bill.supplierName,
+            invoice: bill.supplierInvoiceNumber,
+            amount: formatINR(bill.balance),
+          })}
         </DialogDescription>
       </DialogHeader>
       <FieldGroup className="grid gap-4 py-4 sm:grid-cols-2">
-        <FormInput control={form.control} name="amount" label="Amount (₹)" inputMode="decimal" autoFocus />
-        <FormSelect control={form.control} name="mode" label="Mode" options={paymentModes} />
-        <FormInput control={form.control} name="paymentDate" label="Paid on" type="date" max={todayInIndia()} min={bill.billDate} />
+        <FormInput control={form.control} name="amount" label={t('Amount (₹)')} inputMode="decimal" autoFocus />
+        <FormSelect control={form.control} name="mode" label={t('Mode')} options={paymentModes.map((m) => ({ ...m, label: t(m.label) }))} />
+        <FormInput control={form.control} name="paymentDate" label={t('Paid on')} type="date" max={todayInIndia()} min={bill.billDate} />
         <FormInput
           control={form.control}
           name="reference"
-          label={mode === 'Cheque' ? 'Cheque number' : mode === 'Cash' ? 'Voucher number' : 'UTR / transaction ID'}
-          placeholder="Optional"
+          label={mode === 'Cheque' ? t('Cheque number') : mode === 'Cash' ? t('Voucher number') : t('UTR / transaction ID')}
+          placeholder={t('Optional')}
         />
-        <FormInput control={form.control} name="notes" label="Notes" placeholder="Optional" className="sm:col-span-2" />
+        <FormInput control={form.control} name="notes" label={t('Notes')} placeholder={t('Optional')} className="sm:col-span-2" />
       </FieldGroup>
       {mode === 'Cash' && (
-        <p className="pb-2 text-xs text-muted-foreground">Cash to one supplier is limited to ₹10,000 a day (Income-tax Act s.40A(3)).</p>
+        <p className="pb-2 text-xs text-muted-foreground">{t('Cash to one supplier is limited to ₹10,000 a day (Income-tax Act s.40A(3)).')}</p>
       )}
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting && <Spinner />}
-          Record payment
+          {t('Record payment')}
         </Button>
       </DialogFooter>
     </form>

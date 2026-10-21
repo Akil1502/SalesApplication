@@ -6,6 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 export type PickedCustomer = Pick<Schemas['CustomerListItemDto'], 'id' | 'code' | 'name' | 'gstin' | 'city' | 'stateName'>
@@ -48,15 +49,15 @@ export function CustomerPicker({ value, onChange, disabled, invalid, id }: Custo
           disabled={disabled}
           className={cn('w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
-          <span className="truncate">{value ? `${value.name} (${value.code})` : 'Choose a customer…'}</span>
+          <span className="truncate">{value ? `${value.name} (${value.code})` : t('Choose a customer…')}</span>
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-80 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search name, code, GSTIN, city…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('Search name, code, GSTIN, city…')} value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty>{results.isFetching ? 'Searching…' : 'No active customers match.'}</CommandEmpty>
+            <CommandEmpty>{results.isFetching ? t('Searching…') : t('No active customers match.')}</CommandEmpty>
             <CommandGroup>
               {results.data?.items.map((customer) => (
                 <CommandItem
@@ -73,7 +74,7 @@ export function CustomerPicker({ value, onChange, disabled, invalid, id }: Custo
                     <span className="truncate">{customer.name}</span>
                     <span className="text-xs text-muted-foreground">
                       {customer.code} · {customer.city}, {customer.stateName}
-                      {customer.gstin ? ` · ${customer.gstin}` : ' · unregistered'}
+                      {customer.gstin ? ` · ${customer.gstin}` : ` · ${t('unregistered')}`}
                     </span>
                   </div>
                 </CommandItem>

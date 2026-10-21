@@ -6,4 +6,9 @@
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Tamil for text the server writes, keyed by the English (see Localization/L.cs). -->
+    <EmbeddedResource Include="Localization/ta.json" LogicalName="SalesApp.Core.Localization.ta.json" />
+  </ItemGroup>
+
 </Project>

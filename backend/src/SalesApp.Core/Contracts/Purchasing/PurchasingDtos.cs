@@ -47,6 +47,7 @@ public sealed record SupplierDto(
     string? BankIfsc,
     string? Notes,
     bool IsActive,
+    DocumentLanguage? DocumentLanguage,
     bool IsInterState,
     decimal Payable,
     decimal Overdue,
@@ -98,6 +99,9 @@ public sealed record SupplierSaveRequest
     public string? Notes { get; init; }
 
     public bool IsActive { get; init; } = true;
+
+    /// <summary>The language of their purchase orders and debit notes; null for the company's default.</summary>
+    public DocumentLanguage? DocumentLanguage { get; init; }
 
     /// <summary>Required when updating; the value from the last GET, for optimistic concurrency.</summary>
     public string? RowVersion { get; init; }
@@ -198,6 +202,8 @@ public sealed record PurchaseOrderDto(
     decimal RoundOff,
     decimal GrandTotal,
     string AmountInWords,
+    string AmountInWordsTamil,
+    DocumentLanguage DocumentLanguage,
     bool NeedsApproval,
     decimal? ApprovalLimit,
     DateTime? SubmittedAtUtc,

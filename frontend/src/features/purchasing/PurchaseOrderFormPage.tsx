@@ -39,6 +39,7 @@ import {
 import { BillStatusBadge, MatchBadge, PurchaseOrderStatusBadge } from './badges'
 import { emptyLine, emptyPurchaseOrderForm, purchaseOrderFormSchema, toFormPath, toFormValues, toSaveRequest, type PurchaseOrderFormValues } from './purchase-order-form'
 import { ReceiveGoodsDialog } from './ReceiveGoodsDialog'
+import { t, tn } from '@/lib/i18n'
 
 function TotalsRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
@@ -130,7 +131,7 @@ export function PurchaseOrderFormPage() {
     try {
       const saved = await save.mutateAsync({ id, body: toSaveRequest(values, order.data?.rowVersion) })
       reset(toFormValues(saved))
-      toast.success(isNew ? `Purchase order ${saved.number} created` : 'Order saved')
+      toast.success(isNew ? t('Purchase order {number} created', { number: saved.number }) : t('Order saved'))
       if (isNew) setCreatedId(saved.id)
     } catch (error) {
       applyServerErrors(error)
@@ -170,22 +171,24 @@ export function PurchaseOrderFormPage() {
         <UnsavedChangesGuard when={dirty && createdId === null} />
 
         <PageHeader
-          title={isNew ? 'New purchase order' : (o?.number ?? 'Purchase order')}
+          title={isNew ? t('New purchase order') : (o?.number ?? t('Purchase order'))}
           description={
             o ? (
               <span className="inline-flex flex-wrap items-center gap-2">
                 <PurchaseOrderStatusBadge status={o.status} late={o.isLate} />
-                {o.approvedByName && <span className="text-xs">Approved by {o.approvedByName} on {formatDate(o.approvedAtUtc)}</span>}
+                {o.approvedByName && (
+                  <span className="text-xs">{t('Approved by {name} on {date}', { name: o.approvedByName, date: formatDate(o.approvedAtUtc) })}</span>
+                )}
               </span>
             ) : (
-              'Start as a draft, then place it with the supplier. Orders above the approval limit wait for approval.'
+              t('Start as a draft, then place it with the supplier. Orders above the approval limit wait for approval.')
             )
           }
           actions={
             <Button variant="ghost" asChild>
               <Link to="/purchase-orders">
                 <ArrowLeft />
-                Back to orders
+                {t('Back to orders')}
               </Link>
             </Button>
           }
@@ -195,7 +198,7 @@ export function PurchaseOrderFormPage() {
           <Alert variant="destructive">
             <Ban />
             <AlertDescription>
-              Cancelled {formatDate(o.cancelledAtUtc)}: {o.cancellationReason}
+              {t('Cancelled {date}: {reason}', { date: formatDate(o.cancelledAtUtc), reason: o.cancellationReason ?? '' })}
             </AlertDescription>
           </Alert>
         )}
@@ -203,34 +206,37 @@ export function PurchaseOrderFormPage() {
           <Alert>
             <Lock />
             <AlertDescription>
-              Closed {formatDate(o.closedAtUtc)}: {o.closeReason}. Nothing more will be received against it.
+              {t('Closed {date}: {reason}. Nothing more will be received against it.', { date: formatDate(o.closedAtUtc), reason: o.closeReason ?? '' })}
             </AlertDescription>
           </Alert>
         )}
         {o?.status === 'Draft' && o.rejectionReason && (
           <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
             <Undo2 />
-            <AlertDescription className="text-inherit">Sent back for changes: {o.rejectionReason}</AlertDescription>
+            <AlertDescription className="text-inherit">{t('Sent back for changes: {reason}', { reason: o.rejectionReason })}</AlertDescription>
           </Alert>
         )}
         {o?.status === 'PendingApproval' && (
           <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
             <Send />
             <AlertDescription className="text-inherit">
-              Its total of {formatINR(o.grandTotal, 0)} is above the approval limit of {formatINR(o.approvalLimit, 0)}, so it waits for someone who can approve
-              purchase orders before it goes to the supplier.
+              {t(
+                'Its total of {total} is above the approval limit of {limit}, so it waits for someone who can approve purchase orders before it goes to the supplier.',
+                { total: formatINR(o.grandTotal, 0), limit: formatINR(o.approvalLimit, 0) },
+              )}
             </AlertDescription>
           </Alert>
         )}
 
         <Card>
           <CardHeader>
-            <CardTitle>Supplier & dates</CardTitle>
+            <CardTitle>{t('Supplier & dates')}</CardTitle>
             {supplierDetail.data && (
               <CardDescription>
-                {supplierDetail.data.address.city}, {supplierDetail.data.address.stateName} —{' '}
-                {isInterState ? 'another state, so their bill carries IGST' : 'your state, so their bill carries CGST + SGST'}
-                {supplierDetail.data.payable > 0 && ` · we owe them ${formatINR(supplierDetail.data.payable, 0)}`}
+                {isInterState
+                  ? t('{city}, {state} — another state, so their bill carries IGST', { city: supplierDetail.data.address.city, state: supplierDetail.data.address.stateName })
+                  : t('{city}, {state} — your state, so their bill carries CGST + SGST', { city: supplierDetail.data.address.city, state: supplierDetail.data.address.stateName })}
+                {supplierDetail.data.payable > 0 && ` · ${t('we owe them {amount}', { amount: formatINR(supplierDetail.data.payable, 0) })}`}
               </CardDescription>
             )}
           </CardHeader>
@@ -241,27 +247,27 @@ export function PurchaseOrderFormPage() {
                 name="supplier"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="sm:col-span-2">
-                    <FieldLabel htmlFor={supplierPickerId}>Supplier</FieldLabel>
+                    <FieldLabel htmlFor={supplierPickerId}>{t('Supplier')}</FieldLabel>
                     <SupplierPicker id={supplierPickerId} value={field.value} onChange={field.onChange} disabled={!editable} invalid={fieldState.invalid} />
                     <FieldError errors={[fieldState.error]} />
                   </Field>
                 )}
               />
-              <FormInput control={control} name="orderDate" label="Order date" type="date" max={todayInIndia()} disabled={!editable} />
-              <FormInput control={control} name="expectedDate" label="Expected delivery" type="date" disabled={!editable} />
-              <FormInput control={control} name="supplierReference" label="Their quotation / ref" placeholder="Optional" disabled={!editable} className="sm:col-span-2" />
-              <FormTextarea control={control} name="notes" label="Notes" rows={1} disabled={!editable} className="sm:col-span-2" />
+              <FormInput control={control} name="orderDate" label={t('Order date')} type="date" max={todayInIndia()} disabled={!editable} />
+              <FormInput control={control} name="expectedDate" label={t('Expected delivery')} type="date" disabled={!editable} />
+              <FormInput control={control} name="supplierReference" label={t('Their quotation / ref')} placeholder={t('Optional')} disabled={!editable} className="sm:col-span-2" />
+              <FormTextarea control={control} name="notes" label={t('Notes')} rows={1} disabled={!editable} className="sm:col-span-2" />
             </FieldGroup>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Items</CardTitle>
+            <CardTitle>{t('Items')}</CardTitle>
             <CardDescription>
               {editable
-                ? "Prices exclude GST. Leave a price blank to use what you last paid this supplier (or the product's cost)."
-                : 'Prices exclude GST. Goods are received into stock at these prices.'}
+                ? t("Prices exclude GST. Leave a price blank to use what you last paid this supplier (or the product's cost).")
+                : t('Prices exclude GST. Goods are received into stock at these prices.')}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
@@ -269,13 +275,13 @@ export function PurchaseOrderFormPage() {
               <Table stack>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead className="min-w-64">Product</TableHead>
-                    <TableHead className="w-32">Quantity</TableHead>
-                    <TableHead className="w-32">Price (₹)</TableHead>
+                    <TableHead className="min-w-64">{t('Product')}</TableHead>
+                    <TableHead className="w-32">{t('Quantity')}</TableHead>
+                    <TableHead className="w-32">{t('Price (₹)')}</TableHead>
                     <TableHead className="w-16 text-right">GST</TableHead>
-                    <TableHead className="w-32 text-right">Total</TableHead>
-                    {placed && <TableHead className="w-28 text-right">Received</TableHead>}
-                    {placed && <TableHead className="w-28 text-right">Billed</TableHead>}
+                    <TableHead className="w-32 text-right">{t('Total')}</TableHead>
+                    {placed && <TableHead className="w-28 text-right">{t('Received')}</TableHead>}
+                    {placed && <TableHead className="w-28 text-right">{t('Billed')}</TableHead>}
                     {editable && <TableHead className="w-12" />}
                   </TableRow>
                 </TableHeader>
@@ -294,7 +300,9 @@ export function PurchaseOrderFormPage() {
                               <Field data-invalid={fieldState.invalid}>
                                 <ProductPicker value={field.value} disabled={!editable} excludeIds={pickedIds} invalid={fieldState.invalid} onChange={field.onChange} />
                                 {line?.product && (
-                                  <span className="text-xs text-muted-foreground">{formatQuantity(line.product.quantityOnHand, line.product.unit)} in stock</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {t('{quantity} in stock', { quantity: formatQuantity(line.product.quantityOnHand, line.product.unit) })}
+                                  </span>
                                 )}
                                 <FieldError errors={[fieldState.error]} />
                               </Field>
@@ -312,8 +320,8 @@ export function PurchaseOrderFormPage() {
                                     {...field}
                                     inputMode="decimal"
                                     disabled={!editable}
-                                    placeholder={name === 'unitPrice' ? 'Last price' : undefined}
-                                    aria-label={`${name === 'quantity' ? 'Quantity' : 'Price'}, line ${index + 1}`}
+                                    placeholder={name === 'unitPrice' ? t('Last price') : undefined}
+                                    aria-label={name === 'quantity' ? t('Quantity, line {line}', { line: index + 1 }) : t('Price, line {line}', { line: index + 1 })}
                                     aria-invalid={fieldState.invalid}
                                   />
                                   <FieldError errors={[fieldState.error]} />
@@ -327,7 +335,9 @@ export function PurchaseOrderFormPage() {
                         {placed && (
                           <TableCell className="pt-4 text-right tabular-nums">
                             {saved ? formatQuantity(saved.quantityReceived) : '—'}
-                            {saved && saved.quantityPending > 0 && <span className="block text-xs text-muted-foreground">{formatQuantity(saved.quantityPending)} to come</span>}
+                            {saved && saved.quantityPending > 0 && (
+                              <span className="block text-xs text-muted-foreground">{t('{quantity} to come', { quantity: formatQuantity(saved.quantityPending) })}</span>
+                            )}
                           </TableCell>
                         )}
                         {placed && <TableCell className="pt-4 text-right tabular-nums">{saved ? formatQuantity(saved.quantityBilled) : '—'}</TableCell>}
@@ -337,7 +347,7 @@ export function PurchaseOrderFormPage() {
                               type="button"
                               variant="ghost"
                               size="icon-sm"
-                              aria-label={`Remove line ${index + 1}`}
+                              aria-label={t('Remove line {line}', { line: index + 1 })}
                               disabled={lines.fields.length === 1}
                               onClick={() => lines.remove(index)}
                             >
@@ -357,13 +367,13 @@ export function PurchaseOrderFormPage() {
               {editable ? (
                 <Button type="button" variant="outline" size="sm" onClick={() => lines.append(emptyLine)} disabled={lines.fields.length >= 200}>
                   <Plus />
-                  Add product
+                  {t('Add product')}
                 </Button>
               ) : (
                 <span />
               )}
               <div className="flex min-w-72 flex-col gap-1.5 text-sm">
-                <TotalsRow label="Taxable value" value={formatINR(preview.taxableValue)} />
+                <TotalsRow label={t('Taxable value')} value={formatINR(preview.taxableValue)} />
                 {isInterState ? (
                   <TotalsRow label="IGST" value={formatINR(preview.igstAmount)} />
                 ) : (
@@ -372,11 +382,13 @@ export function PurchaseOrderFormPage() {
                     <TotalsRow label="SGST" value={formatINR(preview.sgstAmount)} />
                   </>
                 )}
-                <TotalsRow label="Round off" value={formatINR(preview.roundOff)} />
-                <TotalsRow label="Total" value={formatINR(preview.grandTotal)} strong />
+                <TotalsRow label={t('Round off')} value={formatINR(preview.roundOff)} />
+                <TotalsRow label={t('Total')} value={formatINR(preview.grandTotal)} strong />
                 {o && !dirty && <p className="text-xs text-muted-foreground">{o.amountInWords}</p>}
                 {o?.status === 'Draft' && !dirty && o.needsApproval && !canApprove && (
-                  <p className="text-xs text-amber-700 dark:text-amber-400">Above the approval limit of {formatINR(o.approvalLimit, 0)}: placing it sends it for approval.</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    {t('Above the approval limit of {limit}: placing it sends it for approval.', { limit: formatINR(o.approvalLimit, 0) })}
+                  </p>
                 )}
               </div>
             </div>
@@ -387,12 +399,12 @@ export function PurchaseOrderFormPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Deliveries</CardTitle>
-                <CardDescription>Goods received against this order.</CardDescription>
+                <CardTitle>{t('Deliveries')}</CardTitle>
+                <CardDescription>{t('Goods received against this order.')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {o.receipts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nothing received yet.</p>
+                  <p className="text-sm text-muted-foreground">{t('Nothing received yet.')}</p>
                 ) : (
                   <ul className="flex flex-col divide-y text-sm">
                     {o.receipts.map((r) => (
@@ -402,7 +414,7 @@ export function PurchaseOrderFormPage() {
                         </Link>
                         <span className="text-muted-foreground">
                           {formatBusinessDate(r.receiptDate)}
-                          {r.supplierReference && ` · ${r.supplierReference}`} · {r.lineCount} item{r.lineCount === 1 ? '' : 's'} · {r.createdByName}
+                          {r.supplierReference && ` · ${r.supplierReference}`} · {tn(r.lineCount, '{count} item', '{count} items')} · {r.createdByName}
                         </span>
                       </li>
                     ))}
@@ -412,12 +424,12 @@ export function PurchaseOrderFormPage() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Bills</CardTitle>
-                <CardDescription>The supplier's invoices for this order.</CardDescription>
+                <CardTitle>{t('Bills')}</CardTitle>
+                <CardDescription>{t("The supplier's invoices for this order.")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {o.bills.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No bill entered yet.</p>
+                  <p className="text-sm text-muted-foreground">{t('No bill entered yet.')}</p>
                 ) : (
                   <ul className="flex flex-col divide-y text-sm">
                     {o.bills.map((b) => (
@@ -427,7 +439,7 @@ export function PurchaseOrderFormPage() {
                             {b.number}
                           </Link>
                           <span className="text-xs text-muted-foreground">
-                            Their {b.supplierInvoiceNumber} · {formatBusinessDate(b.billDate)} · {formatINR(b.grandTotal)}
+                            {t('Their {number}', { number: b.supplierInvoiceNumber })} · {formatBusinessDate(b.billDate)} · {formatINR(b.grandTotal)}
                           </span>
                         </span>
                         <span className="inline-flex flex-wrap gap-1">
@@ -447,24 +459,24 @@ export function PurchaseOrderFormPage() {
 
         {/* Action bar: what's possible depends on the order's status. */}
         <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
-          {o && dirty && editable && <span className="mr-auto text-sm text-muted-foreground">Save your changes before placing the order.</span>}
+          {o && dirty && editable && <span className="mr-auto text-sm text-muted-foreground">{t('Save your changes before placing the order.')}</span>}
           {o && canEdit && (status === 'Draft' || status === 'PendingApproval' || (status === 'Ordered' && o.receipts.length === 0)) && (
             <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={() => setPending('cancel')}>
               <Ban />
-              Cancel order
+              {t('Cancel order')}
             </Button>
           )}
           {o && canEdit && status === 'PartlyReceived' && (
             <Button type="button" variant="ghost" disabled={busy} onClick={() => setPending('close')}>
               <Lock />
-              Close short
+              {t('Close short')}
             </Button>
           )}
           {o && status !== 'Cancelled' && (
             <Button type="button" variant="outline" asChild>
               <Link to={`/purchase-orders/${o.id}/print`} target="_blank">
                 <Printer />
-                Print
+                {t('Print')}
               </Link>
             </Button>
           )}
@@ -472,15 +484,15 @@ export function PurchaseOrderFormPage() {
             <>
               <Button type="button" variant="outline" disabled={busy} onClick={() => setPending('reject')}>
                 <Undo2 />
-                Send back
+                {t('Send back')}
               </Button>
               <Button
                 type="button"
                 disabled={busy}
-                onClick={() => runAction(() => approve.mutateAsync({ id: o.id, rowVersion: o.rowVersion }), (u) => `${u.number} approved and ordered`)}
+                onClick={() => runAction(() => approve.mutateAsync({ id: o.id, rowVersion: o.rowVersion }), (u) => t('{number} approved and ordered', { number: u.number }))}
               >
                 <CheckCircle2 />
-                Approve
+                {t('Approve')}
               </Button>
             </>
           )}
@@ -492,32 +504,35 @@ export function PurchaseOrderFormPage() {
               onClick={() =>
                 runAction(
                   () => place.mutateAsync({ id: o.id, rowVersion: o.rowVersion }),
-                  (u) => (u.status === 'PendingApproval' ? `${u.number} sent for approval` : `${u.number} placed with ${u.supplierName}`),
+                  (u) =>
+                    u.status === 'PendingApproval'
+                      ? t('{number} sent for approval', { number: u.number })
+                      : t('{number} placed with {supplier}', { number: u.number, supplier: u.supplierName }),
                 )
               }
             >
               <Send />
-              Place order
+              {t('Place order')}
             </Button>
           )}
           {o && canBill && placed && unbilled && (
             <Button type="button" variant="outline" asChild>
               <Link to={`/supplier-bills/new?purchaseOrderId=${o.id}`}>
                 <FilePlus2 />
-                Enter bill
+                {t('Enter bill')}
               </Link>
             </Button>
           )}
           {o && canReceive && receivable && (
             <Button type="button" onClick={() => setReceiveOpen(true)}>
               <PackageCheck />
-              Receive goods
+              {t('Receive goods')}
             </Button>
           )}
           {editable && (
             <Button type="submit" disabled={busy || (!isNew && !dirty)}>
               {save.isPending && <Spinner />}
-              {isNew ? 'Create draft' : 'Save changes'}
+              {isNew ? t('Create draft') : t('Save changes')}
             </Button>
           )}
         </div>
@@ -528,23 +543,29 @@ export function PurchaseOrderFormPage() {
         <ReasonDialog
           open={pending !== null}
           onOpenChange={(open) => !open && setPending(null)}
-          title={pending === 'reject' ? `Send ${o.number} back?` : pending === 'close' ? `Close ${o.number}?` : `Cancel ${o.number}?`}
+          title={
+            pending === 'reject'
+              ? t('Send {number} back?', { number: o.number })
+              : pending === 'close'
+                ? t('Close {number}?', { number: o.number })
+                : t('Cancel {number}?', { number: o.number })
+          }
           description={
             pending === 'reject'
-              ? 'It goes back to draft with your reason, so it can be changed and placed again.'
+              ? t('It goes back to draft with your reason, so it can be changed and placed again.')
               : pending === 'close'
-                ? "Nothing more will be received against it. What has arrived stays in stock and can still be billed."
-                : "The order stays on record as cancelled. This can't be undone."
+                ? t('Nothing more will be received against it. What has arrived stays in stock and can still be billed.')
+                : t("The order stays on record as cancelled. This can't be undone.")
           }
-          confirmLabel={pending === 'reject' ? 'Send back' : pending === 'close' ? 'Close order' : 'Cancel order'}
+          confirmLabel={pending === 'reject' ? t('Send back') : pending === 'close' ? t('Close order') : t('Cancel order')}
           onConfirm={async (reason) => {
             const args = { id: o.id, rowVersion: o.rowVersion, reason }
             const ok =
               pending === 'reject'
-                ? await runAction(() => reject.mutateAsync(args), (u) => `${u.number} sent back to draft`)
+                ? await runAction(() => reject.mutateAsync(args), (u) => t('{number} sent back to draft', { number: u.number }))
                 : pending === 'close'
-                  ? await runAction(() => close.mutateAsync(args), (u) => `${u.number} closed`)
-                  : await runAction(() => cancel.mutateAsync(args), (u) => `${u.number} cancelled`)
+                  ? await runAction(() => close.mutateAsync(args), (u) => t('{number} closed', { number: u.number }))
+                  : await runAction(() => cancel.mutateAsync(args), (u) => t('{number} cancelled', { number: u.number }))
             if (ok) setPending(null)
           }}
         />

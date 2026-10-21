@@ -1,5 +1,6 @@
 import { Permissions } from '@/features/auth/permissions'
 import type { Schemas } from '@/lib/api/client'
+import { msg } from '@/lib/i18n'
 
 export type DashboardPeriod = Schemas['DashboardPeriod']
 
@@ -30,40 +31,97 @@ export interface DashboardLayout {
   cards: CardPlacement[]
 }
 
-/** label for wide screens, short for phones, text inside sentences ("Sales this month"). */
-export const PERIODS: { value: DashboardPeriod; label: string; short: string; text: string; comparison: string }[] = [
-  { value: 'Month', label: 'This month', short: 'Month', text: 'this month', comparison: 'same days last month' },
-  { value: 'Quarter', label: 'This quarter', short: 'Quarter', text: 'this quarter', comparison: 'same days last quarter' },
-  { value: 'Year', label: 'This financial year', short: 'This FY', text: 'this financial year', comparison: 'same period last year' },
-  { value: 'LastYear', label: 'Last financial year', short: 'Last FY', text: 'last financial year', comparison: 'the year before' },
+/**
+ * label for wide screens, short for phones, and the sentences that name the period, written out whole for each
+ * period so they read naturally in Tamil too (translate with t() where shown).
+ */
+export interface PeriodInfo {
+  value: DashboardPeriod
+  label: string
+  short: string
+  sales: string
+  collected: string
+  noSales: string
+  supply: string
+  /** Beside the change in sales ("+12% vs same days last month"). */
+  versus: string
+  noComparison: string
+}
+
+export const PERIODS: PeriodInfo[] = [
+  {
+    value: 'Month',
+    label: msg('This month'),
+    short: msg('Month'),
+    sales: msg('Sales this month'),
+    collected: msg('Collected this month'),
+    noSales: msg('No sales this month yet.'),
+    supply: msg('Place of supply, this month'),
+    versus: msg('vs same days last month'),
+    noComparison: msg('No sales same days last month to compare'),
+  },
+  {
+    value: 'Quarter',
+    label: msg('This quarter'),
+    short: msg('Quarter'),
+    sales: msg('Sales this quarter'),
+    collected: msg('Collected this quarter'),
+    noSales: msg('No sales this quarter yet.'),
+    supply: msg('Place of supply, this quarter'),
+    versus: msg('vs same days last quarter'),
+    noComparison: msg('No sales same days last quarter to compare'),
+  },
+  {
+    value: 'Year',
+    label: msg('This financial year'),
+    short: msg('This FY'),
+    sales: msg('Sales this financial year'),
+    collected: msg('Collected this financial year'),
+    noSales: msg('No sales this financial year yet.'),
+    supply: msg('Place of supply, this financial year'),
+    versus: msg('vs same period last year'),
+    noComparison: msg('No sales same period last year to compare'),
+  },
+  {
+    value: 'LastYear',
+    label: msg('Last financial year'),
+    short: msg('Last FY'),
+    sales: msg('Sales last financial year'),
+    collected: msg('Collected last financial year'),
+    noSales: msg('No sales last financial year yet.'),
+    supply: msg('Place of supply, last financial year'),
+    versus: msg('vs the year before'),
+    noComparison: msg('No sales the year before to compare'),
+  },
 ]
 
 export const periodInfo = (period: DashboardPeriod) => PERIODS.find((p) => p.value === period) ?? PERIODS[0]!
 
+/** Tile and card names are marked here; translate them with t() where they're shown. */
 export const TILE_TITLES: Record<TileId, string> = {
-  sales: 'Sales',
-  collected: 'Money collected',
-  receivables: 'Receivables',
-  orders: 'Confirmed orders to invoice',
-  stock: 'Low on stock',
+  sales: msg('Sales'),
+  collected: msg('Money collected'),
+  receivables: msg('Receivables'),
+  orders: msg('Confirmed orders to invoice'),
+  stock: msg('Low on stock'),
 }
 
 /** What each card is, and who may have it (any one of the permissions; none listed: everyone). */
 export const CARD_INFO: Record<CardId, { title: string; description: string; permissions?: string[] }> = {
-  trend: { title: 'Monthly sales', description: 'The last 24 months as a chart or table.' },
-  ageing: { title: 'Receivables ageing', description: "What's owed, by how late it is." },
-  'top-customers': { title: 'Top customers', description: 'Who bought the most in the period.' },
-  'top-products': { title: 'Top products', description: 'What sold the most in the period.' },
-  states: { title: 'Sales by state', description: 'Where the period’s sales went.' },
-  chase: { title: 'Invoices to chase', description: 'The most overdue invoices, with a payment reminder.', permissions: [Permissions.InvoicesView] },
-  payments: { title: 'Recent payments', description: 'The latest money received from customers.', permissions: [Permissions.PaymentsView] },
+  trend: { title: msg('Monthly sales'), description: msg('The last 24 months as a chart or table.') },
+  ageing: { title: msg('Receivables ageing'), description: msg("What's owed, by how late it is.") },
+  'top-customers': { title: msg('Top customers'), description: msg('Who bought the most in the period.') },
+  'top-products': { title: msg('Top products'), description: msg('What sold the most in the period.') },
+  states: { title: msg('Sales by state'), description: msg('Where the period’s sales went.') },
+  chase: { title: msg('Invoices to chase'), description: msg('The most overdue invoices, with a payment reminder.'), permissions: [Permissions.InvoicesView] },
+  payments: { title: msg('Recent payments'), description: msg('The latest money received from customers.'), permissions: [Permissions.PaymentsView] },
   purchases: {
-    title: 'Purchases needing action',
-    description: 'Orders waiting for approval and supplier bills on hold or overdue.',
+    title: msg('Purchases needing action'),
+    description: msg('Orders waiting for approval and supplier bills on hold or overdue.'),
     permissions: [Permissions.PurchaseOrdersView, Permissions.SupplierBillsView],
   },
-  'quick-actions': { title: 'Quick actions', description: 'Big buttons for what you do most.' },
-  notifications: { title: 'Notifications', description: 'Your latest notifications, as in the bell.' },
+  'quick-actions': { title: msg('Quick actions'), description: msg('Big buttons for what you do most.') },
+  notifications: { title: msg('Notifications'), description: msg('Your latest notifications, as in the bell.') },
 }
 
 export const DEFAULT_LAYOUT: DashboardLayout = {

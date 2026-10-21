@@ -6,6 +6,7 @@ import { useResolvedTheme } from '@/components/fx/preferences-context'
 import { SalesCity3D } from '@/components/three/scenes'
 import { Button } from '@/components/ui/button'
 import { formatINR, formatINRCompact, todayInIndia } from '@/lib/format'
+import { t, tn } from '@/lib/i18n'
 import { isRecordMonth, toTrendPoint, type MonthlySales, type TrendPoint } from './trend'
 
 /** The still version of the city: the months as a soft skyline along the bottom. */
@@ -88,7 +89,7 @@ export function SalesHero({ greeting, description, months }: { greeting: string;
           </div>
           <Button asChild variant="outline" className="pointer-events-auto bg-background/70 backdrop-blur">
             <Link to="/reports">
-              <ChartColumn /> Reports
+              <ChartColumn /> {t('Reports')}
             </Link>
           </Button>
         </div>
@@ -100,17 +101,16 @@ export function SalesHero({ greeting, description, months }: { greeting: string;
                 <span className="font-semibold tabular-nums">{formatINR(point.value, 0)}</span>
                 <span className="text-muted-foreground">
                   {' '}
-                  · {point.month}
-                  {point.partial && ' so far'} · {point.invoices.toLocaleString('en-IN')} invoices
+                  · {point.partial ? t('{month} so far', { month: point.month }) : point.month} · {tn(point.invoices, '{count} invoice', '{count} invoices')}
                 </span>
               </>
             ) : (
-              <span className="text-muted-foreground">Each building is a month of sales. Drag to turn the city; point at one for its figures.</span>
+              <span className="text-muted-foreground">{t('Each building is a month of sales. Drag to turn the city; point at one for its figures.')}</span>
             )}
           </p>
           {record && (
             <span className="fx-pop inline-flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1 font-medium text-white shadow-md">
-              <PartyPopper className="size-3.5" /> Best month yet, and it isn't over
+              <PartyPopper className="size-3.5" /> {t("Best month yet, and it isn't over")}
             </span>
           )}
         </div>

@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useNav } from './use-nav'
 
@@ -45,7 +46,7 @@ export function TopMegaNav() {
   const panel = groups.find((group) => group.label === open)
 
   return (
-    <nav aria-label="Main menu" data-tour="nav" className="relative hidden h-full items-center md:flex" onPointerLeave={hideSoon} onPointerEnter={() => clearTimeout(closeTimer.current)}>
+    <nav aria-label={t('Main menu')} data-tour="nav" className="relative hidden h-full items-center md:flex" onPointerLeave={hideSoon} onPointerEnter={() => clearTimeout(closeTimer.current)}>
       <ul className="flex h-full items-center gap-0.5">
         {groups.map((group) => {
           const single = group.items.length === 1 ? group.items[0] : undefined

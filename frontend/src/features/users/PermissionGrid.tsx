@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { cn } from '@/lib/utils'
 import type { PermissionCatalog } from './api'
 import { toggle } from './permission-logic'
+import { t, tc } from '@/lib/i18n'
 
 /** One box. changedFrom is what the user's role has when this user's box differs from it, else null. */
 function PermissionBox({
@@ -23,7 +24,11 @@ function PermissionBox({
   return (
     <span
       className={cn('inline-flex rounded-md p-1.5', changed && 'bg-amber-100 ring-1 ring-amber-400 dark:bg-amber-950/60 dark:ring-amber-600')}
-      title={changed ? `${description} Changed for this user: their role ${changedFrom ? 'has' : "doesn't have"} it.` : description}
+      title={
+        changed
+          ? `${description} ${changedFrom ? t('Changed for this user: their role has it.') : t("Changed for this user: their role doesn't have it.")}`
+          : description
+      }
     >
       <Checkbox checked={checked} disabled={!onCheckedChange} aria-label={label} onCheckedChange={(next) => onCheckedChange?.(next === true)} />
     </span>
@@ -61,9 +66,9 @@ export function PermissionGrid({ catalog, value, onChange, baseline }: Permissio
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Menu</TableHead>
-            <TableHead className="w-20 text-center">View</TableHead>
-            <TableHead className="w-28 text-center">Add &amp; change</TableHead>
+            <TableHead>{t('Menu')}</TableHead>
+            <TableHead className="w-20 text-center">{tc('permission', 'View')}</TableHead>
+            <TableHead className="w-28 text-center">{t('Add & change')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -83,11 +88,11 @@ export function PermissionGrid({ catalog, value, onChange, baseline }: Permissio
                       <div className="text-xs text-muted-foreground">{menu.viewDescription}</div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {box(menu.view, `${menu.name}: view`, menu.viewDescription)}
+                      {box(menu.view, t('{menu}: view', { menu: menu.name }), menu.viewDescription)}
                     </TableCell>
                     <TableCell className="text-center">
                       {menu.edit ? (
-                        box(menu.edit, `${menu.name}: add and change`, menu.editDescription ?? '')
+                        box(menu.edit, t('{menu}: add and change', { menu: menu.name }), menu.editDescription ?? '')
                       ) : (
                         <span className="text-muted-foreground" aria-hidden>
                           –
@@ -102,7 +107,7 @@ export function PermissionGrid({ catalog, value, onChange, baseline }: Permissio
       </Table>
 
       <div className="flex flex-col gap-1">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Special rights</p>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Special rights')}</p>
         {catalog.specialRights.map((right) => (
           <label key={right.key} className="flex items-start gap-2 rounded-md py-1">
             {box(right.key, right.name, right.description)}

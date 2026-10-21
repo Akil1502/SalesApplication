@@ -1,6 +1,7 @@
 import { MotionConfig } from 'motion/react'
 import { useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '@/features/auth/auth-context'
+import { setLanguage, type Language } from '@/lib/i18n'
 import {
   DEFAULT_LAYOUT,
   loadPreferences,
@@ -17,6 +18,19 @@ import { useUserSetting } from '@/lib/user-settings'
 import { PreferencesContext, useMediaQuery, type PreferencesContextValue } from './preferences-context'
 
 const NO_SERVER_PREFERENCES = null
+
+/** A language picked on the sign-in page, to carry into the account once signed in. */
+const PICKED_KEY = 'salesapp.language.picked'
+
+function takePickedLanguage(): Language | undefined {
+  try {
+    const picked = sessionStorage.getItem(PICKED_KEY)
+    sessionStorage.removeItem(PICKED_KEY)
+    return picked === 'en' || picked === 'ta' ? picked : undefined
+  } catch {
+    return undefined
+  }
+}
 
 /**
  * Applies light/dark, the motion level and the layout, and remembers each user's choice. The choice is kept on the
@@ -39,12 +53,23 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     [loaded, serverPreferences, stored.preferences],
   )
 
-  // Keep this browser's copy in step for the next first paint; the first time, move this browser's choice up.
+  // Keep this browser's copy in step for the next first paint; the first time, move this browser's choice up. A
+  // language picked on the sign-in page just now wins over the one saved last time.
   useEffect(() => {
     if (!loaded || !userId) return
-    if (serverPreferences) savePreferences(userId, preferences)
-    else saveServerPreferences(stored.preferences)
+    const picked = takePickedLanguage()
+    if (serverPreferences && !picked) savePreferences(userId, preferences)
+    else {
+      const next = picked ? { ...(serverPreferences ? preferences : stored.preferences), language: picked } : stored.preferences
+      savePreferences(userId, next)
+      saveServerPreferences(next)
+    }
   }, [loaded, userId, serverPreferences, preferences, stored.preferences, saveServerPreferences])
+
+  const language = preferences.language ?? 'en'
+  useEffect(() => {
+    void setLanguage(language)
+  }, [language])
 
   const systemDark = useMediaQuery('(prefers-color-scheme: dark)')
   const systemReducesMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
@@ -74,8 +99,19 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       setMotion: (level: MotionLevel) => update({ motion: level }),
       layout: preferences.layout ?? DEFAULT_LAYOUT,
       setLayout: (layout: LayoutChoice) => update({ layout }),
+      language,
+      setLanguage: (next: Language) => {
+        if (!userId) {
+          try {
+            sessionStorage.setItem(PICKED_KEY, next)
+          } catch {
+            // Without storage the choice still applies until the page closes.
+          }
+        }
+        update({ language: next })
+      },
     }
-  }, [preferences, resolvedTheme, motion, userId, saveServerPreferences])
+  }, [preferences, resolvedTheme, motion, language, userId, saveServerPreferences])
 
   return (
     <PreferencesContext value={value}>

@@ -19,6 +19,7 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Phone).HasMaxLength(20).IsUnicode(false);
         builder.Property(c => c.Email).HasMaxLength(256);
         builder.Property(c => c.Notes).HasMaxLength(2000);
+        builder.Property(c => c.DocumentLanguage).HasConversion<string>().HasMaxLength(10).IsUnicode(false);
         builder.Property(c => c.RowVersion).IsRowVersion();
 
         builder.OwnsOne(c => c.BillingAddress, address => ConfigureAddress(address, "Billing"));

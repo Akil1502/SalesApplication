@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, todayInIndia } from '@/lib/format'
+import { t } from '@/lib/i18n'
 
 /** Something credit can be set against (an invoice or bill), or a credit to use (a credit note or return). */
 export interface CreditOption {
@@ -58,17 +59,17 @@ function CreditForm({ options, chooseLabel, minDate, onApply, onOpenChange }: Se
   const first = options[0]!
   const schema = z
     .object({
-      optionId: z.string().min(1, { error: 'Choose one.' }),
+      optionId: z.string().min(1, { error: t('Choose one.') }),
       amount: z
         .string()
         .trim()
-        .regex(/^\d+(\.\d{1,2})?$/, { error: 'Enter an amount like 5000 or 5000.50.' })
-        .refine((v) => Number(v) > 0, { error: 'More than zero.' }),
-      date: z.string().min(1, { error: 'Choose a date.' }),
+        .regex(/^\d+(\.\d{1,2})?$/, { error: t('Enter an amount like 5000 or 5000.50.') })
+        .refine((v) => Number(v) > 0, { error: t('More than zero.') }),
+      date: z.string().min(1, { error: t('Choose a date.') }),
     })
     .superRefine((v, ctx) => {
       const max = options.find((o) => String(o.id) === v.optionId)?.max ?? 0
-      if (Number(v.amount) > max) ctx.addIssue({ code: 'custom', path: ['amount'], message: `At most ${formatINR(max)}.` })
+      if (Number(v.amount) > max) ctx.addIssue({ code: 'custom', path: ['amount'], message: t('At most {amount}.', { amount: formatINR(max) }) })
     })
   type Values = z.infer<typeof schema>
 
@@ -122,16 +123,22 @@ function CreditForm({ options, chooseLabel, minDate, onApply, onOpenChange }: Se
             </Field>
           )}
         />
-        <FormInput control={form.control} name="amount" label="Amount (₹)" inputMode="decimal" description={chosen ? `Up to ${formatINR(chosen.max)}` : undefined} />
-        <FormInput control={form.control} name="date" label="Date" type="date" min={minDate} max={todayInIndia()} />
+        <FormInput
+          control={form.control}
+          name="amount"
+          label={t('Amount (₹)')}
+          inputMode="decimal"
+          description={chosen ? t('Up to {amount}', { amount: formatINR(chosen.max) }) : undefined}
+        />
+        <FormInput control={form.control} name="date" label={t('Date')} type="date" min={minDate} max={todayInIndia()} />
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting && <Spinner />}
-          Set credit
+          {t('Set credit')}
         </Button>
       </DialogFooter>
     </form>

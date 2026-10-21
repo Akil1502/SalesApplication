@@ -4,19 +4,21 @@ import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { msg, t } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 import type { AssistantDraft } from './api'
 import { draftText, mailtoUrl, whatsappUrl } from './drafts'
 
 const purposes: Record<string, string> = {
-  payment_reminder: 'Payment reminder',
-  follow_up: 'Follow-up',
-  quotation: 'Quotation',
-  order_confirmation: 'Order confirmation',
-  thank_you: 'Thank-you',
-  delivery_follow_up: 'Delivery follow-up',
-  bill_query: 'Bill query',
-  credit_note: 'Credit note',
-  other: 'Message',
+  payment_reminder: msg('Payment reminder'),
+  follow_up: msg('Follow-up'),
+  quotation: msg('Quotation'),
+  order_confirmation: msg('Order confirmation'),
+  thank_you: msg('Thank-you'),
+  delivery_follow_up: msg('Delivery follow-up'),
+  bill_query: msg('Bill query'),
+  credit_note: msg('Credit note'),
+  other: msg('Message'),
 }
 
 /**
@@ -29,13 +31,15 @@ export function DraftCard({ draft }: { draft: AssistantDraft }) {
   const email = draft.kind === 'Email'
   const recipient = email ? draft.email : draft.phone
   const openUrl = recipient ? (email ? mailtoUrl(recipient, subject || null, body) : whatsappUrl(recipient, body)) : null
+  const purpose = t(purposes[draft.purpose] ?? msg('Message'))
+  const to = draft.contactPerson ? `${draft.contactPerson}, ${draft.recipientName}` : draft.recipientName
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(draftText(email ? subject || null : null, body))
-      toast.success('Copied. Paste it into your email or WhatsApp.')
+      toast.success(t('Copied. Paste it into your email or WhatsApp.'))
     } catch {
-      toast.error("Couldn't copy. Select the text and copy it yourself.")
+      toast.error(t("Couldn't copy. Select the text and copy it yourself."))
     }
   }
 
@@ -45,12 +49,16 @@ export function DraftCard({ draft }: { draft: AssistantDraft }) {
         <span className="mt-0.5 shrink-0 text-muted-foreground">{email ? <Mail className="size-4" /> : <MessageCircle className="size-4" />}</span>
         <div className="min-w-0 text-sm">
           <p className="font-medium">
-            {purposes[draft.purpose] ?? 'Message'} · {email ? 'email' : 'WhatsApp'} draft
+            {email ? t('{purpose} · email draft', { purpose }) : t('{purpose} · WhatsApp draft', { purpose })}
           </p>
           <p className="text-muted-foreground">
-            To {draft.contactPerson ? `${draft.contactPerson}, ` : ''}
-            {draft.recipientName}
-            {recipient ? <span className="break-all"> ({recipient})</span> : <span> — no {email ? 'email address' : 'phone number'} on file</span>}
+            {recipient ? (
+              <T text="To {name} {address}" values={{ name: to, address: <span className="break-all">({recipient})</span> }} />
+            ) : email ? (
+              t('To {name} — no email address on file', { name: to })
+            ) : (
+              t('To {name} — no phone number on file', { name: to })
+            )}
           </p>
         </div>
       </div>
@@ -59,7 +67,7 @@ export function DraftCard({ draft }: { draft: AssistantDraft }) {
         <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           <TriangleAlert />
           <AlertDescription className="text-inherit">
-            <p className="font-medium">Check before sending:</p>
+            <p className="font-medium">{t('Check before sending:')}</p>
             <ul className="ml-4 list-disc">
               {draft.warnings.map((warning) => (
                 <li key={warning}>{warning}</li>
@@ -71,7 +79,7 @@ export function DraftCard({ draft }: { draft: AssistantDraft }) {
 
       {email && (
         <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-          Subject
+          {t('Subject')}
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -79,20 +87,20 @@ export function DraftCard({ draft }: { draft: AssistantDraft }) {
           />
         </label>
       )}
-      <Textarea aria-label="Message" value={body} onChange={(e) => setBody(e.target.value)} className="min-h-40 text-sm leading-relaxed" />
+      <Textarea aria-label={t('Message')} value={body} onChange={(e) => setBody(e.target.value)} className="min-h-40 text-sm leading-relaxed" />
 
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="outline" onClick={() => void copy()}>
-          <Copy /> Copy
+          <Copy /> {t('Copy')}
         </Button>
         {openUrl && (
           <Button size="sm" variant="outline" asChild>
             <a href={openUrl} target={email ? undefined : '_blank'} rel="noopener noreferrer">
-              <Send /> {email ? 'Open in email' : 'Open WhatsApp'}
+              <Send /> {email ? t('Open in email') : t('Open WhatsApp')}
             </a>
           </Button>
         )}
-        <span className="text-xs text-muted-foreground">Nothing is sent until you send it.</span>
+        <span className="text-xs text-muted-foreground">{t('Nothing is sent until you send it.')}</span>
       </div>
     </div>
   )

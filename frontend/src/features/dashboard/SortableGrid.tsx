@@ -12,6 +12,7 @@ import { rectSortingStrategy, SortableContext, useSortable } from '@dnd-kit/sort
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 interface SortableGridProps<T extends { id: string }> {
@@ -64,8 +65,8 @@ function SortableItem({ id, editing, title, className, controls, onStep, childre
               event.preventDefault()
               onStep(step)
             }}
-            aria-label={`Move ${title}`}
-            title="Drag to move"
+            aria-label={t('Move {name}', { name: title })}
+            title={t('Drag to move')}
             className="flex size-8 cursor-grab touch-none items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
           >
             <GripVertical className="size-4" />
@@ -102,17 +103,21 @@ export function SortableGrid<T extends { id: string }>({ items, editing, titleOf
   const step = (id: string, by: number) => {
     const from = items.findIndex((item) => item.id === id)
     const to = Math.min(items.length - 1, Math.max(0, from + by))
-    if (from < 0 || to === from) return setSaid(`${titleOf(id)} is already ${by < 0 ? 'first' : 'last'}.`)
+    if (from < 0 || to === from) return setSaid(by < 0 ? t('{name} is already first.', { name: titleOf(id) }) : t('{name} is already last.', { name: titleOf(id) }))
     refocus.current = id
     onMove(id, items[to]!.id)
-    setSaid(`${titleOf(id)} moved to place ${to + 1} of ${items.length}.`)
+    setSaid(t('{name} moved to place {place} of {count}.', { name: titleOf(id), place: to + 1, count: items.length }))
   }
   const name = (id: UniqueIdentifier) => titleOf(String(id))
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up ${name(active.id)}.`,
-    onDragOver: ({ active, over }) => (over ? `${name(active.id)} is over ${name(over.id)}.` : `${name(active.id)} isn't over another card.`),
-    onDragEnd: ({ active, over }) => (over && over.id !== active.id ? `${name(active.id)} moved to where ${name(over.id)} was.` : `${name(active.id)} dropped.`),
-    onDragCancel: ({ active }) => `Moving ${name(active.id)} was cancelled.`,
+    onDragStart: ({ active }) => t('Picked up {name}.', { name: name(active.id) }),
+    onDragOver: ({ active, over }) =>
+      over ? t('{name} is over {other}.', { name: name(active.id), other: name(over.id) }) : t("{name} isn't over another card.", { name: name(active.id) }),
+    onDragEnd: ({ active, over }) =>
+      over && over.id !== active.id
+        ? t('{name} moved to where {other} was.', { name: name(active.id), other: name(over.id) })
+        : t('{name} dropped.', { name: name(active.id) }),
+    onDragCancel: ({ active }) => t('Moving {name} was cancelled.', { name: name(active.id) }),
   }
 
   return (
@@ -121,7 +126,7 @@ export function SortableGrid<T extends { id: string }>({ items, editing, titleOf
       collisionDetection={closestCenter}
       accessibility={{
         announcements,
-        screenReaderInstructions: { draggable: 'Drag it with the mouse or a finger, or use the arrow keys to move it one place earlier or later.' },
+        screenReaderInstructions: { draggable: t('Drag it with the mouse or a finger, or use the arrow keys to move it one place earlier or later.') },
       }}
       onDragEnd={({ active, over }) => over && active.id !== over.id && onMove(String(active.id), String(over.id))}
     >

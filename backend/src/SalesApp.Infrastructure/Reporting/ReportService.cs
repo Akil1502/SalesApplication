@@ -24,28 +24,28 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 {
     private static readonly ReportDefinitionDto[] Definitions =
     [
-        new("sales-by-period", "Sales by period", "Monthly (or daily) sales net of credit notes, tax and invoice count.", true),
-        new("sales-by-customer", "Sales by customer", "Who bought how much, net of returns, ranked by sales value.", true),
-        new("sales-by-product", "Sales by product", "Quantities and value per product, net of returns; margins for managers.", true),
-        new("gst-summary", "GST summary", "Taxable value and tax by B2B/B2C, intra/inter-state and rate, invoices and credit notes apart, for GST returns.", true),
-        new("hsn-summary", "HSN summary", "Quantity, taxable value and tax per HSN code, net of credit notes (GSTR-1 table 12).", true),
-        new("receivables-ageing", "Receivables ageing", "What each customer owes today, by how overdue it is, and their unused credit.", false),
-        new("stock", "Stock position", "Stock on hand and status per product; value at cost for managers.", false),
-        new("credit-notes", "Credit notes", "Credit notes issued, with their GST and the credit still unused.", true),
-        new("purchase-register", "Purchase register", "Supplier bills with their taxable value and input GST, for GST returns.", true),
-        new("supplier-returns", "Supplier returns", "Goods returned to suppliers (debit notes), with the input GST reversed.", true),
-        new("payables-ageing", "Payables ageing", "What we owe each supplier today, by how overdue it is, and our unused credit with them.", false),
-        new("gst-net", "GST payable", "Output GST net of credit notes less input credit net of supplier returns, by month (before set-off rules).", true),
+        new("sales-by-period", L.Msg("Sales by period"), L.Msg("Monthly (or daily) sales net of credit notes, tax and invoice count."), true),
+        new("sales-by-customer", L.Msg("Sales by customer"), L.Msg("Who bought how much, net of returns, ranked by sales value."), true),
+        new("sales-by-product", L.Msg("Sales by product"), L.Msg("Quantities and value per product, net of returns; margins for managers."), true),
+        new("gst-summary", L.Msg("GST summary"), L.Msg("Taxable value and tax by B2B/B2C, intra/inter-state and rate, invoices and credit notes apart, for GST returns."), true),
+        new("hsn-summary", L.Msg("HSN summary"), L.Msg("Quantity, taxable value and tax per HSN code, net of credit notes (GSTR-1 table 12)."), true),
+        new("receivables-ageing", L.Msg("Receivables ageing"), L.Msg("What each customer owes today, by how overdue it is, and their unused credit."), false),
+        new("stock", L.Msg("Stock position"), L.Msg("Stock on hand and status per product; value at cost for managers."), false),
+        new("credit-notes", L.Msg("Credit notes"), L.Msg("Credit notes issued, with their GST and the credit still unused."), true),
+        new("purchase-register", L.Msg("Purchase register"), L.Msg("Supplier bills with their taxable value and input GST, for GST returns."), true),
+        new("supplier-returns", L.Msg("Supplier returns"), L.Msg("Goods returned to suppliers (debit notes), with the input GST reversed."), true),
+        new("payables-ageing", L.Msg("Payables ageing"), L.Msg("What we owe each supplier today, by how overdue it is, and our unused credit with them."), false),
+        new("gst-net", L.Msg("GST payable"), L.Msg("Output GST net of credit notes less input credit net of supplier returns, by month (before set-off rules)."), true),
     ];
 
     /// <summary>Reports that need more than the reports right, and what to call that right when it's missing.</summary>
     private static readonly Dictionary<string, (string Permission, string Right)> Needs = new()
     {
-        ["credit-notes"] = (Permissions.CreditNotesView, "the right to see credit notes"),
-        ["purchase-register"] = (Permissions.SupplierBillsView, "the right to see supplier bills"),
-        ["supplier-returns"] = (Permissions.SupplierReturnsView, "the right to see supplier returns"),
-        ["payables-ageing"] = (Permissions.SupplierBillsView, "the right to see supplier bills"),
-        ["gst-net"] = (Permissions.SupplierBillsView, "the right to see supplier bills"),
+        ["credit-notes"] = (Permissions.CreditNotesView, L.Msg("the right to see credit notes")),
+        ["purchase-register"] = (Permissions.SupplierBillsView, L.Msg("the right to see supplier bills")),
+        ["supplier-returns"] = (Permissions.SupplierReturnsView, L.Msg("the right to see supplier returns")),
+        ["payables-ageing"] = (Permissions.SupplierBillsView, L.Msg("the right to see supplier bills")),
+        ["gst-net"] = (Permissions.SupplierBillsView, L.Msg("the right to see supplier bills")),
     };
 
     private const string Invoice = "Invoice";
@@ -55,7 +55,7 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
     private static readonly CultureInfo India = CultureInfo.GetCultureInfo("en-IN");
 
-    public IReadOnlyList<ReportDefinitionDto> List() => [.. Definitions.Where(d => Allowed(d.Key))];
+    public IReadOnlyList<ReportDefinitionDto> List() => [.. Definitions.Where(d => Allowed(d.Key)).Select(d => d with { Title = L.T(d.Title), Description = L.T(d.Description) })];
 
     public Task<ReportResult> RunAsync(string key, ReportRequest request, CancellationToken cancellationToken)
     {
@@ -127,12 +127,12 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("period", daily ? "Date" : "Month", daily ? ReportColumnType.Date : ReportColumnType.Text),
-            new("invoices", "Invoices", ReportColumnType.Count),
-            new("returns", "Credit notes (taxable)", ReportColumnType.Money),
-            new("taxable", "Net taxable value", ReportColumnType.Money),
-            new("tax", "GST", ReportColumnType.Money),
-            new("total", "Net value", ReportColumnType.Money),
+            new("period", daily ? L.Msg("Date") : L.Msg("Month"), daily ? ReportColumnType.Date : ReportColumnType.Text),
+            new("invoices", L.Msg("Invoices"), ReportColumnType.Count),
+            new("returns", L.Msg("Credit notes (taxable)"), ReportColumnType.Money),
+            new("taxable", L.Msg("Net taxable value"), ReportColumnType.Money),
+            new("tax", L.Msg("GST"), ReportColumnType.Money),
+            new("total", L.Msg("Net value"), ReportColumnType.Money),
         ];
 
         return Result(d, from, to, columns, rows.Select(r => Row(
@@ -156,14 +156,14 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("code", "Code", ReportColumnType.Text),
-            new("customer", "Customer", ReportColumnType.Text),
-            new("state", "State", ReportColumnType.Text),
-            new("invoices", "Invoices", ReportColumnType.Count),
-            new("taxable", "Net taxable value", ReportColumnType.Money),
-            new("tax", "GST", ReportColumnType.Money),
-            new("total", "Net value", ReportColumnType.Money),
-            new("share", "Share", ReportColumnType.Percent),
+            new("code", L.Msg("Code"), ReportColumnType.Text),
+            new("customer", L.Msg("Customer"), ReportColumnType.Text),
+            new("state", L.Msg("State"), ReportColumnType.Text),
+            new("invoices", L.Msg("Invoices"), ReportColumnType.Count),
+            new("taxable", L.Msg("Net taxable value"), ReportColumnType.Money),
+            new("tax", L.Msg("GST"), ReportColumnType.Money),
+            new("total", L.Msg("Net value"), ReportColumnType.Money),
+            new("share", L.Msg("Share"), ReportColumnType.Percent),
         ];
 
         return Result(d, from, to, columns, rows.Select(r => Row(
@@ -190,20 +190,20 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         var columns = new List<ReportColumn>
         {
-            new("sku", "SKU", ReportColumnType.Text),
-            new("product", "Product", ReportColumnType.Text),
-            new("category", "Category", ReportColumnType.Text),
-            new("unit", "Unit", ReportColumnType.Text),
-            new("quantity", "Quantity", ReportColumnType.Quantity),
-            new("taxable", "Taxable value", ReportColumnType.Money),
-            new("averageRate", "Average rate", ReportColumnType.Money),
-            new("share", "Share", ReportColumnType.Percent),
+            new("sku", L.Msg("SKU"), ReportColumnType.Text),
+            new("product", L.Msg("Product"), ReportColumnType.Text),
+            new("category", L.Msg("Category"), ReportColumnType.Text),
+            new("unit", L.Msg("Unit"), ReportColumnType.Text),
+            new("quantity", L.Msg("Quantity"), ReportColumnType.Quantity),
+            new("taxable", L.Msg("Taxable value"), ReportColumnType.Money),
+            new("averageRate", L.Msg("Average rate"), ReportColumnType.Money),
+            new("share", L.Msg("Share"), ReportColumnType.Percent),
         };
         if (showMargin)
         {
-            columns.Add(new("cost", "Cost (current)", ReportColumnType.Money));
-            columns.Add(new("margin", "Gross margin", ReportColumnType.Money));
-            columns.Add(new("marginPercent", "Margin %", ReportColumnType.Percent));
+            columns.Add(new("cost", L.Msg("Cost (current)"), ReportColumnType.Money));
+            columns.Add(new("margin", L.Msg("Gross margin"), ReportColumnType.Money));
+            columns.Add(new("marginPercent", L.Msg("Margin %"), ReportColumnType.Percent));
         }
 
         var result = rows.Select(r =>
@@ -244,20 +244,20 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("document", "Document", ReportColumnType.Text),
-            new("supplyType", "Supply", ReportColumnType.Text),
-            new("nature", "Nature", ReportColumnType.Text),
-            new("rate", "GST rate", ReportColumnType.Percent),
-            new("taxable", "Taxable value", ReportColumnType.Money),
-            new("cgst", "CGST", ReportColumnType.Money),
-            new("sgst", "SGST/UTGST", ReportColumnType.Money),
-            new("igst", "IGST", ReportColumnType.Money),
-            new("tax", "Total GST", ReportColumnType.Money),
+            new("document", L.Msg("Document"), ReportColumnType.Text),
+            new("supplyType", L.Msg("Supply"), ReportColumnType.Text),
+            new("nature", L.Msg("Nature"), ReportColumnType.Text),
+            new("rate", L.Msg("GST rate"), ReportColumnType.Percent),
+            new("taxable", L.Msg("Taxable value"), ReportColumnType.Money),
+            new("cgst", L.Msg("CGST"), ReportColumnType.Money),
+            new("sgst", L.Msg("SGST/UTGST"), ReportColumnType.Money),
+            new("igst", L.Msg("IGST"), ReportColumnType.Money),
+            new("tax", L.Msg("Total GST"), ReportColumnType.Money),
         ];
 
         return Result(d, from, to, columns, rows.Select(r => Row(
-            ("document", r.DocumentType == Invoice ? "Invoices" : "Credit notes"),
-            ("supplyType", r.SupplyType), ("nature", r.IsInterState ? "Inter-state" : "Intra-state"), ("rate", r.GstRate / 100m),
+            ("document", r.DocumentType == Invoice ? L.Msg("Invoices") : L.Msg("Credit notes")),
+            ("supplyType", r.SupplyType), ("nature", r.IsInterState ? L.Msg("Inter-state") : L.Msg("Intra-state")), ("rate", r.GstRate / 100m),
             ("taxable", r.Taxable), ("cgst", r.Cgst), ("sgst", r.Sgst), ("igst", r.Igst), ("tax", r.Cgst + r.Sgst + r.Igst))).ToList(),
             totals => totals["rate"] = null);
     }
@@ -273,15 +273,15 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("hsn", "HSN", ReportColumnType.Text),
-            new("unit", "Unit", ReportColumnType.Text),
-            new("rate", "GST rate", ReportColumnType.Percent),
-            new("quantity", "Quantity", ReportColumnType.Quantity),
-            new("taxable", "Taxable value", ReportColumnType.Money),
-            new("cgst", "CGST", ReportColumnType.Money),
-            new("sgst", "SGST/UTGST", ReportColumnType.Money),
-            new("igst", "IGST", ReportColumnType.Money),
-            new("tax", "Total GST", ReportColumnType.Money),
+            new("hsn", L.Msg("HSN"), ReportColumnType.Text),
+            new("unit", L.Msg("Unit"), ReportColumnType.Text),
+            new("rate", L.Msg("GST rate"), ReportColumnType.Percent),
+            new("quantity", L.Msg("Quantity"), ReportColumnType.Quantity),
+            new("taxable", L.Msg("Taxable value"), ReportColumnType.Money),
+            new("cgst", L.Msg("CGST"), ReportColumnType.Money),
+            new("sgst", L.Msg("SGST/UTGST"), ReportColumnType.Money),
+            new("igst", L.Msg("IGST"), ReportColumnType.Money),
+            new("tax", L.Msg("Total GST"), ReportColumnType.Money),
         ];
 
         return Result(d, from, to, columns, rows.Select(r => Row(
@@ -330,21 +330,21 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("customer", "Customer", ReportColumnType.Text),
-            new("invoices", "Open invoices", ReportColumnType.Count),
-            new("notDue", "Not yet due", ReportColumnType.Money),
-            new("days1To30", "1–30 days", ReportColumnType.Money),
-            new("days31To60", "31–60 days", ReportColumnType.Money),
-            new("days61To90", "61–90 days", ReportColumnType.Money),
-            new("over90", "Over 90 days", ReportColumnType.Money),
-            new("total", "Total due", ReportColumnType.Money),
-            new("credit", "Unused credit", ReportColumnType.Money),
-            new("net", "Net due", ReportColumnType.Money),
-            new("oldest", "Most overdue (days)", ReportColumnType.Count),
+            new("customer", L.Msg("Customer"), ReportColumnType.Text),
+            new("invoices", L.Msg("Open invoices"), ReportColumnType.Count),
+            new("notDue", L.Msg("Not yet due"), ReportColumnType.Money),
+            new("days1To30", L.Msg("1–30 days"), ReportColumnType.Money),
+            new("days31To60", L.Msg("31–60 days"), ReportColumnType.Money),
+            new("days61To90", L.Msg("61–90 days"), ReportColumnType.Money),
+            new("over90", L.Msg("Over 90 days"), ReportColumnType.Money),
+            new("total", L.Msg("Total due"), ReportColumnType.Money),
+            new("credit", L.Msg("Unused credit"), ReportColumnType.Money),
+            new("net", L.Msg("Net due"), ReportColumnType.Money),
+            new("oldest", L.Msg("Most overdue (days)"), ReportColumnType.Count),
         ];
 
         var today = clock.Today;
-        return Result(d with { Description = $"Outstanding as of {today.ToString("dd MMM yyyy", India)}." }, null, null, columns, rows.Select(r => Row(
+        return Result(d with { Description = L.Msg($"Outstanding as of {today.ToString("dd MMM yyyy", India)}.") }, null, null, columns, rows.Select(r => Row(
             ("customer", r.CustomerName), ("invoices", r.Invoices), ("notDue", r.NotDue), ("days1To30", r.D30), ("days31To60", r.D60),
             ("days61To90", r.D90), ("over90", r.Over90), ("total", r.Total), ("credit", r.Credit), ("net", r.Total - r.Credit),
             ("oldest", r.MaxDays))).ToList(),
@@ -365,26 +365,26 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("date", "Date", ReportColumnType.Date),
-            new("number", "Credit note", ReportColumnType.Text),
-            new("invoice", "Against invoice", ReportColumnType.Text),
-            new("customer", "Customer", ReportColumnType.Text),
-            new("gstin", "GSTIN", ReportColumnType.Text),
-            new("kind", "Type", ReportColumnType.Text),
-            new("reason", "Reason", ReportColumnType.Text),
-            new("gst", "Reduces GST", ReportColumnType.Text),
-            new("taxable", "Taxable value", ReportColumnType.Money),
-            new("cgst", "CGST", ReportColumnType.Money),
-            new("sgst", "SGST/UTGST", ReportColumnType.Money),
-            new("igst", "IGST", ReportColumnType.Money),
-            new("total", "Credit note value", ReportColumnType.Money),
-            new("unused", "Credit unused", ReportColumnType.Money),
+            new("date", L.Msg("Date"), ReportColumnType.Date),
+            new("number", L.Msg("Credit note"), ReportColumnType.Text),
+            new("invoice", L.Msg("Against invoice"), ReportColumnType.Text),
+            new("customer", L.Msg("Customer"), ReportColumnType.Text),
+            new("gstin", L.Msg("GSTIN"), ReportColumnType.Text),
+            new("kind", L.Msg("Type"), ReportColumnType.Text),
+            new("reason", L.Msg("Reason"), ReportColumnType.Text),
+            new("gst", L.Msg("Reduces GST"), ReportColumnType.Text),
+            new("taxable", L.Msg("Taxable value"), ReportColumnType.Money),
+            new("cgst", L.Msg("CGST"), ReportColumnType.Money),
+            new("sgst", L.Msg("SGST/UTGST"), ReportColumnType.Money),
+            new("igst", L.Msg("IGST"), ReportColumnType.Money),
+            new("total", L.Msg("Credit note value"), ReportColumnType.Money),
+            new("unused", L.Msg("Credit unused"), ReportColumnType.Money),
         ];
 
         return Result(d, from, to, columns, rows.Select(r => Row(
             ("date", r.CreditNoteDate), ("number", r.Number), ("invoice", r.Invoice), ("customer", r.CustomerName), ("gstin", r.CustomerGstin),
-            ("kind", r.Kind == CreditNoteKind.GoodsReturn ? "Goods returned" : "Price correction"), ("reason", Words(r.Reason.ToString())),
-            ("gst", r.WithGst ? "Yes" : "No (after the time limit)"),
+            ("kind", r.Kind == CreditNoteKind.GoodsReturn ? L.Msg("Goods returned") : L.Msg("Price correction")), ("reason", Words(r.Reason.ToString())),
+            ("gst", r.WithGst ? L.Msg("Yes") : L.Msg("No (after the time limit)")),
             ("taxable", r.TaxableValue), ("cgst", r.CgstAmount), ("sgst", r.SgstAmount), ("igst", r.IgstAmount), ("total", r.GrandTotal),
             ("unused", r.Unused))).ToList());
     }
@@ -404,27 +404,27 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("date", "Date", ReportColumnType.Date),
-            new("number", "Debit note", ReportColumnType.Text),
-            new("bill", "Against bill", ReportColumnType.Text),
-            new("invoice", "Supplier's invoice", ReportColumnType.Text),
-            new("supplier", "Supplier", ReportColumnType.Text),
-            new("gstin", "GSTIN", ReportColumnType.Text),
-            new("reason", "Reason", ReportColumnType.Text),
-            new("theirNote", "Supplier's credit note", ReportColumnType.Text),
-            new("gst", "Reverses GST", ReportColumnType.Text),
-            new("taxable", "Taxable value", ReportColumnType.Money),
-            new("cgst", "CGST", ReportColumnType.Money),
-            new("sgst", "SGST/UTGST", ReportColumnType.Money),
-            new("igst", "IGST", ReportColumnType.Money),
-            new("total", "Debit note value", ReportColumnType.Money),
-            new("unused", "Credit unused", ReportColumnType.Money),
+            new("date", L.Msg("Date"), ReportColumnType.Date),
+            new("number", L.Msg("Debit note"), ReportColumnType.Text),
+            new("bill", L.Msg("Against bill"), ReportColumnType.Text),
+            new("invoice", L.Msg("Supplier's invoice"), ReportColumnType.Text),
+            new("supplier", L.Msg("Supplier"), ReportColumnType.Text),
+            new("gstin", L.Msg("GSTIN"), ReportColumnType.Text),
+            new("reason", L.Msg("Reason"), ReportColumnType.Text),
+            new("theirNote", L.Msg("Supplier's credit note"), ReportColumnType.Text),
+            new("gst", L.Msg("Reverses GST"), ReportColumnType.Text),
+            new("taxable", L.Msg("Taxable value"), ReportColumnType.Money),
+            new("cgst", L.Msg("CGST"), ReportColumnType.Money),
+            new("sgst", L.Msg("SGST/UTGST"), ReportColumnType.Money),
+            new("igst", L.Msg("IGST"), ReportColumnType.Money),
+            new("total", L.Msg("Debit note value"), ReportColumnType.Money),
+            new("unused", L.Msg("Credit unused"), ReportColumnType.Money),
         ];
 
         return Result(d, from, to, columns, rows.Select(r => Row(
             ("date", r.ReturnDate), ("number", r.Number), ("bill", r.Bill), ("invoice", r.SupplierInvoiceNumber), ("supplier", r.SupplierName),
-            ("gstin", r.SupplierGstin), ("reason", Words(r.Reason.ToString())), ("theirNote", r.SupplierCreditNoteNumber ?? "Awaited"),
-            ("gst", r.WithGst ? "Yes" : "No (after the time limit)"),
+            ("gstin", r.SupplierGstin), ("reason", Words(r.Reason.ToString())), ("theirNote", r.SupplierCreditNoteNumber ?? L.Msg("Awaited")),
+            ("gst", r.WithGst ? L.Msg("Yes") : L.Msg("No (after the time limit)")),
             ("taxable", r.TaxableValue), ("cgst", r.CgstAmount), ("sgst", r.SgstAmount), ("igst", r.IgstAmount), ("total", r.GrandTotal),
             ("unused", r.Unused))).ToList());
     }
@@ -444,24 +444,24 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         var columns = new List<ReportColumn>
         {
-            new("sku", "SKU", ReportColumnType.Text),
-            new("product", "Product", ReportColumnType.Text),
-            new("category", "Category", ReportColumnType.Text),
-            new("unit", "Unit", ReportColumnType.Text),
-            new("onHand", "On hand", ReportColumnType.Quantity),
-            new("reorderLevel", "Reorder level", ReportColumnType.Quantity),
-            new("status", "Status", ReportColumnType.Text),
+            new("sku", L.Msg("SKU"), ReportColumnType.Text),
+            new("product", L.Msg("Product"), ReportColumnType.Text),
+            new("category", L.Msg("Category"), ReportColumnType.Text),
+            new("unit", L.Msg("Unit"), ReportColumnType.Text),
+            new("onHand", L.Msg("On hand"), ReportColumnType.Quantity),
+            new("reorderLevel", L.Msg("Reorder level"), ReportColumnType.Quantity),
+            new("status", L.Msg("Status"), ReportColumnType.Text),
         };
         if (showValue)
         {
-            columns.Add(new("cost", "Cost per unit", ReportColumnType.Money));
-            columns.Add(new("value", "Value at cost", ReportColumnType.Money));
+            columns.Add(new("cost", L.Msg("Cost per unit"), ReportColumnType.Money));
+            columns.Add(new("value", L.Msg("Value at cost"), ReportColumnType.Money));
         }
 
         var result = rows.Select(r =>
         {
             var row = Row(("sku", r.Sku), ("product", r.Name), ("category", r.CategoryName), ("unit", r.Unit), ("onHand", r.QuantityOnHand),
-                ("reorderLevel", r.ReorderLevel), ("status", r.StockStatus switch { "OutOfStock" => "Out of stock", "Low" => "Low", _ => "In stock" }));
+                ("reorderLevel", r.ReorderLevel), ("status", r.StockStatus switch { "OutOfStock" => L.Msg("Out of stock"), "Low" => L.Msg("Low"), _ => "In stock" }));
             if (showValue)
             {
                 row["cost"] = r.Cost;
@@ -471,7 +471,7 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
             return row;
         }).ToList();
 
-        return Result(d with { Description = $"As of {clock.Today.ToString("dd MMM yyyy", India)}." }, null, null, columns, result, totals =>
+        return Result(d with { Description = L.Msg($"As of {clock.Today.ToString("dd MMM yyyy", India)}.") }, null, null, columns, result, totals =>
         {
             totals["onHand"] = null;
             totals["reorderLevel"] = null;
@@ -493,18 +493,18 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("date", "Bill date", ReportColumnType.Date),
-            new("number", "Our ref", ReportColumnType.Text),
-            new("invoice", "Supplier's invoice", ReportColumnType.Text),
-            new("supplier", "Supplier", ReportColumnType.Text),
-            new("gstin", "GSTIN", ReportColumnType.Text),
-            new("order", "Purchase order", ReportColumnType.Text),
-            new("taxable", "Taxable value", ReportColumnType.Money),
-            new("cgst", "CGST", ReportColumnType.Money),
-            new("sgst", "SGST/UTGST", ReportColumnType.Money),
-            new("igst", "IGST", ReportColumnType.Money),
-            new("tax", "Input GST", ReportColumnType.Money),
-            new("total", "Bill total", ReportColumnType.Money),
+            new("date", L.Msg("Bill date"), ReportColumnType.Date),
+            new("number", L.Msg("Our ref"), ReportColumnType.Text),
+            new("invoice", L.Msg("Supplier's invoice"), ReportColumnType.Text),
+            new("supplier", L.Msg("Supplier"), ReportColumnType.Text),
+            new("gstin", L.Msg("GSTIN"), ReportColumnType.Text),
+            new("order", L.Msg("Purchase order"), ReportColumnType.Text),
+            new("taxable", L.Msg("Taxable value"), ReportColumnType.Money),
+            new("cgst", L.Msg("CGST"), ReportColumnType.Money),
+            new("sgst", L.Msg("SGST/UTGST"), ReportColumnType.Money),
+            new("igst", L.Msg("IGST"), ReportColumnType.Money),
+            new("tax", L.Msg("Input GST"), ReportColumnType.Money),
+            new("total", L.Msg("Bill total"), ReportColumnType.Money),
         ];
 
         return Result(d, from, to, columns, rows.Select(r => Row(
@@ -554,20 +554,20 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("supplier", "Supplier", ReportColumnType.Text),
-            new("bills", "Open bills", ReportColumnType.Count),
-            new("notDue", "Not yet due", ReportColumnType.Money),
-            new("days1To30", "1–30 days", ReportColumnType.Money),
-            new("days31To60", "31–60 days", ReportColumnType.Money),
-            new("days61To90", "61–90 days", ReportColumnType.Money),
-            new("over90", "Over 90 days", ReportColumnType.Money),
-            new("total", "Total owed", ReportColumnType.Money),
-            new("credit", "Unused credit", ReportColumnType.Money),
-            new("net", "Net owed", ReportColumnType.Money),
-            new("oldest", "Most overdue (days)", ReportColumnType.Count),
+            new("supplier", L.Msg("Supplier"), ReportColumnType.Text),
+            new("bills", L.Msg("Open bills"), ReportColumnType.Count),
+            new("notDue", L.Msg("Not yet due"), ReportColumnType.Money),
+            new("days1To30", L.Msg("1–30 days"), ReportColumnType.Money),
+            new("days31To60", L.Msg("31–60 days"), ReportColumnType.Money),
+            new("days61To90", L.Msg("61–90 days"), ReportColumnType.Money),
+            new("over90", L.Msg("Over 90 days"), ReportColumnType.Money),
+            new("total", L.Msg("Total owed"), ReportColumnType.Money),
+            new("credit", L.Msg("Unused credit"), ReportColumnType.Money),
+            new("net", L.Msg("Net owed"), ReportColumnType.Money),
+            new("oldest", L.Msg("Most overdue (days)"), ReportColumnType.Count),
         ];
 
-        return Result(d with { Description = $"Owed as of {today.ToString("dd MMM yyyy", India)}." }, null, null, columns, rows.Select(r => Row(
+        return Result(d with { Description = L.Msg($"Owed as of {today.ToString("dd MMM yyyy", India)}.") }, null, null, columns, rows.Select(r => Row(
             ("supplier", r.Supplier), ("bills", r.Bills), ("notDue", r.NotDue), ("days1To30", r.D30), ("days31To60", r.D60),
             ("days61To90", r.D90), ("over90", r.Over90), ("total", r.Total), ("credit", r.Credit), ("net", r.Total - r.Credit),
             ("oldest", r.MaxDays))).ToList(),
@@ -598,16 +598,16 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         ReportColumn[] columns =
         [
-            new("month", "Month", ReportColumnType.Text),
-            new("outputCgst", "Output CGST", ReportColumnType.Money),
-            new("outputSgst", "Output SGST", ReportColumnType.Money),
-            new("outputIgst", "Output IGST", ReportColumnType.Money),
-            new("output", "Output GST", ReportColumnType.Money),
-            new("inputCgst", "Input CGST", ReportColumnType.Money),
-            new("inputSgst", "Input SGST", ReportColumnType.Money),
-            new("inputIgst", "Input IGST", ReportColumnType.Money),
-            new("input", "Input credit", ReportColumnType.Money),
-            new("net", "Net payable", ReportColumnType.Money),
+            new("month", L.Msg("Month"), ReportColumnType.Text),
+            new("outputCgst", L.Msg("Output CGST"), ReportColumnType.Money),
+            new("outputSgst", L.Msg("Output SGST"), ReportColumnType.Money),
+            new("outputIgst", L.Msg("Output IGST"), ReportColumnType.Money),
+            new("output", L.Msg("Output GST"), ReportColumnType.Money),
+            new("inputCgst", L.Msg("Input CGST"), ReportColumnType.Money),
+            new("inputSgst", L.Msg("Input SGST"), ReportColumnType.Money),
+            new("inputIgst", L.Msg("Input IGST"), ReportColumnType.Money),
+            new("input", L.Msg("Input credit"), ReportColumnType.Money),
+            new("net", L.Msg("Net payable"), ReportColumnType.Money),
         ];
 
         var rows = sales.Keys.Union(input.Keys).Order().Select(month =>
@@ -641,7 +641,7 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
     private static ReportResult Result(ReportDefinitionDto d, DateOnly? from, DateOnly? to, IReadOnlyList<ReportColumn> columns,
         List<Dictionary<string, object?>> rows, Action<Dictionary<string, object?>>? adjustTotals = null)
     {
-        var totals = new Dictionary<string, object?> { [columns[0].Key] = "Total" };
+        var totals = new Dictionary<string, object?> { [columns[0].Key] = L.Msg("Total") };
         foreach (var column in columns.Skip(1))
         {
             totals[column.Key] = column.Type switch
@@ -654,8 +654,25 @@ public sealed class ReportService(AppDbContext db, IBusinessClock clock, ICurren
 
         adjustTotals?.Invoke(totals);
         var subtitle = from is { } f && to is { } t
-            ? $"{f.ToString("dd MMM yyyy", India)} to {t.ToString("dd MMM yyyy", India)}"
+            ? L.Msg($"{f.ToString("dd MMM yyyy", India)} to {t.ToString("dd MMM yyyy", India)}")
             : d.Description;
         return new ReportResult(d.Key, d.Title, subtitle, from, to, columns, rows, totals);
     }
+
+    /// <summary>
+    /// The report in the reader's language, for the screen and the Excel file: title, headings, the app's own words
+    /// in cells (Invoices, Low, Total) and month names. Names and figures stay. Results are built in English, so the
+    /// audit trail records what was downloaded in English.
+    /// </summary>
+    public static ReportResult InReadersLanguage(ReportResult report) => report with
+    {
+        Title = L.T(report.Title),
+        Subtitle = L.T(report.Subtitle),
+        Columns = [.. report.Columns.Select(c => c with { Header = L.T(c.Header) })],
+        Rows = [.. report.Rows.Select(Translated)],
+        Totals = Translated(report.Totals),
+    };
+
+    private static Dictionary<string, object?> Translated(Dictionary<string, object?> row) =>
+        row.ToDictionary(cell => cell.Key, cell => cell.Value is string text ? L.Value(text) : cell.Value);
 }

@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useSupplierBill, type SupplierBill } from '@/features/purchasing/api'
 import { ApiRequestError, errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatINR, formatQuantity, todayInIndia } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { useDebounced } from '@/lib/use-debounced'
 import { useCreateSupplierReturn, useSupplierReturnPreview, type ReturnReason, type SupplierReturnCreateRequest } from './api'
 import { goodsReasons, returnReasonLabels } from './labels'
@@ -37,7 +38,7 @@ export function SupplierReturnFormPage() {
   if (bill.data.status === 'Cancelled') {
     return (
       <Alert variant="destructive" className="max-w-xl">
-        <AlertDescription>{bill.data.number} is cancelled, so nothing can be returned against it.</AlertDescription>
+        <AlertDescription>{t('{number} is cancelled, so nothing can be returned against it.', { number: bill.data.number })}</AlertDescription>
       </Alert>
     )
   }
@@ -65,8 +66,9 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
   const problem = (line: (typeof lines)[number]): string | null => {
     const value = raw(line.id)
     if (value === '') return null
-    if (!/^\d+(\.\d{1,3})?$/.test(value)) return 'Up to 3 decimals.'
-    if (Number(value) > line.quantityLeft) return line.quantityLeft > 0 ? `At most ${formatQuantity(line.quantityLeft, line.unit)}.` : 'All returned already.'
+    if (!/^\d+(\.\d{1,3})?$/.test(value)) return t('Up to 3 decimals.')
+    if (Number(value) > line.quantityLeft)
+      return line.quantityLeft > 0 ? t('At most {quantity}.', { quantity: formatQuantity(line.quantityLeft, line.unit) }) : t('All returned already.')
     return null
   }
 
@@ -96,7 +98,7 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
     setErrors({})
     try {
       const ret = await create.mutateAsync(request)
-      toast.success(`Debit note ${ret.number} recorded; stock updated`)
+      toast.success(t('Debit note {number} recorded; stock updated', { number: ret.number }))
       setSaved(ret.id)
     } catch (error) {
       if (error instanceof ApiRequestError && error.body.errors) {
@@ -110,13 +112,19 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
     <div className="flex max-w-6xl flex-col gap-6">
       <UnsavedChangesGuard when={entered.length > 0 && saved === null} />
       <PageHeader
-        title={`Return goods against ${bill.number}`}
-        description={`${bill.supplierName}'s invoice ${bill.supplierInvoiceNumber} of ${formatBusinessDate(bill.billDate)} · ${formatINR(bill.grandTotal)}, ${formatINR(bill.balance)} still to pay`}
+        title={t('Return goods against {number}', { number: bill.number })}
+        description={t("{supplier}'s invoice {number} of {date} · {total}, {balance} still to pay", {
+          supplier: bill.supplierName,
+          number: bill.supplierInvoiceNumber,
+          date: formatBusinessDate(bill.billDate),
+          total: formatINR(bill.grandTotal),
+          balance: formatINR(bill.balance),
+        })}
         actions={
           <Button variant="ghost" asChild>
             <Link to={`/supplier-bills/${bill.id}`}>
               <ArrowLeft />
-              Back to bill
+              {t('Back to bill')}
             </Link>
           </Button>
         }
@@ -126,22 +134,24 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
         <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           <Info />
           <AlertDescription className="text-inherit">
-            Input GST on this bill could be reversed only until {formatBusinessDate(deadline)}. This return reduces the value only, with no GST.
+            {t('Input GST on this bill could be reversed only until {date}. This return reduces the value only, with no GST.', { date: formatBusinessDate(deadline) })}
           </AlertDescription>
         </Alert>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Why they're going back</CardTitle>
+          <CardTitle>{t("Why they're going back")}</CardTitle>
           <CardDescription>
-            The goods leave stock at the bill's price, the input GST on them is reversed, and the value comes off what we owe {bill.supplierName}.
+            {t("The goods leave stock at the bill's price, the input GST on them is reversed, and the value comes off what we owe {supplier}.", {
+              supplier: bill.supplierName,
+            })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup className="grid gap-4 sm:grid-cols-4">
             <Field>
-              <FieldLabel htmlFor="dn-reason">Reason</FieldLabel>
+              <FieldLabel htmlFor="dn-reason">{t('Reason')}</FieldLabel>
               <Select value={reason} onValueChange={(v) => setReason(v as ReturnReason)}>
                 <SelectTrigger id="dn-reason" className="w-full">
                   <SelectValue />
@@ -149,24 +159,24 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
                 <SelectContent>
                   {goodsReasons.map((r) => (
                     <SelectItem key={r} value={r}>
-                      {returnReasonLabels[r]}
+                      {t(returnReasonLabels[r])}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="dn-note">Details</FieldLabel>
-              <Input id="dn-note" value={reasonNote} maxLength={500} placeholder="Optional, e.g. shade not as sample" onChange={(e) => setReasonNote(e.target.value)} />
+              <FieldLabel htmlFor="dn-note">{t('Details')}</FieldLabel>
+              <Input id="dn-note" value={reasonNote} maxLength={500} placeholder={t('Optional, e.g. shade not as sample')} onChange={(e) => setReasonNote(e.target.value)} />
             </Field>
             <Field data-invalid={!!errors.returnDate}>
-              <FieldLabel htmlFor="dn-date">Returned on</FieldLabel>
+              <FieldLabel htmlFor="dn-date">{t('Returned on')}</FieldLabel>
               <Input id="dn-date" type="date" value={date} min={bill.billDate} max={todayInIndia()} onChange={(e) => setDate(e.target.value)} />
               <FieldError errors={errors.returnDate ? [{ message: errors.returnDate }] : []} />
             </Field>
             <Field>
-              <FieldLabel htmlFor="dn-theirs">Their credit note no.</FieldLabel>
-              <Input id="dn-theirs" value={theirNumber} maxLength={30} placeholder="If it has arrived" onChange={(e) => setTheirNumber(e.target.value)} />
+              <FieldLabel htmlFor="dn-theirs">{t('Their credit note no.')}</FieldLabel>
+              <Input id="dn-theirs" value={theirNumber} maxLength={30} placeholder={t('If it has arrived')} onChange={(e) => setTheirNumber(e.target.value)} />
             </Field>
           </FieldGroup>
         </CardContent>
@@ -174,20 +184,20 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>What's going back</CardTitle>
-          <CardDescription>No more than was billed, less what's gone back already, and no more than is in stock.</CardDescription>
+          <CardTitle>{t("What's going back")}</CardTitle>
+          <CardDescription>{t("No more than was billed, less what's gone back already, and no more than is in stock.")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
             <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Billed</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Returned so far</TableHead>
-                  <TableHead className="w-40">Returning now</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
+                  <TableHead>{t('Product')}</TableHead>
+                  <TableHead className="text-right">{t('Billed')}</TableHead>
+                  <TableHead className="text-right">{t('Rate')}</TableHead>
+                  <TableHead className="text-right">{t('Returned so far')}</TableHead>
+                  <TableHead className="w-40">{t('Returning now')}</TableHead>
+                  <TableHead className="text-right">{t('Value')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -211,7 +221,7 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
                             inputMode="decimal"
                             placeholder={l.quantityLeft > 0 ? '0' : '—'}
                             disabled={l.quantityLeft <= 0}
-                            aria-label={`Quantity of ${l.sku} going back`}
+                            aria-label={t('Quantity of {sku} going back', { sku: l.sku })}
                             aria-invalid={!!error}
                             onChange={(e) => setQuantities((current) => ({ ...current, [l.id]: e.target.value }))}
                           />
@@ -232,32 +242,33 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
                 <p className="text-destructive">{errorMessage(preview.error)}</p>
               ) : p ? (
                 <p>
-                  {p.offBill > 0 && <>{formatINR(p.offBill)} comes off what we owe on {bill.number}. </>}
-                  {p.leftAsCredit > 0 && <>{formatINR(p.leftAsCredit)} is credit with {bill.supplierName}, for their next bill or a refund.</>}
+                  {p.offBill > 0 && <>{t('{amount} comes off what we owe on {number}.', { amount: formatINR(p.offBill), number: bill.number })} </>}
+                  {p.leftAsCredit > 0 &&
+                    t('{amount} is credit with {supplier}, for their next bill or a refund.', { amount: formatINR(p.leftAsCredit), supplier: bill.supplierName })}
                 </p>
               ) : (
-                <p>Enter a quantity to see the debit note.</p>
+                <p>{t('Enter a quantity to see the debit note.')}</p>
               )}
             </div>
             <dl className="grid min-w-72 grid-cols-[1fr_auto] gap-x-8 gap-y-1.5 text-sm tabular-nums">
-              <dt className="text-muted-foreground">Taxable value</dt>
+              <dt className="text-muted-foreground">{t('Taxable value')}</dt>
               <dd className="text-right">{p ? formatINR(p.taxableValue) : '—'}</dd>
               {bill.isInterState ? (
                 <>
-                  <dt className="text-muted-foreground">IGST reversed</dt>
+                  <dt className="text-muted-foreground">{t('IGST reversed')}</dt>
                   <dd className="text-right">{p ? formatINR(p.igstAmount) : '—'}</dd>
                 </>
               ) : (
                 <>
-                  <dt className="text-muted-foreground">CGST reversed</dt>
+                  <dt className="text-muted-foreground">{t('CGST reversed')}</dt>
                   <dd className="text-right">{p ? formatINR(p.cgstAmount) : '—'}</dd>
-                  <dt className="text-muted-foreground">SGST reversed</dt>
+                  <dt className="text-muted-foreground">{t('SGST reversed')}</dt>
                   <dd className="text-right">{p ? formatINR(p.sgstAmount) : '—'}</dd>
                 </>
               )}
-              <dt className="text-muted-foreground">Round off</dt>
+              <dt className="text-muted-foreground">{t('Round off')}</dt>
               <dd className="text-right">{p ? formatINR(p.roundOff) : '—'}</dd>
-              <dt className="border-t pt-1.5 font-semibold">Debit note total</dt>
+              <dt className="border-t pt-1.5 font-semibold">{t('Debit note total')}</dt>
               <dd className="border-t pt-1.5 text-right font-semibold">{p ? formatINR(p.grandTotal) : '—'}</dd>
             </dl>
           </div>
@@ -266,11 +277,11 @@ function ReturnForm({ bill }: { bill: SupplierBill }) {
 
       <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         <Button type="button" variant="outline" onClick={() => navigate(`/supplier-bills/${bill.id}`)}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="button" disabled={!request || create.isPending} onClick={submit}>
           {create.isPending && <Spinner />}
-          Return goods
+          {t('Return goods')}
         </Button>
       </div>
     </div>

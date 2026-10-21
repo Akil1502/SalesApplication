@@ -8,6 +8,7 @@ import { formatINR, formatQuantity } from '@/lib/format'
 import { initials, placeholderStyle } from '@/lib/product-tile'
 import type { ProductListItem } from './api'
 import { useProductImages } from './images'
+import { t } from '@/lib/i18n'
 
 interface ProductGalleryProps {
   items: ProductListItem[] | undefined
@@ -64,7 +65,7 @@ export function ProductGallery({ items, isLoading, onOpen, emptyTitle, emptyDesc
                       src={image.thumbnailUrl}
                       srcSet={`${image.thumbnailUrl} 400w, ${image.imageUrl} 1200w`}
                       sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      alt={`Photo of ${product.name}`}
+                      alt={t('Photo of {name}', { name: product.name })}
                       loading="lazy"
                       decoding="async"
                       className="size-full object-cover transition-transform duration-700 ease-out group-hover/tilt:scale-105"
@@ -77,10 +78,10 @@ export function ProductGallery({ items, isLoading, onOpen, emptyTitle, emptyDesc
                   <span className="fx-glass absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-medium">{product.categoryName}</span>
                   {low && (
                     <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-amber-500/90 px-2 py-0.5 text-xs font-medium text-white">
-                      <TriangleAlert className="size-3" /> Low stock
+                      <TriangleAlert className="size-3" /> {t('Low stock')}
                     </span>
                   )}
-                  {!product.isActive && <span className="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">Inactive</span>}
+                  {!product.isActive && <span className="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{t('Inactive')}</span>}
                 </div>
                 <div className="space-y-1 p-4">
                   <p className="truncate font-medium" title={product.name}>
@@ -91,7 +92,7 @@ export function ProductGallery({ items, isLoading, onOpen, emptyTitle, emptyDesc
                     <span className="font-semibold tabular-nums">
                       {formatINR(product.price)} <span className="text-xs font-normal text-muted-foreground">/ {product.unit}</span>
                     </span>
-                    <span className="truncate text-xs text-muted-foreground">{formatQuantity(product.quantityOnHand, product.unit)} in stock</span>
+                    <span className="truncate text-xs text-muted-foreground">{t('{quantity} in stock', { quantity: formatQuantity(product.quantityOnHand, product.unit) })}</span>
                   </div>
                 </div>
               </Card>

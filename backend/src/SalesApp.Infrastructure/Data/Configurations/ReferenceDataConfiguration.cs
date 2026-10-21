@@ -94,6 +94,7 @@ internal sealed class CompanySettingsConfiguration : IEntityTypeConfiguration<Co
         builder.Property(c => c.OverReceiptTolerancePercent).HasPrecision(5, 2);
         builder.Property(c => c.BillPriceTolerancePercent).HasPrecision(5, 2);
         builder.Property(c => c.BrandColour).HasMaxLength(7).IsUnicode(false);
+        builder.Property(c => c.DocumentLanguage).HasConversion<string>().HasMaxLength(10).IsUnicode(false);
         builder.Property(c => c.RowVersion).IsRowVersion();
         builder.HasOne(c => c.State).WithMany().HasForeignKey(c => c.StateCode).OnDelete(DeleteBehavior.Restrict);
 
@@ -117,6 +118,7 @@ internal sealed class CompanySettingsConfiguration : IEntityTypeConfiguration<Co
             PurchaseApprovalLimit = 500_000m,
             OverReceiptTolerancePercent = 5m,
             BillPriceTolerancePercent = 2m,
+            DocumentLanguage = DocumentLanguage.English,
         });
     }
 }

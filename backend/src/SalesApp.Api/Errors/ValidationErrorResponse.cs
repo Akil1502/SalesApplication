@@ -19,7 +19,7 @@ internal static class ValidationErrorResponse
                 group => group.Key,
                 group => group
                     .SelectMany(entry => entry.Value!.Errors)
-                    .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? "This value is not valid." : e.ErrorMessage)
+                    .Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? L.Msg("This value is not valid.") : e.ErrorMessage)
                     .Distinct()
                     .ToArray());
 

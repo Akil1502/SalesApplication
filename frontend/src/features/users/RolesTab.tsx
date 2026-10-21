@@ -14,11 +14,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
-import { useDeleteRole, usePermissionCatalog, useRoles, useSaveRole, type Role } from './api'
+import { roleLabel, useDeleteRole, usePermissionCatalog, useRoles, useSaveRole, type Role } from './api'
 import { PermissionGrid } from './PermissionGrid'
+import { msg, t } from '@/lib/i18n'
 
 const roleSchema = z.object({
-  name: requiredText('Name', 50).refine((v) => v.trim().length >= 2, { error: 'Use at least 2 characters.' }),
+  name: requiredText(msg('Name'), 50).refine((v) => v.trim().length >= 2, { error: msg('Use at least 2 characters.') }),
   description: z.string().max(200),
 })
 type RoleValues = z.infer<typeof roleSchema>
@@ -45,8 +46,8 @@ function RoleForm({ role, canEdit, onDone }: { role: Role | null; canEdit: boole
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const saved = await save.mutateAsync({ id: role?.id ?? null, body: { ...values, permissions: [...permissions] } })
-      toast.success(role ? `${saved.name} updated` : `${saved.name} created`, {
-        description: role && saved.userCount > 0 ? `The change applies to its ${saved.userCount} users straight away.` : undefined,
+      toast.success(role ? t('{name} updated', { name: roleLabel(saved.name) }) : t('{name} created', { name: saved.name }), {
+        description: role && saved.userCount > 0 ? t('The change applies to its {count} users straight away.', { count: saved.userCount }) : undefined,
       })
       onDone()
     } catch (error) {
@@ -54,15 +55,15 @@ function RoleForm({ role, canEdit, onDone }: { role: Role | null; canEdit: boole
     }
   })
 
-  const title = role ? (readOnly ? role.name : `Edit ${role.name}`) : 'New role'
+  const title = role ? (readOnly ? roleLabel(role.name) : t('Edit {name}', { name: roleLabel(role.name) })) : t('New role')
   return (
     <form onSubmit={onSubmit} noValidate>
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>
           {role?.isSystem
-            ? 'Administrators can do everything. This role can’t be changed, and there is always at least one active administrator.'
-            : 'A role is a set of permissions. Users get their role’s permissions, and you can still add or take away individual ones per user.'}
+            ? t('Administrators can do everything. This role can’t be changed, and there is always at least one active administrator.')
+            : t('A role is a set of permissions. Users get their role’s permissions, and you can still add or take away individual ones per user.')}
         </DialogDescription>
       </DialogHeader>
       <FieldGroup className="py-4">
@@ -70,23 +71,23 @@ function RoleForm({ role, canEdit, onDone }: { role: Role | null; canEdit: boole
           <FormInput
             control={form.control}
             name="name"
-            label="Name"
+            label={t('Name')}
             autoFocus={!role}
             disabled={readOnly || role?.isBuiltIn}
-            description={role?.isBuiltIn && !role.isSystem ? 'Built-in roles keep their names.' : undefined}
+            description={role?.isBuiltIn && !role.isSystem ? t('Built-in roles keep their names.') : undefined}
           />
-          <FormTextarea control={form.control} name="description" label="Description" rows={2} description="Optional: who this role is for." />
+          <FormTextarea control={form.control} name="description" label={t('Description')} rows={2} description={t('Optional: who this role is for.')} />
         </fieldset>
         {catalog.data ? <PermissionGrid catalog={catalog.data} value={permissions} onChange={readOnly ? undefined : setPermissions} /> : <Spinner />}
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>
-          {readOnly ? 'Close' : 'Cancel'}
+          {readOnly ? t('Close') : t('Cancel')}
         </Button>
         {!readOnly && (
           <Button type="submit" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting && <Spinner />}
-            {role ? 'Save' : 'Create role'}
+            {role ? t('Save') : t('Create role')}
           </Button>
         )}
       </DialogFooter>
@@ -103,24 +104,24 @@ export function RolesTab({ canEdit, creating, onCreatingChange }: { canEdit: boo
   const columns: Column<Role>[] = [
     {
       key: 'name',
-      header: 'Role',
+      header: msg('Role'),
       cell: (r) => (
         <div className="flex items-center gap-2">
-          <span className="font-medium">{r.name}</span>
-          {r.isBuiltIn && <Badge variant="secondary">Built-in</Badge>}
+          <span className="font-medium">{roleLabel(r.name)}</span>
+          {r.isBuiltIn && <Badge variant="secondary">{t('Built-in')}</Badge>}
         </div>
       ),
     },
-    { key: 'description', header: 'Description', cell: (r) => r.description ?? '—', className: 'whitespace-normal' },
-    { key: 'permissions', header: 'Permissions', align: 'right', cell: (r) => (r.isSystem ? 'All' : r.permissions.length) },
-    { key: 'users', header: 'Users', align: 'right', cell: (r) => r.userCount },
+    { key: 'description', header: msg('Description'), cell: (r) => r.description ?? '—', className: 'whitespace-normal' },
+    { key: 'permissions', header: msg('Permissions'), align: 'right', cell: (r) => (r.isSystem ? t('All') : r.permissions.length) },
+    { key: 'users', header: msg('Users'), align: 'right', cell: (r) => r.userCount },
     {
       key: 'actions',
       header: '',
       className: 'w-24',
       cell: (r) => (
         <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon-sm" onClick={() => setEditing(r)} aria-label={canEdit && !r.isSystem ? `Edit ${r.name}` : `View ${r.name}`}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setEditing(r)} aria-label={canEdit && !r.isSystem ? t('Edit {name}', { name: roleLabel(r.name) }) : t('View {name}', { name: roleLabel(r.name) })}>
             <Pencil />
           </Button>
           {canEdit && (
@@ -129,8 +130,8 @@ export function RolesTab({ canEdit, creating, onCreatingChange }: { canEdit: boo
               size="icon-sm"
               disabled={r.isBuiltIn || r.userCount > 0}
               onClick={() => setDeleting(r)}
-              aria-label={`Delete ${r.name}`}
-              title={r.isBuiltIn ? 'Built-in roles can’t be deleted.' : r.userCount > 0 ? 'Give its users another role first.' : undefined}
+              aria-label={t('Delete {name}', { name: roleLabel(r.name) })}
+              title={r.isBuiltIn ? t('Built-in roles can’t be deleted.') : r.userCount > 0 ? t('Give its users another role first.') : undefined}
             >
               <Trash2 />
             </Button>
@@ -144,7 +145,7 @@ export function RolesTab({ canEdit, creating, onCreatingChange }: { canEdit: boo
     if (!deleting) return
     try {
       await remove.mutateAsync(deleting.id)
-      toast.success(`${deleting.name} deleted`)
+      toast.success(t('{name} deleted', { name: deleting.name }))
     } catch (error) {
       toast.error(errorMessage(error))
     } finally {
@@ -161,15 +162,15 @@ export function RolesTab({ canEdit, creating, onCreatingChange }: { canEdit: boo
         isLoading={roles.isPending}
         error={roles.error}
         onRowClick={(r) => setEditing(r)}
-        emptyTitle="No roles"
+        emptyTitle={t('No roles')}
       />
       <RoleDialog open={creating || editing !== null} onOpenChange={(open) => !open && (setEditing(null), onCreatingChange(false))} role={editing} canEdit={canEdit} />
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
-        title={`Delete ${deleting?.name ?? 'this role'}?`}
-        description="Nobody has this role, so nothing else changes."
-        confirmLabel="Delete"
+        title={deleting ? t('Delete {name}?', { name: deleting.name }) : t('Delete this role?')}
+        description={t('Nobody has this role, so nothing else changes.')}
+        confirmLabel={t('Delete')}
         destructive
         onConfirm={() => void confirmDelete()}
       />

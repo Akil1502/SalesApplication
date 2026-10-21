@@ -17,26 +17,28 @@ import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api/client'
 import { errorMessage, unwrap } from '@/lib/api/errors'
 import { formatINR, formatQuantity } from '@/lib/format'
+import { msg, t, tn } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useConfirmSmartOrder, type CustomerMatchSource, type OrderExtraction } from './api'
 import { blankLine, buildConfirmRequest, initialNotes, lineProblem, needsAttention, priceDiffers, toReviewLine, type ReviewLine } from './review'
 
 const matchLabels: Record<CustomerMatchSource, string> = {
   None: '',
-  Selected: 'Chosen by you',
-  Gstin: 'Matched by GSTIN',
-  Phone: 'Matched by phone',
-  Name: 'Matched by name',
+  Selected: msg('Chosen by you'),
+  Gstin: msg('Matched by GSTIN'),
+  Phone: msg('Matched by phone'),
+  Name: msg('Matched by name'),
 }
 
 const variance = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero' })
 
 function UsageNote({ usage }: { usage: OrderExtraction['usage'] }) {
-  const cached = usage.cacheReadTokens > 0 ? ` · ${usage.cacheReadTokens.toLocaleString('en-IN')} tokens reused from cache` : ''
+  const values = { seconds: (usage.durationMs / 1000).toFixed(1), cost: formatINR(usage.costInr), tokens: usage.cacheReadTokens.toLocaleString('en-IN') }
   return (
     <p className="text-xs text-muted-foreground">
-      Read in {(usage.durationMs / 1000).toFixed(1)} s · estimated cost {formatINR(usage.costInr)}
-      {cached}
+      {usage.cacheReadTokens > 0
+        ? t('Read in {seconds} s · estimated cost {cost} · {tokens} tokens reused from cache', values)
+        : t('Read in {seconds} s · estimated cost {cost}', values)}
     </p>
   )
 }
@@ -87,7 +89,7 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
       const order = await confirm.mutateAsync(
         buildConfirmRequest({ customerId: customer.id, customerReference: reference, notes, lines, source: extraction.source }),
       )
-      toast.success(`Draft order ${order.number} created`)
+      toast.success(t('Draft order {number} created', { number: order.number }))
       setSavedOrderId(order.id)
     } catch (error) {
       toast.error(errorMessage(error))
@@ -107,7 +109,7 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
         <Alert>
           <TriangleAlert />
           <AlertDescription>
-            This doesn't look like an order, so no lines were read. Add lines yourself, or start over with different text.
+            {t("This doesn't look like an order, so no lines were read. Add lines yourself, or start over with different text.")}
           </AlertDescription>
         </Alert>
       )}
@@ -117,14 +119,19 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
         <Card className="2xl:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Sparkles className="size-4 text-muted-foreground" aria-hidden /> Lines read from the order
+              <Sparkles className="size-4 text-muted-foreground" aria-hidden /> {t('Lines read from the order')}
             </CardTitle>
             <CardDescription>
               {lines.length === 0
-                ? 'No lines yet.'
+                ? t('No lines yet.')
                 : toCheck > 0
-                  ? `${lines.length} lines · ${toCheck} highlighted for a check. Prices come from your price list.`
-                  : `${lines.length} lines, all clear. Prices come from your price list.`}
+                  ? tn(
+                      lines.length,
+                      '{count} line · {check} highlighted for a check. Prices come from your price list.',
+                      '{count} lines · {check} highlighted for a check. Prices come from your price list.',
+                      { check: toCheck },
+                    )
+                  : tn(lines.length, '{count} line, all clear. Prices come from your price list.', '{count} lines, all clear. Prices come from your price list.')}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -133,12 +140,12 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
-                      <TableHead className="min-w-52">In the order</TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="w-36">Quantity</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead className="min-w-52">{t('In the order')}</TableHead>
+                      <TableHead>{t('Product')}</TableHead>
+                      <TableHead className="w-36">{t('Quantity')}</TableHead>
+                      <TableHead className="text-right">{t('Price')}</TableHead>
                       <TableHead className="w-10">
-                        <span className="sr-only">Remove</span>
+                        <span className="sr-only">{t('Remove')}</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -152,17 +159,17 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                             {line.sourceText ? (
                               <p className="text-sm italic">“{line.sourceText}”</p>
                             ) : (
-                              <p className="text-sm text-muted-foreground">Added by you</p>
+                              <p className="text-sm text-muted-foreground">{t('Added by you')}</p>
                             )}
                             <div className="mt-1 flex flex-wrap gap-1">
                               {line.matchedBy === 'Alias' && (
                                 <Badge variant="outline" className="text-xs">
-                                  Learned wording
+                                  {t('Learned wording')}
                                 </Badge>
                               )}
                               {attention && line.sourceText && (
                                 <Badge variant="outline" className="border-amber-600/30 bg-amber-50 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                  <TriangleAlert /> Check
+                                  <TriangleAlert /> {t('Check')}
                                 </Badge>
                               )}
                             </div>
@@ -175,9 +182,11 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                               invalid={problem === 'Choose a product'}
                             />
                             {line.product && (
-                              <p className="mt-1 text-xs text-muted-foreground">{formatQuantity(line.product.quantityOnHand, line.product.unit)} in stock</p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {t('{quantity} in stock', { quantity: formatQuantity(line.product.quantityOnHand, line.product.unit) })}
+                              </p>
                             )}
-                            {problem === 'Choose a product' && <p className="mt-1 text-xs text-destructive">{problem}</p>}
+                            {problem === 'Choose a product' && <p className="mt-1 text-xs text-destructive">{t(problem)}</p>}
                           </TableCell>
                           <TableCell className="whitespace-normal">
                             <div className="flex items-center gap-2">
@@ -185,20 +194,20 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                                 value={line.quantity}
                                 onChange={(e) => update(line.key, { quantity: e.target.value })}
                                 inputMode="decimal"
-                                aria-label="Quantity"
+                                aria-label={t('Quantity')}
                                 aria-invalid={problem === 'Enter a quantity'}
                                 className="w-24 text-right tabular-nums"
                               />
                               <span className="text-xs text-muted-foreground">{line.product?.unit}</span>
                             </div>
-                            {line.statedUnit && <p className="mt-1 text-xs text-muted-foreground">Order said: {line.statedUnit}</p>}
-                            {problem === 'Enter a quantity' && <p className="mt-1 text-xs text-destructive">{problem}</p>}
+                            {line.statedUnit && <p className="mt-1 text-xs text-muted-foreground">{t('Order said: {unit}', { unit: line.statedUnit })}</p>}
+                            {problem === 'Enter a quantity' && <p className="mt-1 text-xs text-destructive">{t(problem)}</p>}
                           </TableCell>
                           <TableCell className="text-right whitespace-normal tabular-nums">
                             {line.product ? formatINR(line.product.price) : '—'}
                             {line.statedPrice !== null && (
                               <p className={cn('mt-1 text-xs', priceDiffers(line) ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground')}>
-                                Order: {formatINR(line.statedPrice)}
+                                {t('Order: {price}', { price: formatINR(line.statedPrice) })}
                                 {priceDiffers(line) && ` (${variance.format(line.priceVariance!)})`}
                               </p>
                             )}
@@ -207,7 +216,7 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label="Remove line"
+                              aria-label={t('Remove line')}
                               onClick={() => setLines((current) => current.filter((l) => l.key !== line.key))}
                             >
                               <Trash2 />
@@ -223,13 +232,13 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
 
             <div>
               <Button variant="outline" size="sm" onClick={() => setLines((current) => [...current, blankLine()])}>
-                <Plus /> Add line
+                <Plus /> {t('Add line')}
               </Button>
             </div>
 
             {unmatched.length > 0 && (
               <div className="rounded-lg border border-dashed p-3">
-                <p className="text-sm font-medium">Couldn't be read</p>
+                <p className="text-sm font-medium">{t("Couldn't be read")}</p>
                 <ul className="mt-2 flex flex-col gap-2">
                   {unmatched.map((fragment) => (
                     <li key={fragment} className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -242,7 +251,7 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                           setUnmatched((current) => current.filter((f) => f !== fragment))
                         }}
                       >
-                        <Plus /> Add as a line
+                        <Plus /> {t('Add as a line')}
                       </Button>
                     </li>
                   ))}
@@ -256,12 +265,12 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
 
         <Card>
           <CardHeader>
-            <CardTitle>Customer and details</CardTitle>
-            {clueText && <CardDescription>The order says: {clueText}</CardDescription>}
+            <CardTitle>{t('Customer and details')}</CardTitle>
+            {clueText && <CardDescription>{t('The order says: {clues}', { clues: clueText })}</CardDescription>}
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="review-customer">Customer</Label>
+              <Label htmlFor="review-customer">{t('Customer')}</Label>
               <CustomerPicker
                 id="review-customer"
                 value={customer}
@@ -273,10 +282,10 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
               />
               {customer && !customerTouched && !mismatch && extraction.customer.matchedBy !== 'None' && (
                 <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <CheckCircle2 className="size-3.5" aria-hidden /> {matchLabels[extraction.customer.matchedBy]}
+                  <CheckCircle2 className="size-3.5" aria-hidden /> {t(matchLabels[extraction.customer.matchedBy])}
                 </p>
               )}
-              {showProblems && !customer && <p className="text-xs text-destructive">Choose the customer.</p>}
+              {showProblems && !customer && <p className="text-xs text-destructive">{t('Choose the customer.')}</p>}
               {mismatch && (
                 <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                   <TriangleAlert />
@@ -285,11 +294,11 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
                     <span className="flex flex-wrap gap-2">
                       {mismatch.suggested && (
                         <Button size="sm" variant="outline" onClick={() => void pickCandidate(mismatch.suggested!.id)}>
-                          Switch to {mismatch.suggested.name}
+                          {t('Switch to {name}', { name: mismatch.suggested.name })}
                         </Button>
                       )}
                       <Button size="sm" variant="ghost" onClick={() => setCustomerTouched(true)}>
-                        Keep {customer?.name}
+                        {t('Keep {name}', { name: customer?.name ?? '' })}
                       </Button>
                     </span>
                   </AlertDescription>
@@ -297,7 +306,7 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
               )}
               {!customer && extraction.customer.candidates.length > 0 && (
                 <div className="flex flex-col gap-1">
-                  <p className="text-xs text-muted-foreground">Did you mean:</p>
+                  <p className="text-xs text-muted-foreground">{t('Did you mean:')}</p>
                   {extraction.customer.candidates.map((c) => (
                     <Button key={c.id} variant="outline" size="sm" className="justify-start" onClick={() => void pickCandidate(c.id)}>
                       {c.name} <span className="text-muted-foreground">· {c.city}</span>
@@ -308,24 +317,24 @@ export function ReviewOrder({ extraction, initialCustomer, onStartOver }: Review
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="review-reference">Customer's PO / reference</Label>
+              <Label htmlFor="review-reference">{t("Customer's PO / reference")}</Label>
               <Input id="review-reference" value={reference} onChange={(e) => setReference(e.target.value)} maxLength={50} />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="review-notes">Notes</Label>
+              <Label htmlFor="review-notes">{t('Notes')}</Label>
               <Textarea id="review-notes" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col items-stretch gap-2">
             <Button onClick={() => void save()} disabled={confirm.isPending || lines.length === 0}>
-              {confirm.isPending && <Spinner />} Create draft order
+              {confirm.isPending && <Spinner />} {t('Create draft order')}
             </Button>
             {showProblems && !canSave && lines.length > 0 && (
-              <p className="text-center text-xs text-destructive">Fix the highlighted fields first.</p>
+              <p className="text-center text-xs text-destructive">{t('Fix the highlighted fields first.')}</p>
             )}
             <Button variant="ghost" onClick={onStartOver} disabled={confirm.isPending}>
-              <RotateCcw /> Start over
+              <RotateCcw /> {t('Start over')}
             </Button>
           </CardFooter>
         </Card>

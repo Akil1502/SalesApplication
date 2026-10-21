@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
+using SalesApp.Core.Localization;
 
 namespace SalesApp.Core.Validation;
 
@@ -25,7 +26,7 @@ public sealed class GstinAttribute : ValidationAttribute
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
 public sealed class PincodeAttribute() : RegularExpressionAttribute("^[1-9][0-9]{5}$")
 {
-    public override string FormatErrorMessage(string name) => "PIN code must be 6 digits and can't start with 0.";
+    public override string FormatErrorMessage(string name) => L.Msg("PIN code must be 6 digits and can't start with 0.");
 }
 
 /// <summary>
@@ -48,7 +49,7 @@ public sealed partial class IndianPhoneAttribute : ValidationAttribute
         var compact = text.Replace(" ", string.Empty, StringComparison.Ordinal).Replace("-", string.Empty, StringComparison.Ordinal);
         return PhoneRegex().IsMatch(compact)
             ? ValidationResult.Success
-            : new ValidationResult("Enter a 10-digit phone number, optionally starting with +91.",
+            : new ValidationResult(L.Msg("Enter a 10-digit phone number, optionally starting with +91."),
                 validationContext.MemberName is { } member ? [member] : null);
     }
 }
@@ -70,7 +71,7 @@ public sealed class DecimalPlacesAttribute(int places) : ValidationAttribute
         }
 
         return new ValidationResult(
-            Places == 0 ? "Use a whole number." : $"Use at most {Places} decimal places.",
+            Places == 0 ? L.Msg("Use a whole number.") : L.Msg($"Use at most {Places} decimal places."),
             validationContext.MemberName is { } member ? [member] : null);
     }
 }
@@ -100,5 +101,5 @@ public sealed class DecimalRangeAttribute(double minimum, double maximum) : Rang
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
 public sealed class IfscAttribute() : RegularExpressionAttribute("^[A-Z]{4}0[A-Z0-9]{6}$")
 {
-    public override string FormatErrorMessage(string name) => "IFSC must be 11 characters, like SBIN0001234.";
+    public override string FormatErrorMessage(string name) => L.Msg("IFSC must be 11 characters, like SBIN0001234.");
 }

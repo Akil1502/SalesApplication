@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { api } from '@/lib/api/client'
 import { errorMessage } from '@/lib/api/errors'
 import { formatINR } from '@/lib/format'
+import { t, tn } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { AskAnswer } from './api'
 import { AnswerChart } from './AnswerChart'
@@ -14,7 +15,7 @@ import { askColumnHeader, formatAskValue, isNumericColumn } from './ask-format'
 
 async function downloadExcel(resultId: string) {
   const { data, response } = await api.GET('/api/ask/results/{id}/excel', { params: { path: { id: resultId } }, parseAs: 'blob' })
-  if (!response.ok || !data) throw new Error(response.status === 404 ? 'That answer has expired. Ask the question again to download it.' : 'The Excel file could not be created.')
+  if (!response.ok || !data) throw new Error(response.status === 404 ? t('That answer has expired. Ask the question again to download it.') : t('The Excel file could not be created.'))
   const url = URL.createObjectURL(data as Blob)
   const link = document.createElement('a')
   link.href = url
@@ -42,7 +43,7 @@ export function AnswerCard({ answer, onFollowUp }: { answer: AskAnswer; onFollow
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm leading-relaxed whitespace-pre-line">{answer.summary || 'Here is what the data shows.'}</p>
+      <p className="text-sm leading-relaxed whitespace-pre-line">{answer.summary || t('Here is what the data shows.')}</p>
 
       {hasRows && (
         <>
@@ -72,8 +73,9 @@ export function AnswerCard({ answer, onFollowUp }: { answer: AskAnswer; onFollow
             </Table>
           </div>
           <p className="text-xs text-muted-foreground">
-            {answer.rows.length.toLocaleString('en-IN')} {answer.rows.length === 1 ? 'row' : 'rows'}
-            {answer.truncated && ' (the query returned more; only the first 500 are shown)'}. Straight from the database.
+            {answer.truncated
+              ? t('{count} rows (the query returned more; only the first 500 are shown). Straight from the database.', { count: answer.rows.length.toLocaleString('en-IN') })
+              : tn(answer.rows.length, '{count} row. Straight from the database.', '{count} rows. Straight from the database.')}
           </p>
         </>
       )}
@@ -81,7 +83,7 @@ export function AnswerCard({ answer, onFollowUp }: { answer: AskAnswer; onFollow
       {answer.sql && (
         <details open className="rounded-lg border bg-muted/40">
           <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-muted-foreground">
-            SQL used{answer.purpose ? `: ${answer.purpose}` : ''}
+            {answer.purpose ? t('SQL used: {purpose}', { purpose: answer.purpose }) : t('SQL used')}
           </summary>
           <pre className="max-h-48 overflow-auto px-3 pb-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">{answer.sql}</pre>
         </details>
@@ -101,8 +103,10 @@ export function AnswerCard({ answer, onFollowUp }: { answer: AskAnswer; onFollow
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Answered in {(answer.usage.durationMs / 1000).toFixed(1)} s · {answer.queriesRun} {answer.queriesRun === 1 ? 'query' : 'queries'} · estimated cost{' '}
-        {formatINR(answer.usage.costInr)}
+        {tn(answer.queriesRun, 'Answered in {seconds} s · {count} query · estimated cost {cost}', 'Answered in {seconds} s · {count} queries · estimated cost {cost}', {
+          seconds: (answer.usage.durationMs / 1000).toFixed(1),
+          cost: formatINR(answer.usage.costInr),
+        })}
       </p>
     </div>
   )

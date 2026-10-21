@@ -6787,11 +6787,12 @@ export interface components {
         /**
          * @description The one error shape every endpoint returns. string ApiError.TraceId matches the server log
          *     entry, so a user can quote it when reporting a problem. IReadOnlyDictionary&lt;string, string[]&gt;? ApiError.Errors is only present
-         *     for validation failures and is keyed by camelCase field name.
+         *     for validation failures and is keyed by camelCase field name. Messages are written in English and
+         *     translated here into the request's language (Tamil when the app is in Tamil).
          */
         ApiError: {
-            message: string;
             traceId: string;
+            message: string;
             errors?: null | {
                 [key: string]: string[];
             };
@@ -6899,6 +6900,7 @@ export interface components {
             summary: null | string;
             changes: components["schemas"]["AuditChange"][];
             ipAddress: null | string;
+            entityTypeLabel: null | string;
         };
         /** @description Credit still available on one credit note or supplier return, for choosing which to use. */
         AvailableCreditDto: {
@@ -7038,6 +7040,7 @@ export interface components {
             /** Format: double */
             billPriceTolerancePercent: number;
             brandColour: null | string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             logoUrl: null | string;
             rowVersion: string;
         };
@@ -7072,6 +7075,8 @@ export interface components {
             billPriceTolerancePercent?: number;
             /** @description The app's colour as #rrggbb; empty keeps the standard indigo. */
             brandColour?: null | string;
+            /** @description Printed documents for customers and suppliers who haven't chosen their own language. */
+            documentLanguage?: components["schemas"]["DocumentLanguage"];
             rowVersion: string;
         };
         /** @description Credit set against another invoice or bill of the same customer or supplier. */
@@ -7158,6 +7163,8 @@ export interface components {
             /** Format: double */
             creditAvailable: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             adjustments: components["schemas"]["CreditUseDto"][];
             refunds: components["schemas"]["RefundDto"][];
             /** Format: date-time */
@@ -7353,6 +7360,7 @@ export interface components {
             assignedRepName: null | string;
             notes: null | string;
             isActive: boolean;
+            documentLanguage: null | components["schemas"]["DocumentLanguage"];
             /** Format: date-time */
             createdAtUtc: string;
             /** Format: date-time */
@@ -7406,6 +7414,7 @@ export interface components {
             assignedRepId?: null | string;
             notes?: null | string;
             isActive?: boolean;
+            documentLanguage?: null | components["schemas"]["DocumentLanguage"];
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
         };
@@ -7531,6 +7540,12 @@ export interface components {
             /** Format: date */
             comparisonTo: string;
         };
+        /**
+         * @description The language a customer's or supplier's documents are printed in (invoices, quotations, credit and debit notes,
+         *     purchase orders) and their payment reminders written in. Both prints each label in English with the Tamil under it.
+         * @enum {unknown}
+         */
+        DocumentLanguage: "English" | "Tamil" | "Both";
         EntityTagHeaderValue: {
             tag?: components["schemas"]["StringSegment"];
             isWeak?: boolean;
@@ -7792,6 +7807,8 @@ export interface components {
             /** Format: int32 */
             daysOverdue: null | number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             payments: components["schemas"]["PaymentDto"][];
             creditsApplied: components["schemas"]["CreditUseDto"][];
             creditNotes: components["schemas"]["ReturnSummaryDto"][];
@@ -7879,6 +7896,7 @@ export interface components {
             status: components["schemas"]["InvoiceStatus"];
             /** Format: int32 */
             daysOverdue: null | number;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
         };
         /** @enum {unknown} */
         InvoiceStatus: "Unpaid" | "PartiallyPaid" | "Paid" | "Cancelled";
@@ -8030,6 +8048,8 @@ export interface components {
             /** Format: double */
             grandTotal: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             createdByName: string;
             /** Format: date-time */
             createdAtUtc: string;
@@ -8602,6 +8622,8 @@ export interface components {
             /** Format: double */
             grandTotal: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             needsApproval: boolean;
             /** Format: double */
             approvalLimit: null | number;
@@ -9409,6 +9431,7 @@ export interface components {
             bankIfsc: null | string;
             notes: null | string;
             isActive: boolean;
+            documentLanguage: null | components["schemas"]["DocumentLanguage"];
             isInterState: boolean;
             /** Format: double */
             payable: number;
@@ -9544,6 +9567,8 @@ export interface components {
             /** Format: double */
             creditAvailable: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             adjustments: components["schemas"]["CreditUseDto"][];
             refunds: components["schemas"]["RefundDto"][];
             /** Format: date-time */
@@ -9679,6 +9704,7 @@ export interface components {
             bankIfsc?: null | string;
             notes?: null | string;
             isActive?: boolean;
+            documentLanguage?: null | components["schemas"]["DocumentLanguage"];
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
         };

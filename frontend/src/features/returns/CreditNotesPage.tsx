@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatBusinessDate, formatINR } from '@/lib/format'
+import { msg, t, tn } from '@/lib/i18n'
 import { useCreditNotes, useCreditNoteSummary, type CreditNoteKind, type CreditNoteListItem } from './api'
 import { NoGstBadge, ReturnStatusBadge } from './badges'
 import { creditNoteKindLabels, returnReasonLabels } from './labels'
@@ -15,17 +16,17 @@ import { creditNoteKindLabels, returnReasonLabels } from './labels'
 const ALL = 'all'
 const CREDIT = 'credit'
 const tabs = [
-  { value: ALL, label: 'All' },
-  { value: CREDIT, label: 'Credit left' },
-  { value: 'GoodsReturn', label: 'Goods returned' },
-  { value: 'PriceCorrection', label: 'Price corrections' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: ALL, label: msg('All') },
+  { value: CREDIT, label: msg('Credit left') },
+  { value: 'GoodsReturn', label: msg('Goods returned') },
+  { value: 'PriceCorrection', label: msg('Price corrections') },
+  { value: 'Cancelled', label: msg('Cancelled') },
 ]
 
 const columns: Column<CreditNoteListItem>[] = [
   {
     key: 'number',
-    header: 'Credit note',
+    header: msg('Credit note'),
     cell: (c) => (
       <div className="flex flex-col">
         <span className="font-mono text-xs">{c.number}</span>
@@ -34,23 +35,23 @@ const columns: Column<CreditNoteListItem>[] = [
     ),
     className: 'w-40',
   },
-  { key: 'customer', header: 'Customer', cell: (c) => <span className="font-medium">{c.customerName}</span> },
-  { key: 'invoice', header: 'Against', cell: (c) => <span className="font-mono text-xs">{c.invoiceNumber}</span> },
+  { key: 'customer', header: msg('Customer'), cell: (c) => <span className="font-medium">{c.customerName}</span> },
+  { key: 'invoice', header: msg('Against'), cell: (c) => <span className="font-mono text-xs">{c.invoiceNumber}</span> },
   {
     key: 'what',
-    header: 'What',
+    header: msg('What'),
     cell: (c) => (
       <div className="flex flex-col">
-        <span>{creditNoteKindLabels[c.kind]}</span>
-        <span className="text-xs text-muted-foreground">{returnReasonLabels[c.reason]}</span>
+        <span>{t(creditNoteKindLabels[c.kind])}</span>
+        <span className="text-xs text-muted-foreground">{t(returnReasonLabels[c.reason])}</span>
       </div>
     ),
   },
-  { key: 'total', header: 'Total', align: 'right', cell: (c) => formatINR(c.grandTotal) },
-  { key: 'credit', header: 'Credit left', align: 'right', cell: (c) => (c.creditAvailable > 0 ? formatINR(c.creditAvailable) : '—') },
+  { key: 'total', header: msg('Total'), align: 'right', cell: (c) => formatINR(c.grandTotal) },
+  { key: 'credit', header: msg('Credit left'), align: 'right', cell: (c) => (c.creditAvailable > 0 ? formatINR(c.creditAvailable) : '—') },
   {
     key: 'status',
-    header: 'Status',
+    header: msg('Status'),
     cell: (c) => (
       <span className="inline-flex flex-wrap gap-1">
         <ReturnStatusBadge status={c.status} />
@@ -64,13 +65,17 @@ function SummaryCards() {
   const summary = useCreditNoteSummary()
   const s = summary.data
   const cards = [
-    { label: 'Credited this month', value: s && formatINR(s.creditedThisMonth, 0), hint: s && `${s.countThisMonth} credit note${s.countThisMonth === 1 ? '' : 's'}` },
     {
-      label: 'Customer credit unused',
-      value: s && formatINR(s.customerCreditAvailable, 0),
-      hint: s && `${s.customersWithCredit} customer${s.customersWithCredit === 1 ? '' : 's'}`,
+      label: t('Credited this month'),
+      value: s && formatINR(s.creditedThisMonth, 0),
+      hint: s && tn(s.countThisMonth, '{count} credit note', '{count} credit notes'),
     },
-    { label: 'Refunded this month', value: s && formatINR(s.refundedThisMonth, 0) },
+    {
+      label: t('Customer credit unused'),
+      value: s && formatINR(s.customerCreditAvailable, 0),
+      hint: s && tn(s.customersWithCredit, '{count} customer', '{count} customers'),
+    },
+    { label: t('Refunded this month'), value: s && formatINR(s.refundedThisMonth, 0) },
   ]
   return (
     <div className="grid gap-4 sm:grid-cols-3">
@@ -108,17 +113,19 @@ export function CreditNotesPage() {
   return (
     <>
       <PageHeader
-        title="Credit notes"
-        description="Goods customers sent back and price corrections. Issue one from the invoice; its value comes off what's due, and anything left is the customer's credit."
+        title={t('Credit notes')}
+        description={t(
+          "Goods customers sent back and price corrections. Issue one from the invoice; its value comes off what's due, and anything left is the customer's credit.",
+        )}
       />
       <SummaryCards />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl label="Show" value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search credit note, invoice, customer or GSTIN" />
+        <SegmentedControl label={msg('Show')} value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search credit note, invoice, customer or GSTIN')} />
         {customerId !== undefined && (
           <button type="button" className="text-sm text-muted-foreground underline underline-offset-4" onClick={() => update({ filters: { customerId: undefined } })}>
-            Showing one customer · show all
+            {t('Showing one customer · show all')}
           </button>
         )}
       </div>
@@ -131,8 +138,8 @@ export function CreditNotesPage() {
         isLoading={notes.isPending}
         error={notes.error}
         onRowClick={(c) => navigate(`/credit-notes/${c.id}`)}
-        emptyTitle={tab === CREDIT ? 'No unused credit' : 'No credit notes'}
-        emptyDescription={tab === ALL && !params.q ? 'Open an invoice and choose Credit note when goods come back or a price needs correcting.' : undefined}
+        emptyTitle={tab === CREDIT ? t('No unused credit') : t('No credit notes')}
+        emptyDescription={tab === ALL && !params.q ? t('Open an invoice and choose Credit note when goods come back or a price needs correcting.') : undefined}
       />
       {notes.data && (
         <Pagination

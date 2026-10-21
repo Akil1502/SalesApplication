@@ -137,7 +137,7 @@ public sealed class InventoryService(
         var showCost = currentUser.Has(Permissions.CostPricesView);
 
         // The ledger always reads newest first; ties broken by posting order.
-        return await query
+        var page = await query
             .OrderByDescending(m => m.MovementDate)
             .ThenByDescending(m => m.Id)
             .Select(m => new StockMovementDto(
@@ -147,6 +147,9 @@ public sealed class InventoryService(
                 m.Reason, m.ReferenceType, m.ReferenceId, m.ReferenceNumber, m.Notes,
                 m.CreatedBy!.FullName, m.CreatedAtUtc))
             .ToPagedResultAsync(request, cancellationToken);
+
+        // Notes the app wrote ("Returned against INV/…") read in the reader's language; typed notes stay as typed.
+        return page with { Items = [.. page.Items.Select(m => m with { Notes = L.T(m.Notes) })] };
     }
 
     public async Task<PagedResult<StockReceiptListItemDto>> ListReceiptsAsync(PageRequest request, CancellationToken cancellationToken)

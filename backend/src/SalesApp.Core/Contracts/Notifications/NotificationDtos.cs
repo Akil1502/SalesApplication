@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
+using SalesApp.Core.Localization;
 
 namespace SalesApp.Core.Contracts.Notifications;
 
@@ -35,14 +36,14 @@ public static class NotificationKinds
 {
     public static readonly IReadOnlyList<NotificationKindInfo> All =
     [
-        new(NotificationKind.PaymentReceived, "Payments received", "Money received from customers.", [Security.Permissions.PaymentsView], Important: true, AboutCustomer: true),
-        new(NotificationKind.OrderCreated, "New orders", "Orders and quotations started by someone else.", [Security.Permissions.OrdersView], Important: false, AboutCustomer: true),
-        new(NotificationKind.OrderConfirmed, "Confirmed orders", "Orders confirmed and ready to invoice.", [Security.Permissions.OrdersView], Important: false, AboutCustomer: true),
-        new(NotificationKind.OverdueSummary, "Overdue invoices", "A morning summary of the invoices past their due date.", [Security.Permissions.InvoicesView], Important: false, AboutCustomer: false),
-        new(NotificationKind.LowStock, "Low stock", "A product falling to its reorder level.", [Security.Permissions.StockView], Important: false, AboutCustomer: false),
-        new(NotificationKind.PurchaseOrderApproval, "Purchase orders to approve", "Orders above the approval limit, waiting for someone who may approve them.", [Security.Permissions.PurchaseOrdersApprove], Important: true, AboutCustomer: false),
-        new(NotificationKind.BillApproval, "Bills to approve", "Supplier bills that don't match their order, waiting for approval before payment.", [Security.Permissions.SupplierBillsApprove], Important: true, AboutCustomer: false),
-        new(NotificationKind.InsightsReady, "New AI insights", "A fresh set of insights and forecasts.", [Security.Permissions.InsightsView], Important: false, AboutCustomer: false),
+        new(NotificationKind.PaymentReceived, L.Msg("Payments received"), L.Msg("Money received from customers."), [Security.Permissions.PaymentsView], Important: true, AboutCustomer: true),
+        new(NotificationKind.OrderCreated, L.Msg("New orders"), L.Msg("Orders and quotations started by someone else."), [Security.Permissions.OrdersView], Important: false, AboutCustomer: true),
+        new(NotificationKind.OrderConfirmed, L.Msg("Confirmed orders"), L.Msg("Orders confirmed and ready to invoice."), [Security.Permissions.OrdersView], Important: false, AboutCustomer: true),
+        new(NotificationKind.OverdueSummary, L.Msg("Overdue invoices"), L.Msg("A morning summary of the invoices past their due date."), [Security.Permissions.InvoicesView], Important: false, AboutCustomer: false),
+        new(NotificationKind.LowStock, L.Msg("Low stock"), L.Msg("A product falling to its reorder level."), [Security.Permissions.StockView], Important: false, AboutCustomer: false),
+        new(NotificationKind.PurchaseOrderApproval, L.Msg("Purchase orders to approve"), L.Msg("Orders above the approval limit, waiting for someone who may approve them."), [Security.Permissions.PurchaseOrdersApprove], Important: true, AboutCustomer: false),
+        new(NotificationKind.BillApproval, L.Msg("Bills to approve"), L.Msg("Supplier bills that don't match their order, waiting for approval before payment."), [Security.Permissions.SupplierBillsApprove], Important: true, AboutCustomer: false),
+        new(NotificationKind.InsightsReady, L.Msg("New AI insights"), L.Msg("A fresh set of insights and forecasts."), [Security.Permissions.InsightsView], Important: false, AboutCustomer: false),
     ];
 
     public static NotificationKindInfo Of(NotificationKind kind) => All.Single(k => k.Kind == kind);

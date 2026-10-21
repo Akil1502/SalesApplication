@@ -11,23 +11,24 @@ import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { useAiStatus } from '@/features/ai/api'
 import { formatBusinessDate, formatINR } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
 import { useOrders, type OrderListItem, type OrderStatus } from './api'
 import { OrderStatusBadge } from './badges'
 
 const ALL = 'all'
 const statusTabs: { value: OrderStatus | typeof ALL; label: string }[] = [
-  { value: ALL, label: 'All' },
-  { value: 'Draft', label: 'Drafts' },
-  { value: 'Quoted', label: 'Quoted' },
-  { value: 'Confirmed', label: 'To invoice' },
-  { value: 'Invoiced', label: 'Invoiced' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: ALL, label: msg('All') },
+  { value: 'Draft', label: msg('Drafts') },
+  { value: 'Quoted', label: msg('Quoted') },
+  { value: 'Confirmed', label: msg('To invoice') },
+  { value: 'Invoiced', label: msg('Invoiced') },
+  { value: 'Cancelled', label: msg('Cancelled') },
 ]
 
 const columns: Column<OrderListItem>[] = [
   {
     key: 'number',
-    header: 'Order',
+    header: msg('Order'),
     cell: (o) => (
       <div className="flex flex-col">
         <span className="font-mono text-xs">{o.number}</span>
@@ -36,22 +37,22 @@ const columns: Column<OrderListItem>[] = [
     ),
     className: 'w-36',
   },
-  { key: 'date', header: 'Date', cell: (o) => formatBusinessDate(o.orderDate), className: 'w-28' },
+  { key: 'date', header: msg('Date'), cell: (o) => formatBusinessDate(o.orderDate), className: 'w-28' },
   {
     key: 'customer',
-    header: 'Customer',
+    header: msg('Customer'),
     cell: (o) => (
       <span className="inline-flex items-center gap-1.5 font-medium">
         {o.customerName}
-        {o.source !== 'Manual' && <Sparkles className="size-3.5 text-violet-600" aria-label="Captured by AI" />}
+        {o.source !== 'Manual' && <Sparkles className="size-3.5 text-violet-600" aria-label={t('Captured by AI')} />}
       </span>
     ),
   },
-  { key: 'lines', header: 'Items', align: 'right', cell: (o) => o.lineCount },
-  { key: 'total', header: 'Total', align: 'right', cell: (o) => formatINR(o.grandTotal, 0) },
-  { key: 'status', header: 'Status', cell: (o) => <OrderStatusBadge status={o.status} /> },
-  { key: 'invoice', header: 'Invoice', cell: (o) => (o.invoiceNumber ? <span className="font-mono text-xs">{o.invoiceNumber}</span> : '—') },
-  { key: 'by', header: 'Created by', cell: (o) => o.createdByName },
+  { key: 'lines', header: msg('Items'), align: 'right', cell: (o) => o.lineCount },
+  { key: 'total', header: msg('Total'), align: 'right', cell: (o) => formatINR(o.grandTotal, 0) },
+  { key: 'status', header: msg('Status'), cell: (o) => <OrderStatusBadge status={o.status} /> },
+  { key: 'invoice', header: msg('Invoice'), cell: (o) => (o.invoiceNumber ? <span className="font-mono text-xs">{o.invoiceNumber}</span> : '—') },
+  { key: 'by', header: msg('Created by'), cell: (o) => o.createdByName },
 ]
 
 export function OrdersPage() {
@@ -66,15 +67,15 @@ export function OrdersPage() {
   return (
     <>
       <PageHeader
-        title="Orders & quotations"
-        description="Draft → quoted → confirmed → invoiced. Confirmed orders are ready to invoice."
+        title={t('Orders & quotations')}
+        description={t('Draft → quoted → confirmed → invoiced. Confirmed orders are ready to invoice.')}
         actions={
           <>
             {ai.data?.orderEntry && can(Permissions.SmartEntryUse) && (
               <Button asChild variant="outline">
                 <Link to="/orders/smart-entry">
                   <Sparkles />
-                  Smart entry
+                  {t('Smart entry')}
                 </Link>
               </Button>
             )}
@@ -82,7 +83,7 @@ export function OrdersPage() {
               <Button asChild>
                 <Link to="/orders/new">
                   <Plus />
-                  New order
+                  {t('New order')}
                 </Link>
               </Button>
             )}
@@ -91,8 +92,8 @@ export function OrdersPage() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl label="Show" value={status ?? ALL} onValueChange={(v) => update({ filters: { status: v === ALL ? undefined : v } })} options={statusTabs} />
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search order, quotation, customer or PO" />
+        <SegmentedControl label={t('Show')} value={status ?? ALL} onValueChange={(v) => update({ filters: { status: v === ALL ? undefined : v } })} options={statusTabs} />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search order, quotation, customer or PO')} />
       </div>
 
       <DataTable
@@ -103,8 +104,8 @@ export function OrdersPage() {
         isLoading={orders.isPending}
         error={orders.error}
         onRowClick={(o) => navigate(`/orders/${o.id}`)}
-        emptyTitle={params.q || status ? 'No orders match' : 'No orders yet'}
-        emptyDescription={params.q || status ? undefined : 'Create a quotation or order to get started.'}
+        emptyTitle={params.q || status ? t('No orders match') : t('No orders yet')}
+        emptyDescription={params.q || status ? undefined : t('Create a quotation or order to get started.')}
       />
       {orders.data && (
         <Pagination

@@ -11,18 +11,19 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
-import { useCreateUser, usePermissionCatalog, useResetPassword, useRoles, useUpdateUser, type Role, type User } from './api'
+import { roleLabel, useCreateUser, usePermissionCatalog, useResetPassword, useRoles, useUpdateUser, type Role, type User } from './api'
 import { changesFrom, effective } from './permission-logic'
 import { PermissionGrid } from './PermissionGrid'
+import { msg, t, tn } from '@/lib/i18n'
 
 // Matches the server's Identity password policy: 8+ characters with upper, lower and a digit.
 const password = z
   .string()
-  .min(8, { error: 'Use at least 8 characters.' })
+  .min(8, { error: msg('Use at least 8 characters.') })
   .max(128)
-  .regex(/[A-Z]/, { error: 'Include an upper-case letter.' })
-  .regex(/[a-z]/, { error: 'Include a lower-case letter.' })
-  .regex(/[0-9]/, { error: 'Include a digit.' })
+  .regex(/[A-Z]/, { error: msg('Include an upper-case letter.') })
+  .regex(/[a-z]/, { error: msg('Include a lower-case letter.') })
+  .regex(/[0-9]/, { error: msg('Include a digit.') })
 
 interface DialogProps {
   open: boolean
@@ -34,8 +35,8 @@ type Granted = { role: string; permissions: Set<string> } | null
 
 function roleSummary(role: Role | undefined) {
   if (!role) return undefined
-  if (role.isSystem) return 'Every permission, always.'
-  return role.description || `${role.permissions.length} ${role.permissions.length === 1 ? 'permission' : 'permissions'}.`
+  if (role.isSystem) return t('Every permission, always.')
+  return role.description || tn(role.permissions.length, '{count} permission.', '{count} permissions.')
 }
 
 /** What to send: how the user's permissions differ from their role's (nothing when they match it). */
@@ -63,30 +64,36 @@ function UserPermissions({
   const [expanded, setExpanded] = useState<boolean | null>(null)
 
   if (!role) return null
-  if (role.isSystem) return <p className="text-sm text-muted-foreground">Administrators can do everything, so there are no permissions to change.</p>
+  if (role.isSystem) return <p className="text-sm text-muted-foreground">{t('Administrators can do everything, so there are no permissions to change.')}</p>
 
   const rolePermissions = new Set(role.permissions)
   const value = granted && granted.role === role.name ? granted.permissions : rolePermissions
   const { addedPermissions, removedPermissions } = changesFrom(rolePermissions, value)
   const changed = addedPermissions.length + removedPermissions.length > 0
   const open = expanded ?? changed
-  const summary = changed
-    ? `${[addedPermissions.length > 0 && `${addedPermissions.length} added`, removedPermissions.length > 0 && `${removedPermissions.length} taken away`]
-        .filter(Boolean)
-        .join(', ')} compared with the ${role.name} role.`
-    : `The same as the ${role.name} role.`
+  const roleName = roleLabel(role.name)
+  const added = addedPermissions.length
+  const removed = removedPermissions.length
+  const summary =
+    added > 0 && removed > 0
+      ? t('{added} added, {removed} taken away compared with the {role} role.', { added, removed, role: roleName })
+      : added > 0
+        ? t('{added} added compared with the {role} role.', { added, role: roleName })
+        : removed > 0
+          ? t('{removed} taken away compared with the {role} role.', { removed, role: roleName })
+          : t('The same as the {role} role.', { role: roleName })
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Button type="button" variant="ghost" size="sm" className="-ml-2" onClick={() => setExpanded(!open)} aria-expanded={open}>
           {open ? <ChevronDown /> : <ChevronRight />}
-          Permissions
+          {t('Permissions')}
         </Button>
         {changed && !readOnlyReason && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
             <RotateCcw />
-            Reset to role
+            {t('Reset to role')}
           </Button>
         )}
       </div>
@@ -111,13 +118,13 @@ function UserPermissions({
 function useRoleOptions() {
   const roles = useRoles()
   const list = roles.data ?? []
-  return { roles: list, options: list.map((r) => ({ value: r.name, label: r.name })) }
+  return { roles: list, options: list.map((r) => ({ value: r.name, label: roleLabel(r.name) })) }
 }
 
 const createSchema = z.object({
-  fullName: requiredText('Full name', 120),
-  email: z.email({ error: 'Enter a valid email address.' }),
-  role: z.string().min(1, { error: 'Choose a role.' }),
+  fullName: requiredText(msg('Full name'), 120),
+  email: z.email({ error: msg('Enter a valid email address.') }),
+  role: z.string().min(1, { error: msg('Choose a role.') }),
   password,
 })
 type CreateValues = z.infer<typeof createSchema>
@@ -150,7 +157,7 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const user = await create.mutateAsync({ ...values, ...changesToSave(roles.find((r) => r.name === values.role), granted) })
-      toast.success(`${user.fullName} can now sign in`, { description: 'Share the initial password with them securely.' })
+      toast.success(t('{name} can now sign in', { name: user.fullName }), { description: t('Share the initial password with them securely.') })
       onDone()
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['fullName', 'email', 'role', 'password'])) toast.error(errorMessage(error))
@@ -160,30 +167,30 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={onSubmit} noValidate>
       <DialogHeader>
-        <DialogTitle>Add user</DialogTitle>
-        <DialogDescription>They sign in with this email and the initial password you set.</DialogDescription>
+        <DialogTitle>{t('Add user')}</DialogTitle>
+        <DialogDescription>{t('They sign in with this email and the initial password you set.')}</DialogDescription>
       </DialogHeader>
       <FieldGroup className="py-4">
-        <FormInput control={form.control} name="fullName" label="Full name" autoFocus />
-        <FormInput control={form.control} name="email" label="Email" type="email" autoComplete="off" />
-        <FormSelect control={form.control} name="role" label="Role" options={options} description={roleSummary(role)} />
+        <FormInput control={form.control} name="fullName" label={t('Full name')} autoFocus />
+        <FormInput control={form.control} name="email" label={t('Email')} type="email" autoComplete="off" />
+        <FormSelect control={form.control} name="role" label={t('Role')} options={options} description={roleSummary(role)} />
         <UserPermissions key={roleName} role={role} granted={granted} onChange={setGranted} />
         <FormInput
           control={form.control}
           name="password"
-          label="Initial password"
+          label={t('Initial password')}
           type="password"
           autoComplete="new-password"
-          description="At least 8 characters with upper and lower case letters and a digit."
+          description={t('At least 8 characters with upper and lower case letters and a digit.')}
         />
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting && <Spinner />}
-          Add user
+          {t('Add user')}
         </Button>
       </DialogFooter>
     </form>
@@ -191,8 +198,8 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
 }
 
 const editSchema = z.object({
-  fullName: requiredText('Full name', 120),
-  role: z.string().min(1, { error: 'Choose a role.' }),
+  fullName: requiredText(msg('Full name'), 120),
+  role: z.string().min(1, { error: msg('Choose a role.') }),
   isActive: z.boolean(),
 })
 type EditValues = z.infer<typeof editSchema>
@@ -233,7 +240,7 @@ function EditUserForm({ user, isSelf, onDone }: { user: User; isSelf: boolean; o
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await update.mutateAsync({ id: user.id, body: { ...values, ...changesToSave(roles.find((r) => r.name === values.role), granted) } })
-      toast.success(`${values.fullName} updated`)
+      toast.success(t('{name} updated', { name: values.fullName }))
       onDone()
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['fullName', 'role', 'isActive'])) toast.error(errorMessage(error))
@@ -243,41 +250,41 @@ function EditUserForm({ user, isSelf, onDone }: { user: User; isSelf: boolean; o
   return (
     <form onSubmit={onSubmit} noValidate>
       <DialogHeader>
-        <DialogTitle>Edit {user.fullName}</DialogTitle>
+        <DialogTitle>{t('Edit {name}', { name: user.fullName })}</DialogTitle>
         <DialogDescription>{user.email}</DialogDescription>
       </DialogHeader>
       <FieldGroup className="py-4">
-        <FormInput control={form.control} name="fullName" label="Full name" />
+        <FormInput control={form.control} name="fullName" label={t('Full name')} />
         <FormSelect
           control={form.control}
           name="role"
-          label="Role"
+          label={t('Role')}
           options={options}
           disabled={isSelf}
-          description={isSelf ? "You can't change your own role." : roleSummary(role)}
+          description={isSelf ? t("You can't change your own role.") : roleSummary(role)}
         />
         <UserPermissions
           key={roleName}
           role={role}
           granted={granted}
           onChange={setEdited}
-          readOnlyReason={isSelf ? "You can't change your own permissions." : undefined}
+          readOnlyReason={isSelf ? t("You can't change your own permissions.") : undefined}
         />
         <FormSwitch
           control={form.control}
           name="isActive"
-          label="Active"
+          label={t('Active')}
           disabled={isSelf}
-          description={isSelf ? "You can't deactivate your own account." : 'Inactive users can no longer sign in. Their history is kept.'}
+          description={isSelf ? t("You can't deactivate your own account.") : t('Inactive users can no longer sign in. Their history is kept.')}
         />
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting && <Spinner />}
-          Save
+          {t('Save')}
         </Button>
       </DialogFooter>
     </form>
@@ -299,7 +306,7 @@ export function ResetPasswordDialog({ open, onOpenChange, user }: DialogProps & 
     if (!user) return
     try {
       await reset.mutateAsync({ id: user.id, newPassword: values.newPassword })
-      toast.success(`Password reset for ${user.fullName}`, { description: 'Any lockout was cleared too.' })
+      toast.success(t('Password reset for {name}', { name: user.fullName }), { description: t('Any lockout was cleared too.') })
       onOpenChange(false)
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['newPassword'])) toast.error(errorMessage(error))
@@ -311,19 +318,19 @@ export function ResetPasswordDialog({ open, onOpenChange, user }: DialogProps & 
       <DialogContent>
         <form onSubmit={onSubmit} noValidate>
           <DialogHeader>
-            <DialogTitle>Reset password</DialogTitle>
-            <DialogDescription>Set a new password for {user?.fullName}. This also unlocks a locked-out account.</DialogDescription>
+            <DialogTitle>{t('Reset password')}</DialogTitle>
+            <DialogDescription>{t('Set a new password for {name}. This also unlocks a locked-out account.', { name: user?.fullName ?? '' })}</DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-4">
-            <FormInput control={form.control} name="newPassword" label="New password" type="password" autoComplete="new-password" autoFocus />
+            <FormInput control={form.control} name="newPassword" label={t('New password')} type="password" autoComplete="new-password" autoFocus />
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting && <Spinner />}
-              Reset password
+              {t('Reset password')}
             </Button>
           </DialogFooter>
         </form>

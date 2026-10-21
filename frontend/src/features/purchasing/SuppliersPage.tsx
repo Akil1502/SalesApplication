@@ -13,21 +13,22 @@ import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { formatINR } from '@/lib/format'
 import { useSuppliers, type SupplierListItem } from './api'
+import { msg, t } from '@/lib/i18n'
 
 const columns: Column<SupplierListItem>[] = [
-  { key: 'code', header: 'Code', sortKey: 'code', cell: (s) => <span className="font-mono text-xs">{s.code}</span>, className: 'w-24' },
-  { key: 'name', header: 'Name', sortKey: 'name', cell: (s) => <span className="font-medium">{s.name}</span> },
-  { key: 'gstin', header: 'GSTIN', cell: (s) => (s.gstin ? <span className="font-mono text-xs">{s.gstin}</span> : <span className="text-muted-foreground">Unregistered</span>) },
-  { key: 'city', header: 'City', sortKey: 'city', cell: (s) => `${s.city}, ${s.stateName}` },
-  { key: 'orders', header: 'Open orders', align: 'right', cell: (s) => s.openOrders || '—' },
-  { key: 'payable', header: 'We owe', align: 'right', cell: (s) => (s.payable > 0 ? formatINR(s.payable, 0) : '—') },
+  { key: 'code', header: msg('Code'), sortKey: 'code', cell: (s) => <span className="font-mono text-xs">{s.code}</span>, className: 'w-24' },
+  { key: 'name', header: msg('Name'), sortKey: 'name', cell: (s) => <span className="font-medium">{s.name}</span> },
+  { key: 'gstin', header: 'GSTIN', cell: (s) => (s.gstin ? <span className="font-mono text-xs">{s.gstin}</span> : <span className="text-muted-foreground">{t('Unregistered')}</span>) },
+  { key: 'city', header: msg('City'), sortKey: 'city', cell: (s) => `${s.city}, ${s.stateName}` },
+  { key: 'orders', header: msg('Open orders'), align: 'right', cell: (s) => s.openOrders || '—' },
+  { key: 'payable', header: msg('We owe'), align: 'right', cell: (s) => (s.payable > 0 ? formatINR(s.payable, 0) : '—') },
   {
     key: 'overdue',
-    header: 'Overdue',
+    header: msg('Overdue'),
     align: 'right',
     cell: (s) => (s.overdue > 0 ? <span className="text-destructive">{formatINR(s.overdue, 0)}</span> : '—'),
   },
-  { key: 'status', header: 'Status', cell: (s) => <ActiveBadge active={s.isActive} /> },
+  { key: 'status', header: msg('Status'), cell: (s) => <ActiveBadge active={s.isActive} /> },
 ]
 
 export function SuppliersPage() {
@@ -46,14 +47,14 @@ export function SuppliersPage() {
   return (
     <>
       <PageHeader
-        title="Suppliers"
-        description="Who you buy from. A supplier in another state bills IGST; one in your state bills CGST + SGST."
+        title={t('Suppliers')}
+        description={t('Who you buy from. A supplier in another state bills IGST; one in your state bills CGST + SGST.')}
         actions={
           can(Permissions.SuppliersEdit) && (
             <Button asChild>
               <Link to="/suppliers/new">
                 <Plus />
-                New supplier
+                {t('New supplier')}
               </Link>
             </Button>
           )
@@ -61,10 +62,10 @@ export function SuppliersPage() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search name, code, GSTIN, phone, city" />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search name, code, GSTIN, phone, city')} />
         <div className="flex items-center gap-2">
           <Switch id="show-inactive" checked={params.includeInactive} onCheckedChange={(includeInactive) => update({ includeInactive })} />
-          <Label htmlFor="show-inactive">Show inactive</Label>
+          <Label htmlFor="show-inactive">{t('Show inactive')}</Label>
         </div>
       </div>
 
@@ -78,8 +79,8 @@ export function SuppliersPage() {
         onRowClick={(s) => navigate(`/suppliers/${s.id}`)}
         sort={params.sort}
         onSortChange={(sort) => update({ sort })}
-        emptyTitle={params.q ? 'No suppliers match' : 'No suppliers yet'}
-        emptyDescription={params.q ? 'Try a different search.' : 'Add the mills and makers you buy from, then place purchase orders with them.'}
+        emptyTitle={params.q ? t('No suppliers match') : t('No suppliers yet')}
+        emptyDescription={params.q ? t('Try a different search.') : t('Add the mills and makers you buy from, then place purchase orders with them.')}
       />
 
       {suppliers.data && (

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useAiStatus } from '@/features/ai/api'
 import { useAuth } from '@/features/auth/auth-context'
 import { useBrandName } from '@/features/branding/api'
+import { t } from '@/lib/i18n'
 import { useUserSetting } from '@/lib/user-settings'
 import { cn } from '@/lib/utils'
 import { TourContext } from './tour-context'
@@ -155,7 +156,7 @@ export function TourOverlay({ steps, onClose }: { steps: TourStep[]; onClose: ()
         >
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             <Compass className="size-4 text-primary" aria-hidden />
-            Step {index + 1} of {steps.length}
+            {t('Step {step} of {count}', { step: index + 1, count: steps.length })}
           </div>
           <h2 id={titleId} className="text-lg leading-snug font-semibold tracking-tight">
             {step.title}
@@ -171,15 +172,15 @@ export function TourOverlay({ steps, onClose }: { steps: TourStep[]; onClose: ()
           <div className="mt-1 flex items-center gap-2">
             {!last && (
               <Button variant="ghost" size="sm" className="-ml-2 mr-auto" onClick={onClose}>
-                {index === 0 ? 'Not now' : 'Skip tour'}
+                {index === 0 ? t('Not now') : t('Skip tour')}
               </Button>
             )}
             {index > 0 && (
               <Button variant="outline" size="sm" className={cn(last && 'mr-auto')} onClick={() => go(-1)}>
-                Back
+                {t('Back')}
               </Button>
             )}
-            <NextButton onClick={() => go(1)}>{index === 0 ? 'Show me around' : last ? 'Finish' : 'Next'}</NextButton>
+            <NextButton onClick={() => go(1)}>{index === 0 ? t('Show me around') : last ? t('Finish') : t('Next')}</NextButton>
           </div>
         </motion.div>
       </AnimatePresence>

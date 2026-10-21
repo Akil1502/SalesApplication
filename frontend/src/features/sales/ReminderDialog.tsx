@@ -2,8 +2,11 @@ import { Check, Copy, MessageCircle } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/features/auth/auth-context'
+import { useTamilTexts } from '@/features/sales/print/document-language'
+import { t } from '@/lib/i18n'
 import type { InvoiceListItem } from './api'
 import { reminderMessages } from './reminders'
 
@@ -25,11 +28,11 @@ function Message({ customer, initial }: { customer: string; initial: string }) {
             })
           }
         >
-          {copied ? <Check /> : <Copy />} {copied ? 'Copied' : 'Copy'}
+          {copied ? <Check /> : <Copy />} {copied ? t('Copied') : t('Copy')}
         </Button>
         <Button size="sm" variant="outline" asChild>
           <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
-            <MessageCircle /> Open in WhatsApp
+            <MessageCircle /> {t('Open in WhatsApp')}
           </a>
         </Button>
       </div>
@@ -43,20 +46,25 @@ function Message({ customer, initial }: { customer: string; initial: string }) {
  */
 export function ReminderDialog({ invoices, onOpenChange }: { invoices: InvoiceListItem[] | null; onOpenChange: (open: boolean) => void }) {
   const { user } = useAuth()
-  const messages = invoices ? reminderMessages(invoices, user?.fullName ?? '') : []
+  // Each reminder is in its customer's language, so Tamil ones need the Tamil texts even when the app is in English.
+  const ready = useTamilTexts(invoices?.some((i) => i.documentLanguage !== 'English') ?? false)
+  const messages = invoices && ready ? reminderMessages(invoices, user?.fullName ?? '') : []
 
   return (
     <Dialog open={invoices !== null} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Payment reminders</DialogTitle>
+          <DialogTitle>{t('Payment reminders')}</DialogTitle>
           <DialogDescription>
-            One message per customer for the ticked invoices with something still due. Edit them if you like, then copy or open WhatsApp: you send them,
-            the app doesn't.
+            {t(
+              "One message per customer for the ticked invoices with something still due. Edit them if you like, then copy or open WhatsApp: you send them, the app doesn't.",
+            )}
           </DialogDescription>
         </DialogHeader>
-        {messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground">None of the ticked invoices has anything due.</p>
+        {!ready ? (
+          <Skeleton className="h-40" />
+        ) : messages.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('None of the ticked invoices has anything due.')}</p>
         ) : (
           <div className="space-y-3">
             {messages.map((message) => (

@@ -6,6 +6,7 @@ import { TiltCard } from '@/components/fx/TiltCard'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { errorMessage } from '@/lib/api/errors'
+import { t } from '@/lib/i18n'
 import { useReportDefinitions } from './api'
 
 const icons: Record<string, LucideIcon> = {
@@ -25,7 +26,7 @@ export function ReportsPage() {
 
   return (
     <>
-      <PageHeader title="Reports" description="Every report can be filtered by date where it makes sense, and downloaded as an Excel file." />
+      <PageHeader title={t('Reports')} description={t('Every report can be filtered by date where it makes sense, and downloaded as an Excel file.')} />
 
       {definitions.error && (
         <Alert variant="destructive">

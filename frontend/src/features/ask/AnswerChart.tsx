@@ -1,6 +1,7 @@
 import { Bar, BarChart, CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis, type TooltipContentProps } from 'recharts'
 import { useMotionLevel } from '@/components/fx/preferences-context'
 import { formatINRCompact } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import type { AskAnswer, AskColumn } from './api'
 import { formatAskValue, toNumber } from './ask-format'
 
@@ -44,16 +45,17 @@ export function AnswerChart({ answer }: { answer: AskAnswer }) {
   const yColumn = answer.columns[yIndex]!
   const data: Point[] = answer.rows
     .slice(0, MAX_POINTS)
-    .map((row) => ({ label: formatAskValue(row[xIndex], xColumn) || '(blank)', value: toNumber(row[yIndex]) ?? 0 }))
+    .map((row) => ({ label: formatAskValue(row[xIndex], xColumn) || t('(blank)'), value: toNumber(row[yIndex]) ?? 0 }))
   if (data.length < 2) return null
 
   const tick = { fill: 'var(--muted-foreground)', fontSize: 12 }
   const tooltip = (props: TooltipContentProps) => <ChartTooltip {...props} column={yColumn} />
-  const note = answer.rows.length > MAX_POINTS ? `The chart shows the first ${MAX_POINTS} of ${answer.rows.length} rows.` : null
+  const note = answer.rows.length > MAX_POINTS ? t('The chart shows the first {shown} of {total} rows.', { shown: MAX_POINTS, total: answer.rows.length }) : null
+  const names = { y: yColumn.label || yColumn.name, x: xColumn.label || xColumn.name }
 
   if (answer.chart.type === 'Line') {
     return (
-      <figure className="space-y-1" aria-label={`${yColumn.label || yColumn.name} by ${xColumn.label || xColumn.name}, line chart. Exact values are in the table.`}>
+      <figure className="space-y-1" aria-label={t('{y} by {x}, line chart. Exact values are in the table.', names)}>
         <LineChart data={data} responsive style={{ width: '100%', height: 260 }} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={tick} interval="preserveStartEnd" minTickGap={16} />
@@ -69,7 +71,7 @@ export function AnswerChart({ answer }: { answer: AskAnswer }) {
 
   const horizontal = data.length > 8 || data.some((d) => d.label.length > 14)
   return (
-    <figure className="space-y-1" aria-label={`${yColumn.label || yColumn.name} by ${xColumn.label || xColumn.name}, bar chart. Exact values are in the table.`}>
+    <figure className="space-y-1" aria-label={t('{y} by {x}, bar chart. Exact values are in the table.', names)}>
       {horizontal ? (
         <BarChart data={data} layout="vertical" responsive style={{ width: '100%', height: data.length * 30 + 40 }}
           margin={{ top: 4, right: 16, bottom: 0, left: 0 }} barCategoryGap="22%">

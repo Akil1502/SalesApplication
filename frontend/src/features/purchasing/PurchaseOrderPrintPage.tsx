@@ -1,23 +1,25 @@
 import { useEffect } from 'react'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
+import { dateLanguage, docText, useDocumentLanguage } from '@/features/sales/print/document-language'
+import { DocAmountInWords, DocField, DocText, DocumentLanguageScope } from '@/features/sales/print/DocText'
 import { PrintLogo, PrintShell, cell, headCell, numCell } from '@/features/sales/print/PrintShell'
 import { errorMessage } from '@/lib/api/errors'
 import { formatAmount, formatBusinessDate, formatPercent, formatQuantity } from '@/lib/format'
-import { usePurchaseOrder } from './api'
+import { t } from '@/lib/i18n'
+import { usePurchaseOrder, type PurchaseOrder } from './api'
 
-/** A purchase order laid out for A4 printing, to send to the supplier. */
+/** A purchase order laid out for A4 printing, to send to the supplier, in the supplier's language. */
 export function PurchaseOrderPrintPage() {
   const id = Number(useParams().id)
   const order = usePurchaseOrder(id)
   const o = order.data
-  const draft = o?.status === 'Draft' || o?.status === 'PendingApproval'
 
-  // The title becomes the default PDF file name; restore it when leaving the page.
+  // The title becomes the default PDF file name (in English, whatever the document's language); restore it when leaving.
   useEffect(() => {
     if (!o) return
     const previous = document.title
-    document.title = `Purchase order ${o.number}`
+    document.title = docText('English', 'Purchase order {number}', { number: o.number })
     return () => {
       document.title = previous
     }
@@ -26,11 +28,22 @@ export function PurchaseOrderPrintPage() {
   if (order.isPending) return <Skeleton className="m-8 h-[60vh]" />
   if (order.error) return <p className="m-8 text-red-700">{errorMessage(order.error)}</p>
 
-  const p = order.data
+  return (
+    <PrintShell title={t('Purchase order {number}', { number: order.data.number })} languages={[order.data.documentLanguage]}>
+      <DocumentLanguageScope language={order.data.documentLanguage}>
+        <PurchaseOrderDocument p={order.data} />
+      </DocumentLanguageScope>
+    </PrintShell>
+  )
+}
+
+function PurchaseOrderDocument({ p }: { p: PurchaseOrder }) {
+  const dates = dateLanguage(useDocumentLanguage())
+  const draft = p.status === 'Draft' || p.status === 'PendingApproval'
   const a = p.supplierAddress
 
   return (
-    <PrintShell title={`Purchase order ${p.number}`}>
+    <>
       <header className="mb-3 flex items-start justify-between gap-6 border-b-2 border-neutral-800 pb-3">
         <div>
           <PrintLogo />
@@ -39,44 +52,64 @@ export function PurchaseOrderPrintPage() {
           <p className="mt-1 font-semibold">GSTIN: {p.companyGstin}</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-bold tracking-wide">PURCHASE ORDER{draft && ' (DRAFT)'}</p>
+          <p className="text-lg font-bold tracking-wide">{draft ? <DocText text="PURCHASE ORDER (DRAFT)" /> : <DocText text="PURCHASE ORDER" />}</p>
           <p>
-            <b>No.</b> {p.number}
+            <DocField label="No.">{p.number}</DocField>
           </p>
           <p>
-            <b>Date</b> {formatBusinessDate(p.orderDate)}
+            <DocField label="Date">{formatBusinessDate(p.orderDate, dates)}</DocField>
           </p>
           {p.expectedDate && (
             <p>
-              <b>Deliver by</b> {formatBusinessDate(p.expectedDate)}
+              <DocField label="Deliver by">{formatBusinessDate(p.expectedDate, dates)}</DocField>
             </p>
           )}
         </div>
       </header>
 
       <div className="mb-3 border border-neutral-400 p-2">
-        <p className="mb-1 font-semibold uppercase">To</p>
+        <p className="mb-1 font-semibold uppercase">
+          <DocText text="To" />
+        </p>
         <p className="font-semibold">{p.supplierName}</p>
-        {p.supplierContactPerson && <p>Attn: {p.supplierContactPerson}</p>}
+        {p.supplierContactPerson && (
+          <p>
+            <DocField label="Attn:">{p.supplierContactPerson}</DocField>
+          </p>
+        )}
         <p>
           {a.line1}
           {a.line2 && `, ${a.line2}`}, {a.city} - {a.pincode}, {a.stateName}
         </p>
-        <p>GSTIN: {p.supplierGstin ?? 'Unregistered'}</p>
-        {p.supplierReference && <p>Your ref: {p.supplierReference}</p>}
+        <p>GSTIN: {p.supplierGstin ?? <DocText text="Unregistered" inline />}</p>
+        {p.supplierReference && (
+          <p>
+            <DocField label="Your ref:">{p.supplierReference}</DocField>
+          </p>
+        )}
       </div>
 
       <table className="mb-3 w-full border-collapse">
         <thead>
           <tr>
             <th className={headCell}>#</th>
-            <th className={headCell}>Description</th>
+            <th className={headCell}>
+              <DocText text="Description" />
+            </th>
             <th className={headCell}>HSN</th>
-            <th className={`${headCell} text-right`}>Qty</th>
-            <th className={`${headCell} text-right`}>Rate</th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Qty" />
+            </th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Rate" />
+            </th>
             <th className={`${headCell} text-right`}>GST</th>
-            <th className={`${headCell} text-right`}>Taxable</th>
-            <th className={`${headCell} text-right`}>Amount</th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Taxable" />
+            </th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Amount" />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -100,13 +133,15 @@ export function PurchaseOrderPrintPage() {
       </table>
 
       <div className="mb-4 flex items-start justify-between gap-6">
-        <p className="max-w-[110mm]">
-          <b>Amount in words:</b> {p.amountInWords}
-        </p>
+        <div className="max-w-[110mm] space-y-2">
+          <DocAmountInWords english={p.amountInWords} tamil={p.amountInWordsTamil} />
+        </div>
         <table className="min-w-[65mm] border-collapse">
           <tbody>
             <tr>
-              <td className={cell}>Taxable value</td>
+              <td className={cell}>
+                <DocText text="Taxable value" />
+              </td>
               <td className={numCell}>{formatAmount(p.taxableValue)}</td>
             </tr>
             {p.isInterState ? (
@@ -127,11 +162,15 @@ export function PurchaseOrderPrintPage() {
               </>
             )}
             <tr>
-              <td className={cell}>Round off</td>
+              <td className={cell}>
+                <DocText text="Round off" />
+              </td>
               <td className={numCell}>{formatAmount(p.roundOff)}</td>
             </tr>
             <tr>
-              <td className={`${cell} text-sm font-bold`}>Total (₹)</td>
+              <td className={`${cell} text-sm font-bold`}>
+                <DocText text="Total (₹)" />
+              </td>
               <td className={`${numCell} text-sm font-bold`}>{formatAmount(p.grandTotal)}</td>
             </tr>
           </tbody>
@@ -141,16 +180,22 @@ export function PurchaseOrderPrintPage() {
       {p.notes && <p className="mb-3 whitespace-pre-line">{p.notes}</p>}
       {p.terms && (
         <div className="mb-4">
-          <p className="font-semibold">Terms</p>
+          <p className="font-semibold">
+            <DocText text="Terms" />
+          </p>
           <p className="whitespace-pre-line">{p.terms}</p>
         </div>
       )}
       <div className="flex justify-end">
         <div className="text-right">
-          <p>For {p.companyName}</p>
-          <p className="mt-10 border-t border-neutral-500 pt-1">Authorised signatory</p>
+          <p>
+            <DocText text="For {name}" values={{ name: p.companyName }} />
+          </p>
+          <p className="mt-10 border-t border-neutral-500 pt-1">
+            <DocText text="Authorised signatory" />
+          </p>
         </div>
       </div>
-    </PrintShell>
+    </>
   )
 }

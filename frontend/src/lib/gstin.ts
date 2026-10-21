@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n'
 /**
  * GSTIN validation, mirroring SalesApp.Core.Validation.Gstin on the server so users see mistakes
  * as they type. The server remains the authority.
@@ -22,15 +23,15 @@ export function gstinCheckCharacter(first14: string): string {
   return CHARSET[(36 - (sum % 36)) % 36]!
 }
 
-/** Returns null when valid, otherwise a message for the field. */
+/** Returns null when valid, otherwise a message for the field, in the language on screen. */
 export function validateGstin(value: string): string | null {
   const gstin = normalizeGstin(value)
-  if (gstin.length !== 15) return 'GSTIN must be exactly 15 characters.'
+  if (gstin.length !== 15) return t('GSTIN must be exactly 15 characters.')
   if (!FORMAT.test(gstin)) {
-    return "GSTIN format is invalid. Expected 2-digit state code, 10-character PAN, entity number, 'Z' and a check character."
+    return t("GSTIN format is invalid. Expected 2-digit state code, 10-character PAN, entity number, 'Z' and a check character.")
   }
   if (gstinCheckCharacter(gstin.slice(0, 14)) !== gstin[14]) {
-    return "GSTIN check character doesn't match. Please re-check the number for typos."
+    return t("GSTIN check character doesn't match. Please re-check the number for typos.")
   }
   return null
 }

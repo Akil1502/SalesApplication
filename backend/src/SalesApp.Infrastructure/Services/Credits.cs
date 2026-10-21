@@ -125,27 +125,27 @@ internal static class Credits
     {
         if (invoice.Status == InvoiceStatus.Cancelled)
         {
-            return $"{invoice.Number} is already cancelled.";
+            return L.Msg($"{invoice.Number} is already cancelled.");
         }
 
         if (invoice.AmountPaid > 0)
         {
-            return $"{invoice.Number} has payments recorded against it, so it can't be cancelled. Issue a credit note instead.";
+            return L.Msg($"{invoice.Number} has payments recorded against it, so it can't be cancelled. Issue a credit note instead.");
         }
 
         if (hasCreditNotes)
         {
-            return $"{invoice.Number} has credit notes against it, so it can't be cancelled. Issue a further credit note instead.";
+            return L.Msg($"{invoice.Number} has credit notes against it, so it can't be cancelled. Issue a further credit note instead.");
         }
 
         if (invoice.AmountCredited > 0)
         {
-            return $"Customer credit has been set against {invoice.Number}, so it can't be cancelled. Issue a credit note instead.";
+            return L.Msg($"Customer credit has been set against {invoice.Number}, so it can't be cancelled. Issue a credit note instead.");
         }
 
         return ReturnRules.InSameMonth(invoice.InvoiceDate, today)
             ? null
-            : $"{invoice.Number} is from {invoice.InvoiceDate.ToString("MMMM yyyy", India)}, which has gone into that month's GST return (GSTR-1). Issue a credit note instead.";
+            : L.Msg($"{invoice.Number} is from {invoice.InvoiceDate.ToString("MMMM yyyy", India)}, which has gone into that month's GST return (GSTR-1). Issue a credit note instead.");
     }
 
     /// <summary>Why a credit note or supplier return can no longer be cancelled, or null if it still can.</summary>
@@ -153,22 +153,22 @@ internal static class Credits
     {
         if (status == ReturnDocumentStatus.Cancelled)
         {
-            return $"{number} is already cancelled.";
+            return L.Msg($"{number} is already cancelled.");
         }
 
         if (refunded > 0)
         {
-            return $"Refunds are recorded against {number}, so it can't be cancelled.";
+            return L.Msg($"Refunds are recorded against {number}, so it can't be cancelled.");
         }
 
         if (usedElsewhere is not null)
         {
-            return $"Credit from {number} is set against {usedElsewhere}, so it can't be cancelled.";
+            return L.Msg($"Credit from {number} is set against {usedElsewhere}, so it can't be cancelled.");
         }
 
         return ReturnRules.InSameMonth(date, today)
             ? null
-            : $"{number} is from {date.ToString("MMMM yyyy", India)}, which has gone into that month's GST return, so it can't be cancelled.";
+            : L.Msg($"{number} is from {date.ToString("MMMM yyyy", India)}, which has gone into that month's GST return, so it can't be cancelled.");
     }
 
     public static string Rupees(decimal amount) => $"₹{AmountInWords.IndianGrouping(amount)}";

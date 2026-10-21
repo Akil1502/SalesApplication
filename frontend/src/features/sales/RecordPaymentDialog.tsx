@@ -10,6 +10,7 @@ import { FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, todayInIndia } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { useRecordPayment, type Invoice, type PaymentMode } from './api'
 import { paymentModes } from './labels'
 
@@ -26,11 +27,11 @@ export function RecordPaymentDialog({ invoice, open, onOpenChange }: RecordPayme
     amount: z
       .string()
       .trim()
-      .regex(/^\d+(\.\d{1,2})?$/, { error: 'Enter an amount like 5000 or 5000.50.' })
-      .refine((v) => Number(v) > 0, { error: 'More than zero.' })
-      .refine((v) => Number(v) <= invoice.balance, { error: `Only ${formatINR(invoice.balance)} is due.` }),
+      .regex(/^\d+(\.\d{1,2})?$/, { error: t('Enter an amount like 5000 or 5000.50.') })
+      .refine((v) => Number(v) > 0, { error: t('More than zero.') })
+      .refine((v) => Number(v) <= invoice.balance, { error: t('Only {amount} is due.', { amount: formatINR(invoice.balance) }) }),
     mode: z.string().min(1),
-    paymentDate: z.string().min(1, { error: 'Choose a date.' }),
+    paymentDate: z.string().min(1, { error: t('Choose a date.') }),
     reference: z.string().trim().max(50),
     notes: z.string().trim().max(500),
   })
@@ -56,7 +57,7 @@ export function RecordPaymentDialog({ invoice, open, onOpenChange }: RecordPayme
         reference: values.reference || null,
         notes: values.notes || null,
       })
-      toast.success(`${formatINR(payment.amount)} recorded against ${invoice.number}`)
+      toast.success(t('{amount} recorded against {invoice}', { amount: formatINR(payment.amount), invoice: invoice.number }))
       onOpenChange(false)
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['amount', 'paymentDate', 'reference', 'notes'])) toast.error(errorMessage(error))
@@ -68,30 +69,30 @@ export function RecordPaymentDialog({ invoice, open, onOpenChange }: RecordPayme
       <DialogContent>
         <form onSubmit={onSubmit} noValidate>
           <DialogHeader>
-            <DialogTitle>Record payment</DialogTitle>
+            <DialogTitle>{t('Record payment')}</DialogTitle>
             <DialogDescription>
-              {invoice.number} · {invoice.customerName} · {formatINR(invoice.balance)} due
+              {t('{invoice} · {customer} · {amount} due', { invoice: invoice.number, customer: invoice.customerName, amount: formatINR(invoice.balance) })}
             </DialogDescription>
           </DialogHeader>
           <FieldGroup className="grid gap-4 py-4 sm:grid-cols-2">
-            <FormInput control={form.control} name="amount" label="Amount (₹)" inputMode="decimal" autoFocus />
-            <FormSelect control={form.control} name="mode" label="Mode" options={paymentModes} />
-            <FormInput control={form.control} name="paymentDate" label="Received on" type="date" max={todayInIndia()} min={invoice.invoiceDate} />
+            <FormInput control={form.control} name="amount" label={t('Amount (₹)')} inputMode="decimal" autoFocus />
+            <FormSelect control={form.control} name="mode" label={t('Mode')} options={paymentModes} />
+            <FormInput control={form.control} name="paymentDate" label={t('Received on')} type="date" max={todayInIndia()} min={invoice.invoiceDate} />
             <FormInput
               control={form.control}
               name="reference"
-              label={mode === 'Cheque' ? 'Cheque number' : mode === 'Cash' ? 'Receipt number' : 'UTR / transaction ID'}
-              placeholder="Optional"
+              label={mode === 'Cheque' ? t('Cheque number') : mode === 'Cash' ? t('Receipt number') : t('UTR / transaction ID')}
+              placeholder={t('Optional')}
             />
-            <FormInput control={form.control} name="notes" label="Notes" placeholder="Optional" className="sm:col-span-2" />
+            <FormInput control={form.control} name="notes" label={t('Notes')} placeholder={t('Optional')} className="sm:col-span-2" />
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting && <Spinner />}
-              Record payment
+              {t('Record payment')}
             </Button>
           </DialogFooter>
         </form>

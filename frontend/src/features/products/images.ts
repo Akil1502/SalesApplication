@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
 import { fitWithin } from '@/features/sales/smart-entry/image'
+import { t } from '@/lib/i18n'
 
 export type ProductImage = Schemas['ProductImageDto']
 
@@ -30,7 +31,7 @@ export function useProductImage(productId: number | undefined): ProductImage | u
 
 async function toJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
-  if (!blob) throw new Error("This picture couldn't be read. Try a JPEG or PNG file.")
+  if (!blob) throw new Error(t("This picture couldn't be read. Try a JPEG or PNG file."))
   return blob
 }
 
@@ -39,7 +40,7 @@ function canvasOf(width: number, height: number): [HTMLCanvasElement, CanvasRend
   canvas.width = width
   canvas.height = height
   const context = canvas.getContext('2d')
-  if (!context) throw new Error("This browser can't prepare pictures.")
+  if (!context) throw new Error(t("This browser can't prepare pictures."))
   // Transparent PNGs get a white background rather than turning black as JPEGs.
   context.fillStyle = '#ffffff'
   context.fillRect(0, 0, width, height)
@@ -57,7 +58,7 @@ export function centreSquare(width: number, height: number): { x: number; y: num
  * centred 400px square thumbnail for lists and pickers. Both are JPEGs, small enough to upload in a moment.
  */
 export async function preparePhoto(file: File): Promise<{ image: Blob; thumbnail: Blob }> {
-  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error('Choose a JPEG, PNG or WebP picture.')
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) throw new Error(t('Choose a JPEG, PNG or WebP picture.'))
   const bitmap = await createImageBitmap(file)
   try {
     const size = fitWithin(bitmap.width, bitmap.height, PHOTO_EDGE)

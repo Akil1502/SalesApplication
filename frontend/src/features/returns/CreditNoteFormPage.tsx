@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useInvoice, type Invoice } from '@/features/sales/api'
 import { ApiRequestError, errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatINR, formatQuantity, todayInIndia } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
 import { useDebounced } from '@/lib/use-debounced'
 import { useCreateCreditNote, useCreditNotePreview, type CreditNoteCreateRequest, type CreditNoteKind, type ReturnDisposition, type ReturnReason } from './api'
 import { dispositionLabels, goodsReasons, priceReasons, returnReasonLabels } from './labels'
@@ -37,7 +38,7 @@ export function CreditNoteFormPage() {
   if (invoice.data.status === 'Cancelled') {
     return (
       <Alert variant="destructive" className="max-w-xl">
-        <AlertDescription>{invoice.data.number} is cancelled, so there's nothing to credit.</AlertDescription>
+        <AlertDescription>{t("{number} is cancelled, so there's nothing to credit.", { number: invoice.data.number })}</AlertDescription>
       </Alert>
     )
   }
@@ -70,11 +71,12 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
     const value = raw(line.id)
     if (value === '') return null
     if (goods) {
-      if (!/^\d+(\.\d{1,3})?$/.test(value)) return 'Up to 3 decimals.'
-      if (Number(value) > line.quantityLeft) return line.quantityLeft > 0 ? `At most ${formatQuantity(line.quantityLeft, line.unit)}.` : 'All returned already.'
+      if (!/^\d+(\.\d{1,3})?$/.test(value)) return t('Up to 3 decimals.')
+      if (Number(value) > line.quantityLeft)
+        return line.quantityLeft > 0 ? t('At most {quantity}.', { quantity: formatQuantity(line.quantityLeft, line.unit) }) : t('All returned already.')
     } else {
-      if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Up to 2 decimals.'
-      if (Number(value) > line.valueLeft) return line.valueLeft > 0 ? `At most ${formatINR(line.valueLeft)}.` : 'Fully credited already.'
+      if (!/^\d+(\.\d{1,2})?$/.test(value)) return t('Up to 2 decimals.')
+      if (Number(value) > line.valueLeft) return line.valueLeft > 0 ? t('At most {amount}.', { amount: formatINR(line.valueLeft) }) : t('Fully credited already.')
     }
 
     return null
@@ -116,7 +118,7 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
     setErrors({})
     try {
       const note = await create.mutateAsync(request)
-      toast.success(`Credit note ${note.number} issued`)
+      toast.success(t('Credit note {number} issued', { number: note.number }))
       setSaved(note.id)
     } catch (error) {
       if (error instanceof ApiRequestError && error.body.errors) {
@@ -135,13 +137,18 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
     <div className="flex max-w-6xl flex-col gap-6">
       <UnsavedChangesGuard when={(entered.length > 0 || reasonNote.trim() !== '') && saved === null} />
       <PageHeader
-        title={`Credit note against ${invoice.number}`}
-        description={`${invoice.customerName} · invoiced ${formatBusinessDate(invoice.invoiceDate)} · ${formatINR(invoice.grandTotal)}, ${formatINR(invoice.balance)} still due`}
+        title={t('Credit note against {number}', { number: invoice.number })}
+        description={t('{customer} · invoiced {date} · {total}, {balance} still due', {
+          customer: invoice.customerName,
+          date: formatBusinessDate(invoice.invoiceDate),
+          total: formatINR(invoice.grandTotal),
+          balance: formatINR(invoice.balance),
+        })}
         actions={
           <Button variant="ghost" asChild>
             <Link to={`/invoices/${invoice.id}`}>
               <ArrowLeft />
-              Back to invoice
+              {t('Back to invoice')}
             </Link>
           </Button>
         }
@@ -151,30 +158,34 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
         <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           <Info />
           <AlertDescription className="text-inherit">
-            GST on this invoice could be reduced only until {formatBusinessDate(invoice.gstCreditDeadline)} (CGST Act s.34). This credit note credits the value
-            only, with no GST, and the GST reports leave it out.
+            {t(
+              'GST on this invoice could be reduced only until {date} (CGST Act s.34). This credit note credits the value only, with no GST, and the GST reports leave it out.',
+              { date: formatBusinessDate(invoice.gstCreditDeadline) },
+            )}
           </AlertDescription>
         </Alert>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>What's being credited</CardTitle>
-          <CardDescription>Goods the customer sent back, or a correction to the value with no goods moving: a wrong rate, short supply or a discount agreed later.</CardDescription>
+          <CardTitle>{t("What's being credited")}</CardTitle>
+          <CardDescription>
+            {t('Goods the customer sent back, or a correction to the value with no goods moving: a wrong rate, short supply or a discount agreed later.')}
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <SegmentedControl
-            label="Kind of credit note"
+            label={msg('Kind of credit note')}
             value={kind}
             onValueChange={(v) => changeKind(v)}
             options={[
-              { value: 'GoodsReturn' as CreditNoteKind, label: 'Goods returned' },
-              { value: 'PriceCorrection' as CreditNoteKind, label: 'Price correction' },
+              { value: 'GoodsReturn' as CreditNoteKind, label: msg('Goods returned') },
+              { value: 'PriceCorrection' as CreditNoteKind, label: msg('Price correction') },
             ]}
           />
           <FieldGroup className="grid gap-4 sm:grid-cols-3">
             <Field>
-              <FieldLabel htmlFor="cn-reason">Reason</FieldLabel>
+              <FieldLabel htmlFor="cn-reason">{t('Reason')}</FieldLabel>
               <Select value={reason} onValueChange={(v) => setReason(v as ReturnReason)}>
                 <SelectTrigger id="cn-reason" className="w-full">
                   <SelectValue />
@@ -182,18 +193,18 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
                 <SelectContent>
                   {(goods ? goodsReasons : priceReasons).map((r) => (
                     <SelectItem key={r} value={r}>
-                      {returnReasonLabels[r]}
+                      {t(returnReasonLabels[r])}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="cn-note">Details</FieldLabel>
-              <Input id="cn-note" value={reasonNote} maxLength={500} placeholder="Optional, e.g. two bales wet in transit" onChange={(e) => setReasonNote(e.target.value)} />
+              <FieldLabel htmlFor="cn-note">{t('Details')}</FieldLabel>
+              <Input id="cn-note" value={reasonNote} maxLength={500} placeholder={t('Optional, e.g. two bales wet in transit')} onChange={(e) => setReasonNote(e.target.value)} />
             </Field>
             <Field data-invalid={!!errors.creditNoteDate}>
-              <FieldLabel htmlFor="cn-date">Credit note date</FieldLabel>
+              <FieldLabel htmlFor="cn-date">{t('Credit note date')}</FieldLabel>
               <Input id="cn-date" type="date" value={date} min={invoice.invoiceDate} max={todayInIndia()} onChange={(e) => setDate(e.target.value)} />
               <FieldError errors={errors.creditNoteDate ? [{ message: errors.creditNoteDate }] : []} />
             </Field>
@@ -203,11 +214,11 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>{goods ? 'What came back' : 'Value to take off'}</CardTitle>
+          <CardTitle>{goods ? t('What came back') : t('Value to take off')}</CardTitle>
           <CardDescription>
             {goods
-              ? 'Enter the quantity returned on each line. Goods fit to sell go back into stock; damaged ones are recorded as returned and written off.'
-              : 'Enter the amount to take off each line, before GST. GST is worked out on it at the invoice’s rate.'}
+              ? t('Enter the quantity returned on each line. Goods fit to sell go back into stock; damaged ones are recorded as returned and written off.')
+              : t('Enter the amount to take off each line, before GST. GST is worked out on it at the invoice’s rate.')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -215,12 +226,12 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
             <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Invoiced</TableHead>
-                  <TableHead className="text-right">{goods ? 'Returned so far' : 'Credited so far'}</TableHead>
-                  <TableHead className="w-40">{goods ? 'Returned now' : 'Amount off (₹)'}</TableHead>
-                  {goods && <TableHead className="w-48">Goods</TableHead>}
-                  <TableHead className="text-right">Credit</TableHead>
+                  <TableHead>{t('Product')}</TableHead>
+                  <TableHead className="text-right">{t('Invoiced')}</TableHead>
+                  <TableHead className="text-right">{goods ? t('Returned so far') : t('Credited so far')}</TableHead>
+                  <TableHead className="w-40">{goods ? t('Returned now') : t('Amount off (₹)')}</TableHead>
+                  {goods && <TableHead className="w-48">{t('Goods')}</TableHead>}
+                  <TableHead className="text-right">{t('Credit')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -246,7 +257,7 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
                             inputMode="decimal"
                             placeholder={nothingLeft ? '—' : '0'}
                             disabled={nothingLeft}
-                            aria-label={`${goods ? 'Quantity returned' : 'Amount off'} for ${l.sku}`}
+                            aria-label={goods ? t('Quantity returned for {sku}', { sku: l.sku }) : t('Amount off for {sku}', { sku: l.sku })}
                             aria-invalid={!!error}
                             onChange={(e) => (goods ? setQuantities : setAmounts)((current) => ({ ...current, [l.id]: e.target.value }))}
                           />
@@ -260,13 +271,13 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
                             onValueChange={(v) => setDispositions((current) => ({ ...current, [l.id]: v as ReturnDisposition }))}
                             disabled={nothingLeft}
                           >
-                            <SelectTrigger className="w-full" aria-label={`What happens to ${l.sku}`}>
+                            <SelectTrigger className="w-full" aria-label={t('What happens to {sku}', { sku: l.sku })}>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               {(['Restock', 'Damaged'] as ReturnDisposition[]).map((d) => (
                                 <SelectItem key={d} value={d}>
-                                  {dispositionLabels[d]}
+                                  {t(dispositionLabels[d])}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -289,17 +300,17 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
                 <p>
                   {p.offInvoice > 0 && (
                     <>
-                      {formatINR(p.offInvoice)} comes off what {invoice.customerName} owes on {invoice.number}.{' '}
+                      {t('{amount} comes off what {customer} owes on {number}.', { amount: formatINR(p.offInvoice), customer: invoice.customerName, number: invoice.number })}{' '}
                     </>
                   )}
-                  {p.leftAsCredit > 0 && <>{formatINR(p.leftAsCredit)} stays as credit on their account, to set against another invoice or refund.</>}
+                  {p.leftAsCredit > 0 && t('{amount} stays as credit on their account, to set against another invoice or refund.', { amount: formatINR(p.leftAsCredit) })}
                 </p>
               ) : (
-                <p>Enter {goods ? 'a quantity' : 'an amount'} to see the credit note.</p>
+                <p>{goods ? t('Enter a quantity to see the credit note.') : t('Enter an amount to see the credit note.')}</p>
               )}
             </div>
             <dl className="grid min-w-72 grid-cols-[1fr_auto] gap-x-8 gap-y-1.5 text-sm tabular-nums">
-              <dt className="text-muted-foreground">Taxable value</dt>
+              <dt className="text-muted-foreground">{t('Taxable value')}</dt>
               <dd className="text-right">{p ? formatINR(p.taxableValue) : '—'}</dd>
               {invoice.isInterState ? (
                 <>
@@ -314,9 +325,9 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
                   <dd className="text-right">{p ? formatINR(p.sgstAmount) : '—'}</dd>
                 </>
               )}
-              <dt className="text-muted-foreground">Round off</dt>
+              <dt className="text-muted-foreground">{t('Round off')}</dt>
               <dd className="text-right">{p ? formatINR(p.roundOff) : '—'}</dd>
-              <dt className="border-t pt-1.5 font-semibold">Credit note total</dt>
+              <dt className="border-t pt-1.5 font-semibold">{t('Credit note total')}</dt>
               <dd className="border-t pt-1.5 text-right font-semibold">{p ? formatINR(p.grandTotal) : '—'}</dd>
             </dl>
           </div>
@@ -325,11 +336,11 @@ function CreditNoteForm({ invoice }: { invoice: Invoice }) {
 
       <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         <Button type="button" variant="outline" onClick={() => navigate(`/invoices/${invoice.id}`)}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="button" disabled={!request || create.isPending} onClick={submit}>
           {create.isPending && <Spinner />}
-          Issue credit note
+          {t('Issue credit note')}
         </Button>
       </div>
     </div>

@@ -95,7 +95,7 @@ public sealed class AssistantService(
         var saved = await db.AiDrafts.AsNoTracking().Where(d => d.ConversationId == id).ToListAsync(cancellationToken);
         var draftsByCall = (await drafts.ToDtosAsync(saved, cancellationToken)).ToDictionary(d => d.ToolUseId);
 
-        return new AssistantConversationDto(conversation.Id, conversation.Title, Items(messages, draftsByCall), Notice(conversation),
+        return new AssistantConversationDto(conversation.Id, conversation.Title, Items(messages, draftsByCall), L.T(Notice(conversation)),
             Math.Round(conversation.CostUsd * aiOptions.CurrentValue.UsdToInr, 2), conversation.UpdatedAtUtc);
     }
 
@@ -201,7 +201,7 @@ public sealed class AssistantService(
             {
                 Append(conversation, ++sequence, reply, AiMessageStatus.Complete);
                 await FinishAsync(conversation, turn.Usage);
-                await events.DoneAsync(new AssistantDoneEvent(Total(usage), Notice(conversation)));
+                await events.DoneAsync(new AssistantDoneEvent(Total(usage), L.T(Notice(conversation))));
                 return;
             }
 
@@ -216,7 +216,7 @@ public sealed class AssistantService(
                 AssistantDraftDto? draft = null;
                 if (outOfRounds)
                 {
-                    outcome = new ToolOutcome("The limit of lookups for one message has been reached. Answer with what you have.", true, "Too many lookups");
+                    outcome = new ToolOutcome("The limit of lookups for one message has been reached. Answer with what you have.", true, L.Msg("Too many lookups"));
                 }
                 else if (call.Name == AssistantPrompt.CreateDraft)
                 {
@@ -226,14 +226,14 @@ public sealed class AssistantService(
                 }
                 else
                 {
-                    await Emit(() => events.ToolAsync(new AssistantToolDto(call.Id, call.Name, AssistantTools.RunningLabel(call.Name, call.Input), null, null)));
+                    await Emit(() => events.ToolAsync(new AssistantToolDto(call.Id, call.Name, L.T(AssistantTools.RunningLabel(call.Name, call.Input)), null, null)));
                     outcome = await tools.RunAsync(conversation.Id, call.Name, call.Input, CancellationToken.None);
                 }
 
                 results.Add(new ClaudeToolResultBlock(call.Id, outcome.Content, outcome.IsError));
                 var label = new AssistantToolDto(call.Id, call.Name, outcome.Label, !outcome.IsError, outcome.Detail);
                 labels.Add(label);
-                await Emit(() => draft is null ? events.ToolAsync(label) : events.DraftAsync(draft));
+                await Emit(() => draft is null ? events.ToolAsync(Shown(label)) : events.DraftAsync(Shown(draft)));
             }
 
             if (round == maxRounds - 1)
@@ -279,7 +279,7 @@ public sealed class AssistantService(
             Id = Guid.NewGuid(),
             UserId = currentUser.UserId,
             Title = title.Length > 80 ? title[..77] + "…" : title,
-            SystemPrompt = AssistantPrompt.System(company, userName, role, currentUser.Has(Permissions.CostPricesView)),
+            SystemPrompt = AssistantPrompt.System(company, userName, role, currentUser.Has(Permissions.CostPricesView), L.InTamil),
             ToolsVersion = AssistantPrompt.ToolsVersion,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,
@@ -317,11 +317,16 @@ public sealed class AssistantService(
         await db.SaveChangesAsync(CancellationToken.None);
     }
 
+    /// <summary>Labels and warnings are saved in English and shown in the reader's language.</summary>
+    private static AssistantToolDto Shown(AssistantToolDto tool) => tool with { Label = L.T(tool.Label) };
+
+    private static AssistantDraftDto Shown(AssistantDraftDto draft) => draft with { Warnings = [.. draft.Warnings.Select(w => L.T(w))] };
+
     private string? Notice(AiConversation conversation) =>
         conversation.ContextTokens >= Limit
-            ? "This conversation has reached its length limit. Start a new conversation to carry on."
+            ? L.Msg("This conversation has reached its length limit. Start a new conversation to carry on.")
             : conversation.ContextTokens >= Limit * 0.8
-                ? "This conversation is getting long. Starting a new one soon keeps answers quick and cheap."
+                ? L.Msg("This conversation is getting long. Starting a new one soon keeps answers quick and cheap.")
                 : null;
 
     private AiUsageDto Total(List<ClaudeUsage> usage)
@@ -409,6 +414,6 @@ public sealed class AssistantService(
             }
         }
 
-        return items;
+        return [.. items.Select(item => item with { Tool = item.Tool is null ? null : Shown(item.Tool), Draft = item.Draft is null ? null : Shown(item.Draft) })];
     }
 }

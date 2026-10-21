@@ -47,6 +47,8 @@ public sealed class NotificationService(AppDbContext db, ICurrentUser currentUse
                 important.Contains(n.Kind)))
             .ToListAsync(cancellationToken);
 
+        // Saved in English; each person reads them in their own language.
+        items = [.. items.Select(n => n with { Title = L.T(n.Title), Body = n.Body is null ? null : L.T(n.Body) })];
         return new NotificationListDto(items, await unread.CountAsync(cancellationToken), state.LastOpenedUpToId);
     }
 
@@ -98,7 +100,7 @@ public sealed class NotificationService(AppDbContext db, ICurrentUser currentUse
     public async Task<IReadOnlyList<NotificationKindDto>> GetPreferencesAsync(CancellationToken cancellationToken)
     {
         var muted = Muted(await StateAsync(cancellationToken));
-        return [.. NotificationKinds.AllowedFor(currentUser).Select(k => new NotificationKindDto(k.Kind, k.Label, k.Description, muted.Contains(k.Kind)))];
+        return [.. NotificationKinds.AllowedFor(currentUser).Select(k => new NotificationKindDto(k.Kind, L.T(k.Label), L.T(k.Description), muted.Contains(k.Kind)))];
     }
 
     public async Task<IReadOnlyList<NotificationKindDto>> SavePreferencesAsync(IReadOnlyList<NotificationKind> muted, CancellationToken cancellationToken)

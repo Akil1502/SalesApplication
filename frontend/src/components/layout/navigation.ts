@@ -27,7 +27,9 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Permissions } from '@/features/auth/permissions'
+import { msg } from '@/lib/i18n'
 
+/** Titles, descriptions and group labels are English marked with msg(); useNav() hands them out translated. */
 export interface NavItem {
   title: string
   to: string
@@ -50,80 +52,80 @@ export interface NavGroup {
 /** Single source of truth for the menus (rail, top bar and dock), the search palette and page titles. */
 export const navigation: NavGroup[] = [
   {
-    label: 'Overview',
+    label: msg('Overview'),
     icon: LayoutDashboard,
     items: [
-      { title: 'Dashboard', to: '/', icon: LayoutDashboard, description: 'Sales, receivables and stock at a glance', permission: Permissions.DashboardView },
+      { title: msg('Dashboard'), to: '/', icon: LayoutDashboard, description: msg('Sales, receivables and stock at a glance'), permission: Permissions.DashboardView },
     ],
   },
   {
-    label: 'Sales',
+    label: msg('Sales'),
     icon: ShoppingCart,
     items: [
-      { title: 'Orders & quotations', to: '/orders', icon: ShoppingCart, description: 'Quote, confirm and invoice orders', permission: Permissions.OrdersView },
+      { title: msg('Orders & quotations'), to: '/orders', icon: ShoppingCart, description: msg('Quote, confirm and invoice orders'), permission: Permissions.OrdersView },
       {
-        title: 'Smart order entry',
+        title: msg('Smart order entry'),
         to: '/orders/smart-entry',
         icon: Sparkles,
-        description: 'Claude reads an order from text, a PDF or a photo',
+        description: msg('Claude reads an order from text, a PDF or a photo'),
         ai: true,
         permission: Permissions.SmartEntryUse,
       },
-      { title: 'Invoices', to: '/invoices', icon: ReceiptIndianRupee, description: 'GST invoices, balances and printing', permission: Permissions.InvoicesView },
-      { title: 'Payments', to: '/payments', icon: Wallet, description: 'Money received from customers', permission: Permissions.PaymentsView },
-      { title: 'Credit notes', to: '/credit-notes', icon: Undo2, description: 'Returns and corrections after invoicing', permission: Permissions.CreditNotesView },
+      { title: msg('Invoices'), to: '/invoices', icon: ReceiptIndianRupee, description: msg('GST invoices, balances and printing'), permission: Permissions.InvoicesView },
+      { title: msg('Payments'), to: '/payments', icon: Wallet, description: msg('Money received from customers'), permission: Permissions.PaymentsView },
+      { title: msg('Credit notes'), to: '/credit-notes', icon: Undo2, description: msg('Returns and corrections after invoicing'), permission: Permissions.CreditNotesView },
     ],
   },
   {
-    label: 'Purchases',
+    label: msg('Purchases'),
     icon: Truck,
     items: [
-      { title: 'Purchase orders', to: '/purchase-orders', icon: ClipboardList, description: 'Order from suppliers and receive goods', permission: Permissions.PurchaseOrdersView },
-      { title: 'Supplier bills', to: '/supplier-bills', icon: FileSpreadsheet, description: 'Bills matched to orders and receipts', permission: Permissions.SupplierBillsView },
-      { title: 'Supplier payments', to: '/supplier-payments', icon: Banknote, description: 'Money paid to suppliers', permission: Permissions.SupplierPaymentsView },
-      { title: 'Supplier returns', to: '/supplier-returns', icon: Undo2, description: 'Goods sent back, with debit notes', permission: Permissions.SupplierReturnsView },
+      { title: msg('Purchase orders'), to: '/purchase-orders', icon: ClipboardList, description: msg('Order from suppliers and receive goods'), permission: Permissions.PurchaseOrdersView },
+      { title: msg('Supplier bills'), to: '/supplier-bills', icon: FileSpreadsheet, description: msg('Bills matched to orders and receipts'), permission: Permissions.SupplierBillsView },
+      { title: msg('Supplier payments'), to: '/supplier-payments', icon: Banknote, description: msg('Money paid to suppliers'), permission: Permissions.SupplierPaymentsView },
+      { title: msg('Supplier returns'), to: '/supplier-returns', icon: Undo2, description: msg('Goods sent back, with debit notes'), permission: Permissions.SupplierReturnsView },
     ],
   },
   {
-    label: 'Masters',
+    label: msg('Masters'),
     icon: Database,
     items: [
-      { title: 'Customers', to: '/customers', icon: Users, description: 'Buyers, GSTINs, credit limits and terms', permission: Permissions.CustomersView },
-      { title: 'Suppliers', to: '/suppliers', icon: Factory, description: 'Who you buy from', permission: Permissions.SuppliersView },
-      { title: 'Products', to: '/products', icon: Package, description: 'Catalogue, prices, photos and reorder levels', permission: Permissions.ProductsView },
-      { title: 'Rate updates', to: '/rates', icon: BadgeIndianRupee, description: 'Rate lists for a period', permission: Permissions.RatesView },
-      { title: 'Categories & HSN', to: '/catalog', icon: Tags, description: 'Product groups and GST rates', permission: Permissions.CatalogView },
+      { title: msg('Customers'), to: '/customers', icon: Users, description: msg('Buyers, GSTINs, credit limits and terms'), permission: Permissions.CustomersView },
+      { title: msg('Suppliers'), to: '/suppliers', icon: Factory, description: msg('Who you buy from'), permission: Permissions.SuppliersView },
+      { title: msg('Products'), to: '/products', icon: Package, description: msg('Catalogue, prices, photos and reorder levels'), permission: Permissions.ProductsView },
+      { title: msg('Rate updates'), to: '/rates', icon: BadgeIndianRupee, description: msg('Rate lists for a period'), permission: Permissions.RatesView },
+      { title: msg('Categories & HSN'), to: '/catalog', icon: Tags, description: msg('Product groups and GST rates'), permission: Permissions.CatalogView },
     ],
   },
   {
-    label: 'Inventory',
+    label: msg('Inventory'),
     icon: Boxes,
-    items: [{ title: 'Stock', to: '/stock', icon: Boxes, description: 'On hand, the stock ledger and receipts', permission: Permissions.StockView }],
+    items: [{ title: msg('Stock'), to: '/stock', icon: Boxes, description: msg('On hand, the stock ledger and receipts'), permission: Permissions.StockView }],
   },
   {
-    label: 'Insights',
+    label: msg('Insights'),
     icon: Lightbulb,
     items: [
-      { title: 'Reports', to: '/reports', icon: ChartColumn, description: 'Sales, GST, ageing and stock reports', permission: Permissions.ReportsView },
+      { title: msg('Reports'), to: '/reports', icon: ChartColumn, description: msg('Sales, GST, ageing and stock reports'), permission: Permissions.ReportsView },
       {
-        title: 'Ask your data',
+        title: msg('Ask your data'),
         to: '/ask',
         icon: MessageSquareText,
-        description: 'Ask about your sales in plain English or Tamil',
+        description: msg('Ask about your sales in plain English or Tamil'),
         ai: true,
         permission: Permissions.AskDataUse,
       },
-      { title: 'AI insights', to: '/insights', icon: Lightbulb, description: 'Forecasts, unusual changes and reorder advice', permission: Permissions.InsightsView },
+      { title: msg('AI insights'), to: '/insights', icon: Lightbulb, description: msg('Forecasts, unusual changes and reorder advice'), permission: Permissions.InsightsView },
     ],
   },
   {
-    label: 'Administration',
+    label: msg('Administration'),
     icon: ShieldCheck,
     items: [
-      { title: 'Users & roles', to: '/admin/users', icon: UserCog, description: 'Accounts and what each role may do', permission: Permissions.UsersView },
-      { title: 'Company settings', to: '/admin/settings', icon: Settings, description: 'Your GSTIN, address and bank details', permission: Permissions.SettingsEdit },
-      { title: 'AI usage', to: '/admin/ai-usage', icon: FileText, description: 'What the AI features cost and did', permission: Permissions.AiUsageView },
-      { title: 'Audit log', to: '/admin/audit', icon: History, description: 'Who changed what, and when', permission: Permissions.AuditView },
+      { title: msg('Users & roles'), to: '/admin/users', icon: UserCog, description: msg('Accounts and what each role may do'), permission: Permissions.UsersView },
+      { title: msg('Company settings'), to: '/admin/settings', icon: Settings, description: msg('Your GSTIN, address and bank details'), permission: Permissions.SettingsEdit },
+      { title: msg('AI usage'), to: '/admin/ai-usage', icon: FileText, description: msg('What the AI features cost and did'), permission: Permissions.AiUsageView },
+      { title: msg('Audit log'), to: '/admin/audit', icon: History, description: msg('Who changed what, and when'), permission: Permissions.AuditView },
     ],
   },
 ]

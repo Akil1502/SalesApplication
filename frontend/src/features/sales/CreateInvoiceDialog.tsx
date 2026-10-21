@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { errorMessage } from '@/lib/api/errors'
 import { formatINR, todayInIndia } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { useCreateInvoice, type Order } from './api'
 
 /** Issues the invoice for a confirmed order. GST is recalculated at today's rates and stock is deducted. */
@@ -39,7 +40,7 @@ function CreateInvoiceForm({ order, onDone }: { order: Order; onDone: () => void
     setError(null)
     try {
       const invoice = await create.mutateAsync({ salesOrderId: order.id, invoiceDate: date })
-      toast.success(`Invoice ${invoice.number} issued`, { description: formatINR(invoice.grandTotal) })
+      toast.success(t('Invoice {number} issued', { number: invoice.number }), { description: formatINR(invoice.grandTotal) })
       onDone()
       navigate(`/invoices/${invoice.id}`)
     } catch (err) {
@@ -50,17 +51,20 @@ function CreateInvoiceForm({ order, onDone }: { order: Order; onDone: () => void
   return (
     <form onSubmit={submit} noValidate>
       <DialogHeader>
-        <DialogTitle>Issue invoice for {order.number}</DialogTitle>
+        <DialogTitle>{t('Issue invoice for {number}', { number: order.number })}</DialogTitle>
         <DialogDescription>
-          The invoice gets the next number for its financial year, uses today's GST rates, and takes the goods out of stock. It can't be edited
-          afterwards, only cancelled.
+          {t(
+            "The invoice gets the next number for its financial year, uses today's GST rates, and takes the goods out of stock. It can't be edited afterwards, only cancelled.",
+          )}
         </DialogDescription>
       </DialogHeader>
       <div className="flex flex-col gap-4 py-4">
         {shortLines.length > 0 && (
           <Alert variant="destructive">
             <AlertDescription>
-              Not enough stock for: {shortLines.map((l) => `${l.sku} (need ${l.quantity}, have ${l.quantityOnHand})`).join(', ')}. Receive stock first.
+              {t('Not enough stock for: {lines}. Receive stock first.', {
+                lines: shortLines.map((l) => t('{sku} (need {need}, have {have})', { sku: l.sku, need: l.quantity, have: l.quantityOnHand })).join(', '),
+              })}
             </AlertDescription>
           </Alert>
         )}
@@ -70,18 +74,18 @@ function CreateInvoiceForm({ order, onDone }: { order: Order; onDone: () => void
           </Alert>
         )}
         <Field>
-          <FieldLabel htmlFor={id}>Invoice date</FieldLabel>
+          <FieldLabel htmlFor={id}>{t('Invoice date')}</FieldLabel>
           <Input id={id} type="date" value={date} max={todayInIndia()} min={order.orderDate} onChange={(e) => setDate(e.target.value)} />
-          <FieldDescription>Invoices are numbered in date order within the financial year.</FieldDescription>
+          <FieldDescription>{t('Invoices are numbered in date order within the financial year.')}</FieldDescription>
         </Field>
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={create.isPending}>
           {create.isPending && <Spinner />}
-          Issue invoice
+          {t('Issue invoice')}
         </Button>
       </DialogFooter>
     </form>

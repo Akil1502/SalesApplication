@@ -1,21 +1,23 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
+import { msg } from '@/lib/i18n'
 
 export type ProductListItem = Schemas['ProductListItemDto']
 export type Product = Schemas['ProductDto']
 export type ProductSaveRequest = Schemas['ProductSaveRequest']
 export type ProductUnit = Schemas['ProductUnit']
 
+/** Labels are marked with msg(); translate them with t() where they're shown. */
 export const productUnits: { value: ProductUnit; label: string }[] = [
-  { value: 'Kg', label: 'Kilogram (kg)' },
-  { value: 'Metre', label: 'Metre (m)' },
-  { value: 'Piece', label: 'Piece' },
-  { value: 'Cone', label: 'Cone' },
-  { value: 'Bale', label: 'Bale' },
-  { value: 'Box', label: 'Box' },
-  { value: 'Roll', label: 'Roll' },
-  { value: 'Set', label: 'Set' },
+  { value: 'Kg', label: msg('Kilogram (kg)') },
+  { value: 'Metre', label: msg('Metre (m)') },
+  { value: 'Piece', label: msg('Piece') },
+  { value: 'Cone', label: msg('Cone') },
+  { value: 'Bale', label: msg('Bale') },
+  { value: 'Box', label: msg('Box') },
+  { value: 'Roll', label: msg('Roll') },
+  { value: 'Set', label: msg('Set') },
 ]
 
 export interface ProductListQuery {

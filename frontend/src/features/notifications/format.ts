@@ -1,4 +1,6 @@
 import { AlarmClock, ClipboardCheck, ClipboardPlus, FileWarning, HandCoins, PackageMinus, ShoppingBag, Sparkles, type LucideIcon } from 'lucide-react'
+import { formatDateParts } from '@/lib/format'
+import { getLanguage, msg, t } from '@/lib/i18n'
 import type { Notification, NotificationKind } from './api'
 
 /** Each kind's icon and colours (tinted tile, readable in light and dark). */
@@ -15,7 +17,10 @@ export const KIND_LOOK: Record<NotificationKind, { icon: LucideIcon; tile: strin
 
 const IST = 'Asia/Kolkata'
 const dayOf = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: IST, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date)
-const clock = (date: Date) => new Intl.DateTimeFormat('en-IN', { timeZone: IST, hour: 'numeric', minute: '2-digit', hour12: true }).format(date).toLowerCase()
+const clock = (date: Date) => {
+  const time = formatDateParts(date, { timeZone: IST, hour: 'numeric', minute: '2-digit', hour12: true })
+  return getLanguage() === 'en' ? time.toLowerCase() : time
+}
 
 function yesterdayOf(now: Date): string {
   return dayOf(new Date(now.getTime() - 24 * 60 * 60 * 1000))
@@ -25,23 +30,23 @@ function yesterdayOf(now: Date): string {
 export function whenText(iso: string, now = new Date()): string {
   const at = new Date(iso)
   const minutes = Math.floor((now.getTime() - at.getTime()) / 60_000)
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes} min ago`
+  if (minutes < 1) return t('Just now')
+  if (minutes < 60) return t('{minutes} min ago', { minutes })
   if (dayOf(at) === dayOf(now)) return clock(at)
-  if (dayOf(at) === yesterdayOf(now)) return `Yesterday, ${clock(at)}`
-  return new Intl.DateTimeFormat('en-IN', { timeZone: IST, day: 'numeric', month: 'short' }).format(at)
+  if (dayOf(at) === yesterdayOf(now)) return t('Yesterday, {time}', { time: clock(at) })
+  return formatDateParts(at, { timeZone: IST, day: 'numeric', month: 'short' })
 }
 
 export type DayGroup = { label: 'Today' | 'Yesterday' | 'Earlier'; items: Notification[] }
 
-/** Newest first, under Today, Yesterday and Earlier (India time); empty groups are left out. */
+/** Newest first, under Today, Yesterday and Earlier (India time); empty groups are left out. Labels are marked with msg(). */
 export function groupByDay(items: Notification[], now = new Date()): DayGroup[] {
   const today = dayOf(now)
   const yesterday = yesterdayOf(now)
   const groups: DayGroup[] = [
-    { label: 'Today', items: [] },
-    { label: 'Yesterday', items: [] },
-    { label: 'Earlier', items: [] },
+    { label: msg('Today'), items: [] },
+    { label: msg('Yesterday'), items: [] },
+    { label: msg('Earlier'), items: [] },
   ]
   for (const item of items) {
     const day = dayOf(new Date(item.createdAtUtc))

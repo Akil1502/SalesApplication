@@ -1,24 +1,25 @@
 import { z } from 'zod'
 import { integerString, moneyString, optionalText, quantityString, requiredText, toNullIfBlank, toNumberOrNull } from '@/components/form/schemas'
 import type { PickedSupplier } from '@/components/SupplierPicker'
+import { msg, t } from '@/lib/i18n'
 import type { Product, ProductSaveRequest, ProductUnit } from './api'
 
 const units = ['Kg', 'Metre', 'Piece', 'Cone', 'Bale', 'Box', 'Roll', 'Set'] as const satisfies readonly ProductUnit[]
 
 export const productFormSchema = z.object({
   sku: requiredText('SKU', 40).regex(/^[A-Za-z0-9][A-Za-z0-9._/-]*$/, {
-    error: "SKU may contain letters, digits, '.', '_', '/' and '-', starting with a letter or digit.",
+    error: msg("SKU may contain letters, digits, '.', '_', '/' and '-', starting with a letter or digit."),
   }),
-  name: requiredText('Name', 200),
+  name: requiredText(msg('Name'), 200),
   description: optionalText(1000),
-  categoryId: z.string().min(1, { error: 'Choose a category.' }),
-  hsnCodeId: z.string().min(1, { error: 'Choose an HSN code.' }),
-  unit: z.enum(units, { error: 'Choose a unit.' }),
+  categoryId: z.string().min(1, { error: msg('Choose a category.') }),
+  hsnCodeId: z.string().min(1, { error: msg('Choose an HSN code.') }),
+  unit: z.enum(units, { error: msg('Choose a unit.') }),
   listPrice: moneyString({ max: 99_999_999 }),
   costPrice: moneyString({ optional: true, max: 99_999_999 }),
   reorderLevel: quantityString,
   reorderQuantity: quantityString,
-  leadTimeDays: integerString(0, 365, 'Lead time'),
+  leadTimeDays: integerString(0, 365, msg('Lead time')),
   preferredSupplier: z.custom<PickedSupplier | null>(),
   isActive: z.boolean(),
 })
@@ -56,7 +57,7 @@ export function toFormValues(p: Product): ProductFormValues {
     leadTimeDays: p.leadTimeDays.toString(),
     preferredSupplier:
       p.preferredSupplierId != null
-        ? { id: p.preferredSupplierId, code: '', name: p.preferredSupplierName ?? 'Supplier', gstin: null, city: '', stateName: '' }
+        ? { id: p.preferredSupplierId, code: '', name: p.preferredSupplierName ?? t('Supplier'), gstin: null, city: '', stateName: '' }
         : null,
     isActive: p.isActive,
   }

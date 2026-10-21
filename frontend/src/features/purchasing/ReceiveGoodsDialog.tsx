@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ApiRequestError, errorMessage } from '@/lib/api/errors'
 import { formatQuantity, todayInIndia } from '@/lib/format'
 import { useReceiveGoods, type PurchaseOrder } from './api'
+import { t } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 
 interface ReceiveGoodsDialogProps {
   order: PurchaseOrder
@@ -23,10 +25,12 @@ export function ReceiveGoodsDialog({ order, open, onOpenChange }: ReceiveGoodsDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Receive goods</DialogTitle>
+          <DialogTitle>{t('Receive goods')}</DialogTitle>
           <DialogDescription>
-            Against {order.number} from {order.supplierName}. Enter what you accepted, and anything refused at the door: rejected goods
-            never enter stock and stay due on the order.
+            {t(
+              'Against {order} from {supplier}. Enter what you accepted, and anything refused at the door: rejected goods never enter stock and stay due on the order.',
+              { order: order.number, supplier: order.supplierName },
+            )}
           </DialogDescription>
         </DialogHeader>
         {open && <ReceiveForm order={order} onDone={() => onOpenChange(false)} />}
@@ -51,15 +55,15 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
   const problem = (lineId: number, max: number): string | null => {
     const raw = (quantities[lineId] ?? '').trim()
     if (raw === '') return null
-    if (!/^\d+(\.\d{1,3})?$/.test(raw)) return 'Up to 3 decimals.'
-    if (Number(raw) > max) return `At most ${formatQuantity(max)}.`
+    if (!/^\d+(\.\d{1,3})?$/.test(raw)) return t('Up to 3 decimals.')
+    if (Number(raw) > max) return t('At most {quantity}.', { quantity: formatQuantity(max) })
     return null
   }
   const rejectProblem = (lineId: number): string | null => {
     const raw = (rejected[lineId] ?? '').trim()
     if (raw === '') return null
-    if (!/^\d+(\.\d{1,3})?$/.test(raw)) return 'Up to 3 decimals.'
-    return Number(raw) > 0 && !(reasons[lineId] ?? '').trim() ? 'Say why.' : null
+    if (!/^\d+(\.\d{1,3})?$/.test(raw)) return t('Up to 3 decimals.')
+    return Number(raw) > 0 && !(reasons[lineId] ?? '').trim() ? t('Say why.') : null
   }
   const entered = lines.filter((l) => Number(quantities[l.id]) > 0 || Number(rejected[l.id]) > 0)
   const invalid = lines.some((l) => problem(l.id, l.maxReceivable) !== null || rejectProblem(l.id) !== null)
@@ -82,7 +86,7 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
           })),
         },
       })
-      toast.success(`Goods receipt ${receipt.number} recorded; stock updated`)
+      toast.success(t('Goods receipt {number} recorded; stock updated', { number: receipt.number }))
       setReceived({ id: receipt.id, number: receipt.number })
     } catch (error) {
       if (error instanceof ApiRequestError && error.body.errors) {
@@ -96,16 +100,20 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
     return (
       <div className="flex flex-col gap-4 py-2">
         <p className="text-sm">
-          Recorded as{' '}
-          <Link to={`/stock/receipts/${received.id}`} className="font-mono underline underline-offset-4">
-            {received.number}
-          </Link>
-          . The accepted goods are in stock, and the products' cost has been re-averaged at the order price. Anything rejected is still due
-          on the order.
+          <T
+            text="Recorded as {receipt}. The accepted goods are in stock, and the products' cost has been re-averaged at the order price. Anything rejected is still due on the order."
+            values={{
+              receipt: (
+                <Link to={`/stock/receipts/${received.id}`} className="font-mono underline underline-offset-4">
+                  {received.number}
+                </Link>
+              ),
+            }}
+          />
         </p>
         <DialogFooter>
           <Button type="button" onClick={onDone}>
-            Done
+            {t('Done')}
           </Button>
         </DialogFooter>
       </div>
@@ -116,17 +124,17 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
     <>
       <FieldGroup className="grid gap-4 py-2 sm:grid-cols-3">
         <Field data-invalid={!!errors.receiptDate}>
-          <FieldLabel htmlFor="receipt-date">Received on</FieldLabel>
+          <FieldLabel htmlFor="receipt-date">{t('Received on')}</FieldLabel>
           <Input id="receipt-date" type="date" value={receiptDate} min={order.orderDate} max={todayInIndia()} onChange={(e) => setReceiptDate(e.target.value)} />
           <FieldError errors={errors.receiptDate ? [{ message: errors.receiptDate }] : []} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="receipt-ref">Delivery challan / invoice no.</FieldLabel>
-          <Input id="receipt-ref" value={reference} maxLength={50} placeholder="Optional" onChange={(e) => setReference(e.target.value)} />
+          <FieldLabel htmlFor="receipt-ref">{t('Delivery challan / invoice no.')}</FieldLabel>
+          <Input id="receipt-ref" value={reference} maxLength={50} placeholder={t('Optional')} onChange={(e) => setReference(e.target.value)} />
         </Field>
         <Field>
-          <FieldLabel htmlFor="receipt-notes">Notes</FieldLabel>
-          <Input id="receipt-notes" value={notes} maxLength={1000} placeholder="Optional" onChange={(e) => setNotes(e.target.value)} />
+          <FieldLabel htmlFor="receipt-notes">{t('Notes')}</FieldLabel>
+          <Input id="receipt-notes" value={notes} maxLength={1000} placeholder={t('Optional')} onChange={(e) => setNotes(e.target.value)} />
         </Field>
       </FieldGroup>
 
@@ -134,12 +142,12 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead className="text-right">Ordered</TableHead>
-              <TableHead className="text-right">Received</TableHead>
-              <TableHead className="text-right">Still to come</TableHead>
-              <TableHead className="w-32">Accepted</TableHead>
-              <TableHead className="w-44">Rejected</TableHead>
+              <TableHead>{t('Product')}</TableHead>
+              <TableHead className="text-right">{t('Ordered')}</TableHead>
+              <TableHead className="text-right">{t('Received')}</TableHead>
+              <TableHead className="text-right">{t('Still to come')}</TableHead>
+              <TableHead className="w-32">{t('Accepted')}</TableHead>
+              <TableHead className="w-44">{t('Rejected')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -160,7 +168,7 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
                         value={quantities[l.id] ?? ''}
                         inputMode="decimal"
                         placeholder="0"
-                        aria-label={`Quantity of ${l.sku} received, line ${index + 1}`}
+                        aria-label={t('Quantity of {sku} received, line {line}', { sku: l.sku, line: index + 1 })}
                         aria-invalid={!!lineProblem}
                         onChange={(e) => setQuantities((current) => ({ ...current, [l.id]: e.target.value }))}
                       />
@@ -173,15 +181,15 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
                         value={rejected[l.id] ?? ''}
                         inputMode="decimal"
                         placeholder="0"
-                        aria-label={`Quantity of ${l.sku} rejected, line ${index + 1}`}
+                        aria-label={t('Quantity of {sku} rejected, line {line}', { sku: l.sku, line: index + 1 })}
                         onChange={(e) => setRejected((current) => ({ ...current, [l.id]: e.target.value }))}
                       />
                       {Number(rejected[l.id]) > 0 && (
                         <Input
                           value={reasons[l.id] ?? ''}
                           maxLength={200}
-                          placeholder="Why, e.g. wet cones"
-                          aria-label={`Why ${l.sku} was rejected`}
+                          placeholder={t('Why, e.g. wet cones')}
+                          aria-label={t('Why {sku} was rejected', { sku: l.sku })}
                           onChange={(e) => setReasons((current) => ({ ...current, [l.id]: e.target.value }))}
                         />
                       )}
@@ -200,15 +208,15 @@ function ReceiveForm({ order, onDone }: { order: PurchaseOrder; onDone: () => vo
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-muted-foreground">A little more than ordered is accepted, up to the over-receipt tolerance in Company settings.</p>
+      <p className="text-xs text-muted-foreground">{t('A little more than ordered is accepted, up to the over-receipt tolerance in Company settings.')}</p>
 
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="button" disabled={entered.length === 0 || invalid || receive.isPending} onClick={submit}>
           {receive.isPending && <Spinner />}
-          Record receipt
+          {t('Record receipt')}
         </Button>
       </DialogFooter>
     </>

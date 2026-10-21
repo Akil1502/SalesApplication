@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { authStore } from '@/features/auth/auth-store'
 import { ApiRequestError, errorMessage } from '@/lib/api/errors'
+import { msg } from '@/lib/i18n'
 import { deleteConversation, loadConversation, sendMessage, type AssistantItem } from './api'
 
 export interface AssistantState {
@@ -141,7 +142,7 @@ export const assistantStore = {
         ownController.signal,
       )
       // Read through the getter: the handlers above changed the state while this function waited.
-      if (assistantStore.getSnapshot().status === 'replying') set({ status: 'idle', error: 'The reply was cut off. Try sending your message again.' })
+      if (assistantStore.getSnapshot().status === 'replying') set({ status: 'idle', error: msg('The reply was cut off. Try sending your message again.') })
     } catch (error) {
       if (ownController.signal.aborted) {
         // Stopped: the server keeps what had streamed, marked as stopped; show it the same way.

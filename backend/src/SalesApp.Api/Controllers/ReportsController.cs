@@ -22,8 +22,8 @@ public sealed class ReportsController(IReportService reports, ICompanySettingsSe
     [ProducesResponseType<ReportResult>(StatusCodes.Status200OK)]
     [ProducesResponseType<ApiError>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ApiError>(StatusCodes.Status404NotFound)]
-    public Task<ReportResult> Run(string key, [FromQuery] ReportRequest request, CancellationToken cancellationToken) =>
-        reports.RunAsync(key, request, cancellationToken);
+    public async Task<ReportResult> Run(string key, [FromQuery] ReportRequest request, CancellationToken cancellationToken) =>
+        ReportService.InReadersLanguage(await reports.RunAsync(key, request, cancellationToken));
 
     /// <summary>The same report as an .xlsx file.</summary>
     [HttpGet("{key}/excel")]
@@ -34,9 +34,9 @@ public sealed class ReportsController(IReportService reports, ICompanySettingsSe
     {
         var report = await reports.RunAsync(key, request, cancellationToken);
         var company = await settings.GetAsync(cancellationToken);
-        var bytes = ExcelReportWriter.Write(report, company.TradeName ?? company.LegalName);
+        var bytes = ExcelReportWriter.Write(ReportService.InReadersLanguage(report), company.TradeName ?? company.LegalName);
         var suffix = report.From is { } from && report.To is { } to ? $"{from:yyyy-MM-dd}_to_{to:yyyy-MM-dd}" : DateTime.UtcNow.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-        await audit.RecordAsync(new AuditEvent(AuditAction.Exported, Summary: $"Downloaded the {report.Title} report as Excel ({report.Subtitle})."), cancellationToken);
+        await audit.RecordAsync(new AuditEvent(AuditAction.Exported, Summary: L.Msg($"Downloaded the {report.Title} report as Excel ({report.Subtitle}).")), cancellationToken);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{report.Key}_{suffix}.xlsx");
     }
 }

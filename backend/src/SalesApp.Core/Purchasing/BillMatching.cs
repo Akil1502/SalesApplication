@@ -1,4 +1,5 @@
 using System.Globalization;
+using SalesApp.Core.Localization;
 using SalesApp.Core.Tax;
 
 namespace SalesApp.Core.Purchasing;
@@ -42,8 +43,8 @@ public static class BillMatching
         if (line.BilledBefore + line.Quantity > line.Received)
         {
             issues.Add(line.BilledBefore > 0
-                ? $"Bills charge for {Quantity(line.BilledBefore + line.Quantity)} {line.Unit} in all, but only {Quantity(line.Received)} has been received."
-                : $"Charges for {Quantity(line.Quantity)} {line.Unit}, but only {Quantity(line.Received)} has been received.");
+                ? L.Msg($"Bills charge for {Quantity(line.BilledBefore + line.Quantity)} {line.Unit} in all, but only {Quantity(line.Received)} has been received.")
+                : L.Msg($"Charges for {Quantity(line.Quantity)} {line.Unit}, but only {Quantity(line.Received)} has been received."));
         }
 
         if (line.OrderedPrice > 0)
@@ -51,14 +52,16 @@ public static class BillMatching
             var difference = (line.UnitPrice - line.OrderedPrice) / line.OrderedPrice * 100m;
             if (Math.Abs(difference) > priceTolerancePercent)
             {
-                issues.Add($"Price ₹{Money(line.UnitPrice)} is {Math.Abs(Math.Round(difference, 1)).ToString("0.#", India)}% " +
-                           $"{(difference > 0 ? "above" : "below")} the order's ₹{Money(line.OrderedPrice)}.");
+                var percent = Math.Abs(Math.Round(difference, 1)).ToString("0.#", India);
+                issues.Add(difference > 0
+                    ? L.Msg($"Price ₹{Money(line.UnitPrice)} is {percent}% above the order's ₹{Money(line.OrderedPrice)}.")
+                    : L.Msg($"Price ₹{Money(line.UnitPrice)} is {percent}% below the order's ₹{Money(line.OrderedPrice)}."));
             }
         }
 
         if (line.GstRate != line.ProductGstRate)
         {
-            issues.Add($"GST at {Percent(line.GstRate)}, but the product's HSN rate is {Percent(line.ProductGstRate)}.");
+            issues.Add(L.Msg($"GST at {Percent(line.GstRate)}, but the product's HSN rate is {Percent(line.ProductGstRate)}."));
         }
 
         return issues.Count == 0 ? null : string.Join(" ", issues);
@@ -67,7 +70,7 @@ public static class BillMatching
     /// <summary>A difference between our total and the one printed on the supplier's invoice, if any.</summary>
     public static string? TotalIssue(decimal grandTotal, decimal? supplierTotal) =>
         supplierTotal is { } stated && Math.Abs(stated - grandTotal) > TotalTolerance
-            ? $"The bill works out to ₹{Money(grandTotal)}, but the supplier's invoice says ₹{Money(stated)}."
+            ? L.Msg($"The bill works out to ₹{Money(grandTotal)}, but the supplier's invoice says ₹{Money(stated)}.")
             : null;
 
     private static string Money(decimal amount) => AmountInWords.IndianGrouping(amount);

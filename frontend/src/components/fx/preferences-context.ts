@@ -1,4 +1,5 @@
 import { createContext, useContext, useSyncExternalStore } from 'react'
+import type { Language } from '@/lib/i18n'
 import type { LayoutChoice, MotionLevel, ThemeChoice } from '@/lib/preferences'
 
 export interface PreferencesContextValue {
@@ -12,6 +13,8 @@ export interface PreferencesContextValue {
   setMotion: (motion: MotionLevel) => void
   layout: LayoutChoice
   setLayout: (layout: LayoutChoice) => void
+  language: Language
+  setLanguage: (language: Language) => void
 }
 
 export const PreferencesContext = createContext<PreferencesContextValue | null>(null)

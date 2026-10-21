@@ -18,6 +18,8 @@ import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { ApiRequestError, applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { gstinPan, gstinStateCode, validateGstin } from '@/lib/gstin'
+import { documentLanguageOptions } from '@/features/sales/print/document-language'
+import { t } from '@/lib/i18n'
 import { useSalesReps, useStates } from '@/lib/lookups'
 import { useCustomer, useSaveCustomer } from './api'
 import {
@@ -40,11 +42,18 @@ function AddressFields({
 }) {
   return (
     <FieldGroup className="grid gap-4 sm:grid-cols-2">
-      <FormInput control={control} name={`${prefix}.line1`} label="Address line 1" className="sm:col-span-2" />
-      <FormInput control={control} name={`${prefix}.line2`} label="Address line 2" className="sm:col-span-2" />
-      <FormInput control={control} name={`${prefix}.city`} label="City" />
-      <FormInput control={control} name={`${prefix}.pincode`} label="PIN code" inputMode="numeric" maxLength={6} />
-      <FormSelect control={control} name={`${prefix}.stateCode`} label="State" options={stateOptions} placeholder="Choose a state" className="sm:col-span-2" />
+      <FormInput control={control} name={`${prefix}.line1`} label={t('Address line 1')} className="sm:col-span-2" />
+      <FormInput control={control} name={`${prefix}.line2`} label={t('Address line 2')} className="sm:col-span-2" />
+      <FormInput control={control} name={`${prefix}.city`} label={t('City')} />
+      <FormInput control={control} name={`${prefix}.pincode`} label={t('PIN code')} inputMode="numeric" maxLength={6} />
+      <FormSelect
+        control={control}
+        name={`${prefix}.stateCode`}
+        label={t('State')}
+        options={stateOptions}
+        placeholder={t('Choose a state')}
+        className="sm:col-span-2"
+      />
     </FieldGroup>
   )
 }
@@ -95,7 +104,7 @@ export function CustomerFormPage() {
   const repOptions: SelectOption[] = (reps.data ?? []).map((r) => ({ value: r.id, label: r.fullName }))
   // Keep the current rep visible even if they're no longer in the active list.
   if (customer.data?.assignedRepId && !repOptions.some((o) => o.value === customer.data?.assignedRepId)) {
-    repOptions.push({ value: customer.data.assignedRepId, label: customer.data.assignedRepName ?? 'Current rep' })
+    repOptions.push({ value: customer.data.assignedRepId, label: customer.data.assignedRepName ?? t('Current rep') })
   }
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -103,7 +112,7 @@ export function CustomerFormPage() {
     try {
       const result = await save.mutateAsync({ id, body: toSaveRequest(values, customer.data?.rowVersion) })
       reset(toFormValues(result))
-      toast.success(isNew ? `Customer ${result.code} created` : 'Customer saved')
+      toast.success(isNew ? t('Customer {code} created', { code: result.code }) : t('Customer saved'))
       setSaved(true)
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 409) {
@@ -132,13 +141,13 @@ export function CustomerFormPage() {
       <UnsavedChangesGuard when={formState.isDirty && !saved} />
 
       <PageHeader
-        title={isNew ? 'New customer' : (customer.data?.name ?? 'Customer')}
-        description={isNew ? 'Leave the code blank to generate one.' : `Customer code ${customer.data?.code}`}
+        title={isNew ? t('New customer') : (customer.data?.name ?? t('Customer'))}
+        description={isNew ? t('Leave the code blank to generate one.') : t('Customer code {code}', { code: customer.data?.code ?? '' })}
         actions={
           <Button variant="ghost" asChild>
             <Link to="/customers">
               <ArrowLeft />
-              Back to customers
+              {t('Back to customers')}
             </Link>
           </Button>
         }
@@ -147,9 +156,9 @@ export function CustomerFormPage() {
       {conflict && (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            Someone else saved this customer after you opened it. Reload to see their changes (your edits will be discarded).
+            {t('Someone else saved this customer after you opened it. Reload to see their changes (your edits will be discarded).')}
             <Button type="button" size="sm" variant="outline" onClick={() => { setConflict(false); void customer.refetch() }}>
-              Reload
+              {t('Reload')}
             </Button>
           </AlertDescription>
         </Alert>
@@ -157,34 +166,34 @@ export function CustomerFormPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Business details</CardTitle>
-          <CardDescription>Use the legal name exactly as registered for GST.</CardDescription>
+          <CardTitle>{t('Business details')}</CardTitle>
+          <CardDescription>{t('Use the legal name exactly as registered for GST.')}</CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup className="grid gap-4 sm:grid-cols-2">
-            {isNew && <FormInput control={control} name="code" label="Customer code" placeholder="Auto" maxLength={20} />}
-            <FormInput control={control} name="name" label="Legal name" className={isNew ? '' : 'sm:col-span-2'} />
-            <FormInput control={control} name="tradeName" label="Trade name" />
+            {isNew && <FormInput control={control} name="code" label={t('Customer code')} placeholder={t('Auto')} maxLength={20} />}
+            <FormInput control={control} name="name" label={t('Legal name')} className={isNew ? '' : 'sm:col-span-2'} />
+            <FormInput control={control} name="tradeName" label={t('Trade name')} />
             <FormInput
               control={control}
               name="gstin"
               label="GSTIN"
-              placeholder="Leave blank if unregistered"
+              placeholder={t('Leave blank if unregistered')}
               maxLength={15}
               className="font-mono uppercase"
-              description={gstinIsValid ? `PAN ${gstinPan(gstin)}` : 'Leave blank for unregistered (B2C) customers.'}
+              description={gstinIsValid ? `PAN ${gstinPan(gstin)}` : t('Leave blank for unregistered (B2C) customers.')}
             />
-            <FormInput control={control} name="contactPerson" label="Contact person" />
-            <FormInput control={control} name="phone" label="Phone" type="tel" placeholder="+91 98400 12345" />
-            <FormInput control={control} name="email" label="Email" type="email" className="sm:col-span-2" />
+            <FormInput control={control} name="contactPerson" label={t('Contact person')} />
+            <FormInput control={control} name="phone" label={t('Phone')} type="tel" placeholder="+91 98400 12345" />
+            <FormInput control={control} name="email" label={t('Email')} type="email" className="sm:col-span-2" />
           </FieldGroup>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Billing address</CardTitle>
-          <CardDescription>The GST-registered address. Its state decides intra-state (CGST + SGST) or inter-state (IGST) tax.</CardDescription>
+          <CardTitle>{t('Billing address')}</CardTitle>
+          <CardDescription>{t('The GST-registered address. Its state decides intra-state (CGST + SGST) or inter-state (IGST) tax.')}</CardDescription>
         </CardHeader>
         <CardContent>
           <AddressFields control={control} prefix="billingAddress" stateOptions={stateOptions} />
@@ -193,19 +202,19 @@ export function CustomerFormPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Shipping address</CardTitle>
+          <CardTitle>{t('Shipping address')}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <FormCheckbox control={control} name="shippingSameAsBilling" label="Same as billing address" />
+          <FormCheckbox control={control} name="shippingSameAsBilling" label={t('Same as billing address')} />
           {!sameAsBilling && <AddressFields control={control} prefix="shippingAddress" stateOptions={stateOptions} />}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Commercial terms</CardTitle>
+          <CardTitle>{t('Commercial terms')}</CardTitle>
           <CardDescription>
-            {canEditTerms ? 'Credit limit and payment terms apply to new orders.' : 'Changing credit terms and the sales rep needs the "Set credit terms" permission.'}
+            {canEditTerms ? t('Credit limit and payment terms apply to new orders.') : t('Changing credit terms and the sales rep needs the "Set credit terms" permission.')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -213,18 +222,18 @@ export function CustomerFormPage() {
             <FormInput
               control={control}
               name="creditLimit"
-              label="Credit limit (₹)"
+              label={t('Credit limit (₹)')}
               inputMode="decimal"
-              placeholder="No limit"
+              placeholder={t('No limit')}
               disabled={!canEditTerms}
             />
-            <FormInput control={control} name="paymentTermsDays" label="Payment terms (days)" inputMode="numeric" disabled={!canEditTerms} />
+            <FormInput control={control} name="paymentTermsDays" label={t('Payment terms (days)')} inputMode="numeric" disabled={!canEditTerms} />
             {canEditTerms ? (
-              <FormSelect control={control} name="assignedRepId" label="Sales rep" options={repOptions} noneLabel="Unassigned" />
+              <FormSelect control={control} name="assignedRepId" label={t('Sales rep')} options={repOptions} noneLabel={t('Unassigned')} />
             ) : (
               <div className="space-y-2 text-sm">
-                <p className="font-medium">Sales rep</p>
-                <p className="text-muted-foreground">{customer.data?.assignedRepName ?? (isNew ? 'You' : 'Unassigned')}</p>
+                <p className="font-medium">{t('Sales rep')}</p>
+                <p className="text-muted-foreground">{customer.data?.assignedRepName ?? (isNew ? t('You') : t('Unassigned'))}</p>
               </div>
             )}
           </FieldGroup>
@@ -233,11 +242,24 @@ export function CustomerFormPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Notes</CardTitle>
+          <CardTitle>{t('Notes')}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <FormTextarea control={control} name="notes" label="Internal notes" description="Visible to your team only." />
-          <FormSwitch control={control} name="isActive" label="Active" description="Inactive customers are hidden from lists and can't be used on new orders." />
+          <FormSelect
+            control={control}
+            name="documentLanguage"
+            label={t('Language for documents')}
+            description={t('Invoices, quotations, credit notes and payment reminders for this customer.')}
+            options={documentLanguageOptions()}
+            noneLabel={t("Company's default")}
+          />
+          <FormTextarea control={control} name="notes" label={t('Internal notes')} description={t('Visible to your team only.')} />
+          <FormSwitch
+            control={control}
+            name="isActive"
+            label={t('Active')}
+            description={t("Inactive customers are hidden from lists and can't be used on new orders.")}
+          />
         </CardContent>
       </Card>
 
@@ -248,11 +270,11 @@ export function CustomerFormPage() {
       {canEdit && (
         <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
           <Button type="button" variant="outline" onClick={() => navigate('/customers')}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" disabled={formState.isSubmitting}>
             {formState.isSubmitting && <Spinner />}
-            {isNew ? 'Create customer' : 'Save changes'}
+            {isNew ? t('Create customer') : t('Save changes')}
           </Button>
         </div>
       )}

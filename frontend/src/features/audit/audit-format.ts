@@ -1,46 +1,47 @@
+import { msg, t } from '@/lib/i18n'
 import type { AuditAction, AuditEntry } from './api'
 
-/** What each action is called in the log. */
+/** What each action is called in the log; translate with t() where shown. */
 export const actionLabels: Record<AuditAction, string> = {
-  Created: 'Created',
-  Updated: 'Changed',
-  Deleted: 'Removed',
-  SignedIn: 'Signed in',
-  SignInFailed: 'Failed sign-in',
-  LockedOut: 'Locked out',
-  PasswordReset: 'Password reset',
-  PermissionsChanged: 'Access changed',
-  Exported: 'Downloaded',
+  Created: msg('Created'),
+  Updated: msg('Changed'),
+  Deleted: msg('Removed'),
+  SignedIn: msg('Signed in'),
+  SignInFailed: msg('Failed sign-in'),
+  LockedOut: msg('Locked out'),
+  PasswordReset: msg('Password reset'),
+  PermissionsChanged: msg('Access changed'),
+  Exported: msg('Downloaded'),
 }
 
 /** Actions worth a second look, shown in a warning colour. */
 export const isWarning = (action: AuditAction) => action === 'SignInFailed' || action === 'LockedOut'
 
-/** The kinds of record the trail covers, as the server names them, for the filter. */
+/** The kinds of record the trail covers, as the server names them, for the filter. Shown with t(). */
 export const recordTypes = [
-  'Customer',
-  'Product',
-  'Rate',
-  'Category',
-  'HSN code',
-  'Order',
-  'Invoice',
-  'Payment',
-  'Goods receipt',
-  'Stock adjustment',
-  'Supplier',
-  'Purchase order',
-  'Supplier bill',
-  'Supplier payment',
-  'Credit note',
-  'Credit used',
-  'Credit refund',
-  'Supplier return',
-  'Supplier credit used',
-  'Supplier refund',
-  'User',
-  'Role',
-  'Company settings',
+  msg('Customer'),
+  msg('Product'),
+  msg('Rate'),
+  msg('Category'),
+  msg('HSN code'),
+  msg('Order'),
+  msg('Invoice'),
+  msg('Payment'),
+  msg('Goods receipt'),
+  msg('Stock adjustment'),
+  msg('Supplier'),
+  msg('Purchase order'),
+  msg('Supplier bill'),
+  msg('Supplier payment'),
+  msg('Credit note'),
+  msg('Credit used'),
+  msg('Credit refund'),
+  msg('Supplier return'),
+  msg('Supplier credit used'),
+  msg('Supplier refund'),
+  msg('User'),
+  msg('Role'),
+  msg('Company settings'),
 ] as const
 
 /** Where a record can be opened in the app, if anywhere. */
@@ -100,5 +101,5 @@ export function changeSummary(entry: Pick<AuditEntry, 'changes' | 'summary'>, sh
   if (entry.changes.length === 0) return entry.summary ?? ''
   const shown = entry.changes.slice(0, show).map((c) => `${c.field}: ${c.old ?? '—'} → ${c.new ?? '—'}`)
   const more = entry.changes.length - show
-  return more > 0 ? `${shown.join('; ')}; and ${more} more` : shown.join('; ')
+  return more > 0 ? t('{changes}; and {count} more', { changes: shown.join('; '), count: more }) : shown.join('; ')
 }

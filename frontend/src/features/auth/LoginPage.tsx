@@ -1,13 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { BrainCircuit, ChartNoAxesCombined, ReceiptIndianRupee, Sparkles, Warehouse } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Navigate, useLocation } from 'react-router'
 import { z } from 'zod'
+import { PreferencesContext } from '@/components/fx/preferences-context'
 import { TiltCard } from '@/components/fx/TiltCard'
 import { TextileHero3D } from '@/components/three/scenes'
 import { BrandMark } from '@/components/layout/BrandMark'
+import { LanguageSwitch } from '@/components/LanguageSwitch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,21 +18,22 @@ import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { brandName, useBranding, useDocumentTitle } from '@/features/branding/api'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
+import { msg, t } from '@/lib/i18n'
 import { useAuth } from './auth-context'
 import { authStore } from './auth-store'
 import { landingPage } from './sign-in-state'
 
 const loginSchema = z.object({
-  email: z.email({ error: 'Enter a valid email address.' }),
-  password: z.string().min(1, { error: 'Enter your password.' }),
+  email: z.email({ error: () => t('Enter a valid email address.') }),
+  password: z.string().min(1, { error: () => t('Enter your password.') }),
 })
 
 type LoginValues = z.infer<typeof loginSchema>
 
 const highlights = [
-  { icon: ReceiptIndianRupee, text: 'GST invoices, credit notes and payments' },
-  { icon: Warehouse, text: 'Stock, purchasing and supplier bills' },
-  { icon: BrainCircuit, text: 'Claude reads orders and answers questions' },
+  { icon: ReceiptIndianRupee, text: msg('GST invoices, credit notes and payments') },
+  { icon: Warehouse, text: msg('Stock, purchasing and supplier bills') },
+  { icon: BrainCircuit, text: msg('Claude reads orders and answers questions') },
 ]
 
 /** The still picture behind the headline when 3D is off: soft light and a few drawn yarn cones. */
@@ -67,7 +70,9 @@ export function LoginPage() {
   const location = useLocation()
   const branding = useBranding().data
   const name = brandName(branding)
-  useDocumentTitle('Sign in')
+  // The language switch needs the preferences (always there in the app; not in some tests).
+  const hasPreferences = useContext(PreferencesContext) !== null
+  useDocumentTitle(t('Sign in'))
 
   // Read once on mount: was the user sent here because their session expired?
   const [expiredNotice] = useState(() => authStore.takeSignOutReason() === 'expired')
@@ -126,7 +131,7 @@ export function LoginPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             >
-              Sales, stock and GST billing, with AI built in.
+              {t('Sales, stock and GST billing, with AI built in.')}
             </motion.h2>
             <ul className="space-y-3">
               {highlights.map(({ icon: Icon, text }, i) => (
@@ -140,20 +145,26 @@ export function LoginPage() {
                   <span className="flex size-8 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/20 backdrop-blur">
                     <Icon className="size-4" />
                   </span>
-                  {text}
+                  {t(text)}
                 </motion.li>
               ))}
             </ul>
           </div>
 
           <p className="flex items-center gap-1.5 text-xs text-white/60">
-            <Sparkles className="size-3.5" /> Point at the scene: it follows you.
+            <Sparkles className="size-3.5" /> {t('Point at the scene: it follows you.')}
           </p>
         </div>
       </section>
 
       {/* The sign-in side. */}
       <section className="relative flex items-center justify-center overflow-hidden p-4 sm:p-8">
+        {/* English or தமிழ் before signing in; carried into the account once signed in. */}
+        {hasPreferences && (
+          <div className="absolute top-4 right-4 z-10">
+            <LanguageSwitch />
+          </div>
+        )}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 -z-0 opacity-60 lg:opacity-40"
@@ -177,15 +188,15 @@ export function LoginPage() {
           <TiltCard max={4}>
             <Card className="fx-glass border-0 shadow-[var(--shadow-lifted)]">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl tracking-tight">Welcome back</CardTitle>
-                <CardDescription>Sign in with the account your administrator created for you.</CardDescription>
+                <CardTitle className="text-2xl tracking-tight">{t('Welcome back')}</CardTitle>
+                <CardDescription>{t('Sign in with the account your administrator created for you.')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={onSubmit} noValidate>
                   <FieldGroup>
                     {expiredNotice && !serverError && (
                       <Alert>
-                        <AlertDescription>Your session expired. Please sign in again.</AlertDescription>
+                        <AlertDescription>{t('Your session expired. Please sign in again.')}</AlertDescription>
                       </Alert>
                     )}
                     {serverError && (
@@ -195,13 +206,13 @@ export function LoginPage() {
                     )}
 
                     <Field data-invalid={!!errors.email}>
-                      <FieldLabel htmlFor="email">Email</FieldLabel>
+                      <FieldLabel htmlFor="email">{t('Email')}</FieldLabel>
                       <Input id="email" type="email" autoComplete="username" autoFocus aria-invalid={!!errors.email} {...form.register('email')} />
                       <FieldError errors={[errors.email]} />
                     </Field>
 
                     <Field data-invalid={!!errors.password}>
-                      <FieldLabel htmlFor="password">Password</FieldLabel>
+                      <FieldLabel htmlFor="password">{t('Password')}</FieldLabel>
                       <Input
                         id="password"
                         type="password"
@@ -214,7 +225,7 @@ export function LoginPage() {
 
                     <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
                       {isSubmitting && <Spinner />}
-                      Sign in
+                      {t('Sign in')}
                     </Button>
                   </FieldGroup>
                 </form>

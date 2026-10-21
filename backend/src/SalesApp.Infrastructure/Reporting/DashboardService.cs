@@ -77,7 +77,7 @@ public sealed class DashboardService(AppDbContext db, IBusinessClock clock) : ID
         if (byState.Count > 6)
         {
             var rest = byState.Skip(6).Sum(s => s.Value);
-            states.Add(new RankedItemDto($"Other ({byState.Count - 6} states)", rest, ShareOf(rest), null));
+            states.Add(new RankedItemDto(L.Show($"Other ({byState.Count - 6} states)"), rest, ShareOf(rest), null));
         }
 
         return new DashboardDto(

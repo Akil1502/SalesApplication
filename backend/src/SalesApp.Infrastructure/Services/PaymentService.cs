@@ -147,10 +147,11 @@ public sealed class PaymentService(
         };
         db.Payments.Add(payment);
         await db.SaveChangesAsync(cancellationToken);
+        var (title, body) = NotificationText.PaymentReceived(payment.Amount, invoice.CustomerName, payment.Mode, invoice.Number);
         await notifications.RaiseAsync(new NotificationEvent(
             NotificationKind.PaymentReceived,
-            $"{NotificationText.Money(payment.Amount)} received from {invoice.CustomerName}",
-            $"{NotificationText.Mode(payment.Mode)} against {invoice.Number}",
+            title,
+            body,
             $"/invoices/{invoice.Id}",
             invoice.CustomerId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);

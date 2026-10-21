@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatBusinessDate, formatINR } from '@/lib/format'
+import { t, tn } from '@/lib/i18n'
 import { useDebounced } from '@/lib/use-debounced'
 import { cn } from '@/lib/utils'
 import { useInvoices, type InvoiceListItem } from './api'
@@ -30,14 +31,14 @@ export function RecordPaymentPicker({ open, onOpenChange }: { open: boolean; onO
       <Dialog open={open && !chosen} onOpenChange={close}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Record a payment</DialogTitle>
-            <DialogDescription>Which invoice is it for? The most overdue are listed; search by number or customer for others.</DialogDescription>
+            <DialogTitle>{t('Record a payment')}</DialogTitle>
+            <DialogDescription>{t('Which invoice is it for? The most overdue are listed; search by number or customer for others.')}</DialogDescription>
           </DialogHeader>
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Invoice number or customer" className="pl-9" aria-label="Find an invoice" autoFocus />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('Invoice number or customer')} className="pl-9" aria-label={t('Find an invoice')} autoFocus />
           </div>
-          <ul className="-mx-2 flex max-h-80 flex-col overflow-y-auto" aria-label="Invoices with money due">
+          <ul className="-mx-2 flex max-h-80 flex-col overflow-y-auto" aria-label={t('Invoices with money due')}>
             {invoices.isPending
               ? Array.from({ length: 4 }, (_, i) => (
                   <li key={i} className="p-2">
@@ -54,14 +55,14 @@ export function RecordPaymentPicker({ open, onOpenChange }: { open: boolean; onO
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{invoice.customerName}</span>
                         <span className="block text-xs text-muted-foreground">
-                          {invoice.number} · due {formatBusinessDate(invoice.dueDate)}
+                          {t('{invoice} · due {date}', { invoice: invoice.number, date: formatBusinessDate(invoice.dueDate) })}
                         </span>
                       </span>
                       <span className="text-right">
                         <span className="block font-medium tabular-nums">{formatINR(invoice.balance)}</span>
                         {!!invoice.daysOverdue && (
                           <span className={cn('block text-xs', invoice.daysOverdue > 30 ? 'text-destructive' : 'text-muted-foreground')}>
-                            {invoice.daysOverdue} {invoice.daysOverdue === 1 ? 'day' : 'days'} late
+                            {tn(invoice.daysOverdue, '{count} day late', '{count} days late')}
                           </span>
                         )}
                       </span>
@@ -69,7 +70,7 @@ export function RecordPaymentPicker({ open, onOpenChange }: { open: boolean; onO
                   </li>
                 ))}
             {!invoices.isPending && due.length === 0 && (
-              <li className="px-2 py-6 text-center text-sm text-muted-foreground">{q ? 'No invoice with money due matches.' : 'Nothing is overdue.'}</li>
+              <li className="px-2 py-6 text-center text-sm text-muted-foreground">{q ? t('No invoice with money due matches.') : t('Nothing is overdue.')}</li>
             )}
           </ul>
         </DialogContent>

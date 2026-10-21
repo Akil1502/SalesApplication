@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useMotionValue, useSpring, useTransform, type 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import { useMotionLevel } from '@/components/fx/preferences-context'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import type { NavGroup } from './navigation'
 import { useNav } from './use-nav'
@@ -105,7 +106,7 @@ export function DockNav() {
   return (
     <motion.nav
       ref={dock}
-      aria-label="Main menu"
+      aria-label={t('Main menu')}
       className="fixed inset-x-0 bottom-4 z-40 hidden justify-center md:flex"
       initial={{ y: 120, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}

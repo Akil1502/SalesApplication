@@ -9,6 +9,7 @@ import { useCursorEffects } from '@/components/fx/use-cursor-effects'
 import { useScrollReveal } from '@/components/fx/use-scroll-reveal'
 import { TourProvider } from '@/components/tour/GuidedTour'
 import { useDocumentTitle } from '@/features/branding/api'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { CommandPalette } from './CommandPalette'
 import { DockNav } from './DockNav'
@@ -53,7 +54,7 @@ export function AppLayout() {
           href="#main"
           className="fixed top-2 left-2 z-[60] -translate-y-20 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-lg transition-transform focus-visible:translate-y-0"
         >
-          Skip to the page
+          {t('Skip to the page')}
         </a>
         {/* A new page opens at the top; going back returns to where you were; a record panel never moves its list. */}
         <ScrollRestoration getKey={scrollKey} />

@@ -11,6 +11,8 @@ describe('preferences', () => {
     expect(parsePreferences('{"theme":"dark","motion":"wild"}')).toEqual({ theme: 'dark' })
     expect(parsePreferences('{"theme":"dark","layout":"dock"}')).toEqual({ theme: 'dark', layout: 'dock' })
     expect(parsePreferences('{"layout":"sideways"}')).toEqual({ theme: 'system' })
+    expect(parsePreferences('{"language":"ta"}')).toEqual({ theme: 'system', language: 'ta' })
+    expect(parsePreferences('{"language":"fr"}')).toEqual({ theme: 'system' })
   })
 
   it("keeps each user's choice, and the device's last choice for the sign-in page", () => {

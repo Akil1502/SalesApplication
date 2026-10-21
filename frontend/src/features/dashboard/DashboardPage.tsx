@@ -14,7 +14,9 @@ import { useAuth } from '@/features/auth/auth-context'
 import { useDashboard, type Dashboard } from '@/features/reports/api'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatINRCompact } from '@/lib/format'
+import { t, tn } from '@/lib/i18n'
 import { useUserSetting } from '@/lib/user-settings'
+import { T } from '@/lib/i18n/T'
 import { cn } from '@/lib/utils'
 import { ChaseCard, NotificationsCard, PurchasesCard, QuickActionsCard, RecentPaymentsCard } from './ExtraCards'
 import { change } from './kpi'
@@ -40,24 +42,24 @@ import { SalesTrendChart } from './SalesTrendChart'
 import { SortableGrid } from './SortableGrid'
 import { StatTile } from './StatTile'
 
-function greeting(now = new Date()): string {
+function greeting(name: string, now = new Date()): string {
   const hour = now.getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
+  if (hour < 12) return t('Good morning, {name}', { name })
+  if (hour < 17) return t('Good afternoon, {name}', { name })
+  return t('Good evening, {name}', { name })
 }
 
-const count = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-IN')} ${n === 1 ? one : many}`
+const products = (n: number) => tn(n, '{count} product', '{count} products')
 
 function ageingBars(dashboard: Dashboard): RankedBar[] {
   const { ageing, kpis } = dashboard
   const share = (value: number) => (kpis.outstanding > 0 ? value / kpis.outstanding : 0)
   return [
-    { label: 'Not yet due', value: ageing.notDue, color: 'var(--viz-age-1)' },
-    { label: '1–30 days overdue', value: ageing.days1To30, color: 'var(--viz-age-2)' },
-    { label: '31–60 days overdue', value: ageing.days31To60, color: 'var(--viz-age-3)' },
-    { label: '61–90 days overdue', value: ageing.days61To90, color: 'var(--viz-age-4)' },
-    { label: 'Over 90 days overdue', value: ageing.over90, color: 'var(--viz-age-5)' },
+    { label: t('Not yet due'), value: ageing.notDue, color: 'var(--viz-age-1)' },
+    { label: t('1–30 days overdue'), value: ageing.days1To30, color: 'var(--viz-age-2)' },
+    { label: t('31–60 days overdue'), value: ageing.days31To60, color: 'var(--viz-age-3)' },
+    { label: t('61–90 days overdue'), value: ageing.days61To90, color: 'var(--viz-age-4)' },
+    { label: t('Over 90 days overdue'), value: ageing.over90, color: 'var(--viz-age-5)' },
   ].map((bar) => ({ ...bar, share: share(bar.value) }))
 }
 
@@ -72,7 +74,7 @@ function CardSkeleton({ rows = 5 }: { rows?: number }) {
 }
 
 /** A card with a title, description and an optional link to the full report. */
-function ReportCard({ title, description, to, linkText = 'All', children }: { title: string; description: ReactNode; to?: string; linkText?: string; children: ReactNode }) {
+function ReportCard({ title, description, to, linkText, children }: { title: string; description: ReactNode; to?: string; linkText?: string; children: ReactNode }) {
   return (
     <Card className="h-full">
       <CardHeader>
@@ -81,7 +83,7 @@ function ReportCard({ title, description, to, linkText = 'All', children }: { ti
         {to && (
           <CardAction>
             <Button asChild variant="ghost" size="sm">
-              <Link to={to}>{linkText}</Link>
+              <Link to={to}>{linkText ?? t('All')}</Link>
             </Button>
           </CardAction>
         )}
@@ -124,69 +126,75 @@ export function DashboardPage() {
   const hiddenCards = cards.filter((c) => c.hidden)
 
   const description = data
-    ? `${period.label} (${formatBusinessDate(data.period.from)} – ${formatBusinessDate(data.period.to)}) · financial year ${data.financialYear} · sales exclude GST`
-    : 'Your sales at a glance.'
+    ? t('{period} ({from} – {to}) · financial year {year} · sales exclude GST', {
+        period: t(period.label),
+        from: formatBusinessDate(data.period.from),
+        to: formatBusinessDate(data.period.to),
+        year: data.financialYear,
+      })
+    : t('Your sales at a glance.')
+  const delta = kpis && { value: change(kpis.sales, kpis.salesComparison), versus: t(period.versus), none: t(period.noComparison) }
 
   const tile = (id: TileId) => {
     switch (id) {
       case 'sales':
         return (
           <StatTile
-            label={`Sales ${period.text}`}
+            label={t(period.sales)}
             icon={IndianRupee}
             isLoading={loading}
             value={kpis && formatINRCompact(kpis.sales)}
             count={kpis && { value: kpis.sales, format: formatINRCompact }}
-            delta={kpis && { value: change(kpis.sales, kpis.salesComparison), comparison: period.comparison }}
-            hint={kpis && count(kpis.invoices, 'invoice')}
+            delta={delta}
+            hint={kpis && tn(kpis.invoices, '{count} invoice', '{count} invoices')}
             to="/reports/sales-by-period"
           />
         )
       case 'collected':
         return (
           <StatTile
-            label={`Collected ${period.text}`}
+            label={t(period.collected)}
             icon={HandCoins}
             isLoading={loading}
             value={kpis && formatINRCompact(kpis.collected)}
             count={kpis && { value: kpis.collected, format: formatINRCompact }}
-            hint={kpis && count(kpis.payments, 'payment')}
+            hint={kpis && tn(kpis.payments, '{count} payment', '{count} payments')}
             to="/payments"
           />
         )
       case 'receivables':
         return (
           <StatTile
-            label="Receivables"
+            label={t('Receivables')}
             icon={Wallet}
             isLoading={loading}
             value={kpis && formatINRCompact(kpis.outstanding)}
             count={kpis && { value: kpis.outstanding, format: formatINRCompact }}
-            hint={kpis && `${formatINRCompact(kpis.overdue)} overdue on ${count(kpis.overdueInvoices, 'invoice')}`}
+            hint={kpis && tn(kpis.overdueInvoices, '{amount} overdue on {count} invoice', '{amount} overdue on {count} invoices', { amount: formatINRCompact(kpis.overdue) })}
             to="/invoices?view=overdue"
           />
         )
       case 'orders':
         return (
           <StatTile
-            label="Confirmed orders to invoice"
+            label={t('Confirmed orders to invoice')}
             icon={ClipboardList}
             isLoading={loading}
             value={kpis && formatINRCompact(kpis.openOrdersValue)}
             count={kpis && { value: kpis.openOrdersValue, format: formatINRCompact }}
-            hint={kpis && count(kpis.openOrders, 'order')}
+            hint={kpis && tn(kpis.openOrders, '{count} order', '{count} orders')}
             to="/orders?status=Confirmed"
           />
         )
       case 'stock':
         return (
           <StatTile
-            label="Low on stock"
+            label={t('Low on stock')}
             icon={Boxes}
             isLoading={loading}
-            value={kpis && count(kpis.lowStockProducts, 'product')}
-            count={kpis && { value: kpis.lowStockProducts, format: (n) => count(Math.round(n), 'product') }}
-            hint="At or below reorder level"
+            value={kpis && products(kpis.lowStockProducts)}
+            count={kpis && { value: kpis.lowStockProducts, format: (n) => products(Math.round(n)) }}
+            hint={t('At or below reorder level')}
             to="/stock?status=Low"
           />
         )
@@ -197,7 +205,7 @@ export function DashboardPage() {
     switch (id) {
       case 'trend':
         return (
-          <ReportCard title="Monthly sales" description="Invoiced value excluding GST, last 24 months">
+          <ReportCard title={t('Monthly sales')} description={t('Invoiced value excluding GST, last 24 months')}>
             <div className={dashboard.isFetching && !loading ? 'opacity-60 transition-opacity' : undefined}>
               {data ? <SalesTrendChart months={data.monthlySales} /> : <Skeleton className="h-72 w-full" />}
             </div>
@@ -205,27 +213,32 @@ export function DashboardPage() {
         )
       case 'ageing':
         return (
-          <ReportCard title="Receivables ageing" description={kpis ? `${formatINRCompact(kpis.outstanding)} outstanding today` : 'Outstanding today'} to="/reports/receivables-ageing" linkText="By customer">
-            {data ? <RankedBars items={ageingBars(data)} emptyText="Nothing outstanding." /> : <CardSkeleton />}
+          <ReportCard
+            title={t('Receivables ageing')}
+            description={kpis ? t('{amount} outstanding today', { amount: formatINRCompact(kpis.outstanding) }) : t('Outstanding today')}
+            to="/reports/receivables-ageing"
+            linkText={t('By customer')}
+          >
+            {data ? <RankedBars items={ageingBars(data)} emptyText={t('Nothing outstanding.')} /> : <CardSkeleton />}
           </ReportCard>
         )
       case 'top-customers':
         return (
-          <ReportCard title="Top customers" description={`${period.label}, share of sales`} to="/reports/sales-by-customer">
-            {data ? <RankedBars items={data.topCustomers} emptyText={`No sales ${period.text} yet.`} /> : <CardSkeleton />}
+          <ReportCard title={t('Top customers')} description={t('{period}, share of sales', { period: t(period.label) })} to="/reports/sales-by-customer">
+            {data ? <RankedBars items={data.topCustomers} emptyText={t(period.noSales)} /> : <CardSkeleton />}
           </ReportCard>
         )
       case 'top-products':
         return (
-          <ReportCard title="Top products" description={`${period.label}, share of sales`} to="/reports/sales-by-product">
-            {data ? <RankedBars items={data.topProducts} emptyText={`No sales ${period.text} yet.`} /> : <CardSkeleton />}
+          <ReportCard title={t('Top products')} description={t('{period}, share of sales', { period: t(period.label) })} to="/reports/sales-by-product">
+            {data ? <RankedBars items={data.topProducts} emptyText={t(period.noSales)} /> : <CardSkeleton />}
           </ReportCard>
         )
       case 'states':
         return (
-          <ReportCard title="Sales by state" description={`Place of supply, ${period.text}`}>
+          <ReportCard title={t('Sales by state')} description={t(period.supply)}>
             {data ? (
-              <RankedBars items={data.salesByState.map((s) => (s.label.startsWith('Other') ? { ...s, color: 'var(--viz-other)' } : s))} emptyText={`No sales ${period.text} yet.`} />
+              <RankedBars items={data.salesByState.map((s) => (s.label.startsWith('Other') ? { ...s, color: 'var(--viz-other)' } : s))} emptyText={t(period.noSales)} />
             ) : (
               <CardSkeleton rows={7} />
             )}
@@ -245,7 +258,7 @@ export function DashboardPage() {
   }
 
   const hideButton = (label: string, onHide: () => void) => (
-    <button type="button" onClick={onHide} aria-label={`Hide ${label}`} title="Hide" className="flex size-8 items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+    <button type="button" onClick={onHide} aria-label={t('Hide {name}', { name: label })} title={t('Hide')} className="flex size-8 items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
       <EyeOff className="size-4" />
     </button>
   )
@@ -253,46 +266,46 @@ export function DashboardPage() {
   return (
     <>
       {shown.city ? (
-        <SalesHero greeting={`${greeting()}, ${user?.fullName ?? ''}`} description={description} months={data?.monthlySales} />
+        <SalesHero greeting={greeting(user?.fullName ?? '')} description={description} months={data?.monthlySales} />
       ) : (
-        <PageHeader title={`${greeting()}, ${user?.fullName ?? ''}`} description={description} />
+        <PageHeader title={greeting(user?.fullName ?? '')} description={description} />
       )}
 
       {editing ? (
-        <div className="sticky top-16 z-40 flex flex-wrap items-center gap-2 rounded-2xl border bg-popover/95 p-2 pl-4 text-popover-foreground shadow-[var(--shadow-lifted)] backdrop-blur" role="region" aria-label="Customise the dashboard">
+        <div className="sticky top-16 z-40 flex flex-wrap items-center gap-2 rounded-2xl border bg-popover/95 p-2 pl-4 text-popover-foreground shadow-[var(--shadow-lifted)] backdrop-blur" role="region" aria-label={t('Customise the dashboard')}>
           <p className="mr-auto min-w-48 flex-1 text-sm">
-            <span className="font-semibold">Customising your dashboard.</span>{' '}
-            <span className="text-muted-foreground">Drag a card by its handle, or focus the handle and use the arrow keys. Only you see your layout.</span>
+            <span className="font-semibold">{t('Customising your dashboard.')}</span>{' '}
+            <span className="text-muted-foreground">{t('Drag a card by its handle, or focus the handle and use the arrow keys. Only you see your layout.')}</span>
           </p>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={hiddenTiles.length + hiddenCards.length === 0}>
-                <Plus /> Add ({hiddenTiles.length + hiddenCards.length})
+                <Plus /> {t('Add ({count})', { count: hiddenTiles.length + hiddenCards.length })}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72">
-              {hiddenCards.length > 0 && <DropdownMenuLabel>Cards</DropdownMenuLabel>}
+              {hiddenCards.length > 0 && <DropdownMenuLabel>{t('Cards')}</DropdownMenuLabel>}
               {hiddenCards.map((c) => (
                 <DropdownMenuItem
                   key={c.id}
                   onSelect={() => setCard(c.id, { hidden: false })}
                   className="flex-col items-start gap-0.5"
-                  aria-label={CARD_INFO[c.id].title}
+                  aria-label={t(CARD_INFO[c.id].title)}
                   aria-describedby={`add-card-${c.id}`}
                 >
                   <span className="flex items-center gap-2 font-medium">
-                    <Eye className="size-4" /> {CARD_INFO[c.id].title}
+                    <Eye className="size-4" /> {t(CARD_INFO[c.id].title)}
                   </span>
                   <span id={`add-card-${c.id}`} className="pl-6 text-xs text-muted-foreground">
-                    {CARD_INFO[c.id].description}
+                    {t(CARD_INFO[c.id].description)}
                   </span>
                 </DropdownMenuItem>
               ))}
               {hiddenCards.length > 0 && hiddenTiles.length > 0 && <DropdownMenuSeparator />}
-              {hiddenTiles.length > 0 && <DropdownMenuLabel>Figures</DropdownMenuLabel>}
-              {hiddenTiles.map((t) => (
-                <DropdownMenuItem key={t.id} onSelect={() => setTile(t.id, { hidden: false })}>
-                  <Eye className="size-4" /> {TILE_TITLES[t.id]}
+              {hiddenTiles.length > 0 && <DropdownMenuLabel>{t('Figures')}</DropdownMenuLabel>}
+              {hiddenTiles.map((tile) => (
+                <DropdownMenuItem key={tile.id} onSelect={() => setTile(tile.id, { hidden: false })}>
+                  <Eye className="size-4" /> {t(TILE_TITLES[tile.id])}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -300,14 +313,14 @@ export function DashboardPage() {
           <div className="flex items-center gap-2 px-2">
             <Switch id="dashboard-city" checked={shown.city} onCheckedChange={(city) => updateLayout((current) => ({ ...current, city }))} />
             <Label htmlFor="dashboard-city" className="text-sm font-normal">
-              3D city
+              {t('3D city')}
             </Label>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setDraft({ ...DEFAULT_LAYOUT, period: shown.period })}>
-            <RotateCcw /> Reset
+            <RotateCcw /> {t('Reset')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => setDraft(null)}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             size="sm"
@@ -316,29 +329,29 @@ export function DashboardPage() {
               setDraft(null)
             }}
           >
-            Done
+            {t('Done')}
           </Button>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3" data-tour="dashboard-controls">
           <div className="-mx-1 max-w-full overflow-x-auto px-1 pb-1">
             <SegmentedControl
-              label="Period"
+              label={t('Period')}
               value={shown.period}
               onValueChange={setPeriod}
               options={PERIODS.map((p) => ({
                 value: p.value,
                 label: (
                   <>
-                    <span className="sm:hidden">{p.short}</span>
-                    <span className="hidden sm:inline">{p.label}</span>
+                    <span className="sm:hidden">{t(p.short)}</span>
+                    <span className="hidden sm:inline">{t(p.label)}</span>
                   </>
                 ),
               }))}
             />
           </div>
           <Button variant="outline" size="sm" onClick={() => setDraft(layout)}>
-            <SlidersHorizontal /> Customise
+            <SlidersHorizontal /> {t('Customise')}
           </Button>
         </div>
       )}
@@ -352,8 +365,13 @@ export function DashboardPage() {
       {!hasSales && (
         <Alert>
           <AlertDescription>
-            No sales yet. Figures appear here as soon as orders are confirmed and invoiced. For a realistic demo, a developer can generate two years of
-            sample history with <code className="rounded bg-muted px-1">dotnet run --project backend/src/SalesApp.Api -- --seed-demo</code>.
+            <T
+              text="No sales yet. Figures appear here as soon as orders are confirmed and invoiced. For a realistic demo, a developer can generate two years of sample history with {command}."
+              values={{
+                // i18n-ignore: a command to type, not text
+                command: <code className="rounded bg-muted px-1">dotnet run --project backend/src/SalesApp.Api -- --seed-demo</code>,
+              }}
+            />
           </AlertDescription>
         </Alert>
       )}
@@ -363,11 +381,11 @@ export function DashboardPage() {
           <SortableGrid
             items={visibleTiles}
             editing={editing}
-            titleOf={(id) => TILE_TITLES[id as TileId]}
+            titleOf={(id) => t(TILE_TITLES[id as TileId])}
             onMove={(id, overId) => updateLayout((current) => ({ ...current, tiles: moveTo(current.tiles, id, overId) }))}
             className={cn('fx-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3', TILE_COLUMNS[Math.min(visibleTiles.length, 5)])}
-            renderItem={(t) => tile(t.id)}
-            renderControls={(t) => hideButton(TILE_TITLES[t.id], () => setTile(t.id, { hidden: true }))}
+            renderItem={(item) => tile(item.id)}
+            renderControls={(tile) => hideButton(t(TILE_TITLES[tile.id]), () => setTile(tile.id, { hidden: true }))}
           />
         )}
 
@@ -375,7 +393,7 @@ export function DashboardPage() {
           <SortableGrid
             items={visibleCards}
             editing={editing}
-            titleOf={(id) => CARD_INFO[id as CardId].title}
+            titleOf={(id) => t(CARD_INFO[id as CardId].title)}
             onMove={(id, overId) => updateLayout((current) => ({ ...current, cards: moveTo(current.cards, id, overId) }))}
             className="grid grid-flow-row-dense gap-4 lg:grid-cols-3"
             itemClassName={(c) => (c.size === 'wide' ? 'lg:col-span-2' : undefined)}
@@ -385,13 +403,13 @@ export function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setCard(c.id, { size: c.size === 'wide' ? 'normal' : 'wide' })}
-                  aria-label={c.size === 'wide' ? `Make ${CARD_INFO[c.id].title} narrower` : `Make ${CARD_INFO[c.id].title} wider`}
-                  title={c.size === 'wide' ? 'Narrower' : 'Wider'}
+                  aria-label={c.size === 'wide' ? t('Make {name} narrower', { name: t(CARD_INFO[c.id].title) }) : t('Make {name} wider', { name: t(CARD_INFO[c.id].title) })}
+                  title={c.size === 'wide' ? t('Narrower') : t('Wider')}
                   className="hidden size-8 items-center justify-center rounded-full hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:flex"
                 >
                   {c.size === 'wide' ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
                 </button>
-                {hideButton(CARD_INFO[c.id].title, () => setCard(c.id, { hidden: true }))}
+                {hideButton(t(CARD_INFO[c.id].title), () => setCard(c.id, { hidden: true }))}
               </>
             )}
           />

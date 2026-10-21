@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api, type Schemas } from '@/lib/api/client'
 import { ApiRequestError, isApiError, unwrap } from '@/lib/api/errors'
+import { t } from '@/lib/i18n'
 
 export type ReportDefinition = Schemas['ReportDefinitionDto']
 export type ReportColumn = Schemas['ReportColumn']
@@ -56,7 +57,7 @@ export async function downloadReportExcel(key: string, query: ReportQuery): Prom
     parseAs: 'blob',
   })
   if (!response.ok || !data) {
-    throw new ApiRequestError(response.status, isApiError(error) ? error : { message: 'The Excel file could not be created.', traceId: '' })
+    throw new ApiRequestError(response.status, isApiError(error) ? error : { message: t('The Excel file could not be created.'), traceId: '' })
   }
 
   const fileName = /filename="?([^";]+)"?/.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ?? `${key}.xlsx`

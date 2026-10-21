@@ -22,6 +22,7 @@ internal sealed class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         builder.Property(s => s.BankAccountNumber).HasMaxLength(18).IsUnicode(false);
         builder.Property(s => s.BankIfsc).HasMaxLength(11).IsUnicode(false);
         builder.Property(s => s.Notes).HasMaxLength(2000);
+        builder.Property(s => s.DocumentLanguage).HasConversion<string>().HasMaxLength(10).IsUnicode(false);
         builder.Property(s => s.RowVersion).IsRowVersion();
 
         builder.OwnsOne(s => s.Address, address =>

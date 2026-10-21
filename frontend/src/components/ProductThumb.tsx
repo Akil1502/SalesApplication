@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useProductImage } from '@/features/products/images'
+import { t } from '@/lib/i18n'
 import { initials, placeholderStyle } from '@/lib/product-tile'
 import { cn } from '@/lib/utils'
 
@@ -35,7 +36,7 @@ export function ProductThumb({ productId, name, size = 'sm', preview = false, cl
         <img
           key={image.thumbnailUrl}
           src={image.thumbnailUrl}
-          alt={name ? `Photo of ${name}` : 'Product photo'}
+          alt={name ? t('Photo of {name}', { name }) : t('Product photo')}
           loading="lazy"
           decoding="async"
           onLoad={() => setLoadedUrl(image.thumbnailUrl)}

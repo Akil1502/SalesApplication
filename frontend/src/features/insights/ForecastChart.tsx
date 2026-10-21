@@ -1,6 +1,7 @@
 import { Bar, BarChart, CartesianGrid, ErrorBar, Rectangle, Tooltip, XAxis, YAxis, type BarShapeProps, type TooltipContentProps } from 'recharts'
 import { useMotionLevel } from '@/components/fx/preferences-context'
 import { formatINR, formatINRCompact } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import type { InsightMetrics } from './api'
 import { forecastBars, type ForecastBar } from './insight-format'
 
@@ -11,16 +12,15 @@ function ForecastTooltip({ active, payload }: TooltipContentProps) {
     <div className="rounded-md border bg-popover px-3 py-2 text-xs text-popover-foreground shadow-md">
       <p className="text-sm font-semibold tabular-nums">{formatINR(bar.value, 0)}</p>
       <p className="text-muted-foreground">
-        {bar.month}
-        {bar.forecast ? ' forecast' : ''}
+        {bar.forecast ? t('{month} forecast', { month: bar.month }) : bar.month}
       </p>
       {bar.forecast && (
         <>
           <p className="mt-1 tabular-nums">
-            Likely range {formatINRCompact(bar.low)} to {formatINRCompact(bar.high)}
+            {t('Likely range {low} to {high}', { low: formatINRCompact(bar.low), high: formatINRCompact(bar.high) })}
           </p>
-          {bar.soFar !== undefined && <p className="tabular-nums">So far this month {formatINR(bar.soFar, 0)}</p>}
-          {bar.lastYear != null && <p className="tabular-nums text-muted-foreground">Same month last year {formatINR(bar.lastYear, 0)}</p>}
+          {bar.soFar !== undefined && <p className="tabular-nums">{t('So far this month {amount}', { amount: formatINR(bar.soFar, 0) })}</p>}
+          {bar.lastYear != null && <p className="tabular-nums text-muted-foreground">{t('Same month last year {amount}', { amount: formatINR(bar.lastYear, 0) })}</p>}
         </>
       )}
     </div>
@@ -46,7 +46,13 @@ export function ForecastChart({ forecast }: { forecast: InsightMetrics['forecast
   const last = bars.at(-1)!
 
   return (
-    <figure aria-label={`Monthly sales from ${first.month} to ${last.month}, with the next ${forecast.next.length} months forecast. Exact values are in the tooltips.`}>
+    <figure
+      aria-label={t('Monthly sales from {from} to {to}, with the next {count} months forecast. Exact values are in the tooltips.', {
+        from: first.month,
+        to: last.month,
+        count: forecast.next.length,
+      })}
+    >
       <BarChart data={bars} responsive style={{ width: '100%', height: 280 }} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap="18%">
         <CartesianGrid vertical={false} stroke="var(--border)" />
         <XAxis dataKey="tick" tickLine={false} axisLine={{ stroke: 'var(--border)' }} tick={tick} interval="preserveStartEnd" minTickGap={12} />

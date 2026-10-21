@@ -43,7 +43,7 @@ public static class BillReadingPrompt
           work it out from the invoice date). supplierGstin exactly as printed, without spaces.
         - unmatched: anything on the bill you couldn't read or interpret (smudged figures, unclear lines), quoted.
         - notes: anything the clerk should know (a different delivery address, a credit note mentioned, damage noted),
-          briefly, in English. Empty if nothing.
+          briefly, in English (in simple written Tamil if the request says the user has chosen Tamil). Empty if nothing.
         - isInvoice: false if this isn't a supplier's tax invoice (a quotation, a delivery challan without prices, a
           statement of account, an unrelated document). Return no lines then.
 
@@ -61,6 +61,11 @@ public static class BillReadingPrompt
         var builder = new StringBuilder();
         builder.Append(CultureInfo.InvariantCulture, $"Today's date (India): {today:yyyy-MM-dd} ({today.DayOfWeek}).\n");
         builder.Append(CultureInfo.InvariantCulture, $"The attached file is a bill from {supplierName} for our purchase order {orderNumber}.\n");
+        if (L.InTamil)
+        {
+            builder.Append("The user has chosen Tamil for the app: write notes in simple written Tamil.\n");
+        }
+
         builder.Append("Order lines. Columns: id | SKU | product | unit | HSN | ordered | received so far | billed so far | order price | GST %\n");
         foreach (var l in lines)
         {

@@ -30,6 +30,22 @@ public sealed class NarrativeNumberCheckTests
         Assert.Empty(NarrativeNumberCheck.Unverified(text, Known));
 
     [Theory]
+    [InlineData("இந்த ஆண்டு விற்பனை ₹18.72 கோடியைத் தாண்டியது, கடந்த ஆண்டைவிட 18.2% அதிகம்.")]
+    [InlineData("தவணை கடந்த விலைப்பட்டியல்கள் மொத்தம் ₹23.6 லட்சம், 37 விலைப்பட்டியல்கள்.")]
+    [InlineData("அக்டோபர் முன்கணிப்பு ₹2.15 கோடி (₹1.91–2.38 கோடி).")]
+    [InlineData("INV/26-27/00042, 17 மே 2026 அன்று, வழக்கத்தைவிட 6.2 மடங்கு: ₹8,45,000.")]
+    [InlineData("கடந்த 6 மாதங்களில் CY-60C தனித்து நின்றது; அக்டோபர் 2026.")]
+    [InlineData("Murugan Garments 142 நாட்களாக வாங்கவில்லை.")]
+    public void Tamil_figures_from_the_metrics_pass(string text) =>
+        Assert.Empty(NarrativeNumberCheck.Unverified(text, Known));
+
+    [Theory]
+    [InlineData("விற்பனை ₹19.5 கோடியைத் தாண்டியது.", "₹19.5 கோடியைத்")]
+    [InlineData("தவணை கடந்தவை ₹31 லட்சம்.", "₹31 லட்சம்.")]
+    public void Tamil_figures_not_in_the_metrics_are_caught(string text, string expected) =>
+        Assert.Contains(expected, NarrativeNumberCheck.Unverified(text, Known));
+
+    [Theory]
     [InlineData("Sales are up 22% on last year.", "22%")]
     [InlineData("Sales crossed ₹19.5 crore.", "₹19.5 crore")]
     [InlineData("Overdue invoices total ₹31 lakh.", "₹31 lakh")]

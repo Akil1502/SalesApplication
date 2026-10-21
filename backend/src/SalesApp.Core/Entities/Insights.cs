@@ -38,6 +38,9 @@ public sealed class InsightRun
 
     public required string MetricsJson { get; set; }
     public string? NarrativeJson { get; set; }
+
+    /// <summary>The same briefing in Tamil, written in the same run; null for runs before it existed or when it failed.</summary>
+    public string? NarrativeTamilJson { get; set; }
     public NarrativeStatus NarrativeStatus { get; set; }
 
     /// <summary>Why the summary is missing or shortened (for example, which figures couldn't be found).</summary>

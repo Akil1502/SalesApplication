@@ -1,4 +1,4 @@
-// Applies the last light/dark and motion choice before the app loads, so a dark-mode user never sees a white
+// Applies the last light/dark, motion and language choice before the app loads, so a dark-mode user never sees a white
 // flash, and the company's colours, logo and name from last time. A separate file because the content security
 // policy allows no inline scripts. Mirrors src/lib/preferences.ts and src/features/branding/apply.ts.
 ;(function () {
@@ -17,6 +17,7 @@
   if (dark) root.classList.add('dark')
   root.style.colorScheme = dark ? 'dark' : 'light'
   root.setAttribute('data-motion', motion)
+  root.lang = prefs.language === 'ta' ? 'ta' : 'en'
 
   var brand = null
   try {

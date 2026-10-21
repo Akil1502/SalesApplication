@@ -166,8 +166,10 @@ public sealed class CreditNoteService(
             note.TaxableValue, note.CgstAmount, note.SgstAmount, note.IgstAmount, note.RoundOff, note.GrandTotal,
             note.AmountAdjusted, note.AmountRefunded, cancelled ? 0m : note.GrandTotal - note.AmountAdjusted - note.AmountRefunded,
             AmountInWords.Rupees(note.GrandTotal),
+            AmountInWords.TamilRupees(note.GrandTotal),
+            await DocumentLanguages.ForCustomerAsync(db, note.CustomerId, cancellationToken),
             adjustments, refunds, note.CancelledAtUtc, note.CancellationReason,
-            CancelBlockedReason(note),
+            L.T(CancelBlockedReason(note)),
             note.CreatedBy!.FullName, note.CreatedAtUtc, RowVersions.ToToken(note.RowVersion));
     }
 
@@ -328,7 +330,7 @@ public sealed class CreditNoteService(
                 : $"Nothing is due on {invoice.Number}.");
         }
 
-        var date = ValidateDate(request.Date, "date", Later(note.CreditNoteDate, invoice.InvoiceDate), "the credit note or the invoice");
+        var date = ValidateDate(request.Date, "date", Later(note.CreditNoteDate, invoice.InvoiceDate), L.Msg("the credit note or the invoice"));
         if (!await Credits.CreditInvoiceAsync(db, invoice.Id, request.Amount, cancellationToken))
         {
             throw new ConflictException($"{invoice.Number} changed meanwhile (another payment or credit). Reload and try again.");
@@ -360,7 +362,7 @@ public sealed class CreditNoteService(
                 : $"No credit is left on {note.Number} to refund.");
         }
 
-        var date = ValidateDate(request.RefundDate, "refundDate", note.CreditNoteDate, "the credit note");
+        var date = ValidateDate(request.RefundDate, "refundDate", note.CreditNoteDate, L.Msg("the credit note"));
         note.Refunds.Add(new CreditRefund
         {
             RefundDate = date,
@@ -406,7 +408,7 @@ public sealed class CreditNoteService(
             await ledger.PostAsync(new StockPosting(
                 line.ProductId, StockMovementType.SaleReturn, -line.Quantity!.Value, clock.Today,
                 ReferenceType: StockReferenceTypes.CreditNote, ReferenceId: note.Id, ReferenceNumber: note.Number,
-                Notes: $"Credit note cancelled: {note.CancellationReason}"), cancellationToken);
+                Notes: L.Msg($"Credit note cancelled: {note.CancellationReason}")), cancellationToken);
         }
 
         await db.SaveChangesAsync(cancellationToken);
@@ -428,7 +430,7 @@ public sealed class CreditNoteService(
             throw new ConflictException($"{invoice.Number} is cancelled, so there's nothing to credit.");
         }
 
-        var date = ValidateDate(request.CreditNoteDate, "creditNoteDate", invoice.InvoiceDate, "the invoice");
+        var date = ValidateDate(request.CreditNoteDate, "creditNoteDate", invoice.InvoiceDate, L.Msg("the invoice"));
         var withGst = ReturnRules.CarriesGst(invoice.InvoiceDate, date);
         var soFar = await Credits.CreditedSoFarAsync(db, invoice.Id, cancellationToken);
         var goods = request.Kind == CreditNoteKind.GoodsReturn;
@@ -530,7 +532,7 @@ public sealed class CreditNoteService(
                 line.ProductId, StockMovementType.SaleReturn, quantity, note.CreditNoteDate,
                 UnitCost: costs.GetValueOrDefault(line.ProductId),
                 ReferenceType: StockReferenceTypes.CreditNote, ReferenceId: note.Id, ReferenceNumber: note.Number,
-                Notes: $"Returned against {invoiceNumber}"), cancellationToken);
+                Notes: L.Msg($"Returned against {invoiceNumber}")), cancellationToken);
 
             if (line.Disposition == ReturnDisposition.Damaged)
             {
@@ -538,7 +540,7 @@ public sealed class CreditNoteService(
                     line.ProductId, StockMovementType.Adjustment, -quantity, note.CreditNoteDate,
                     Reason: AdjustmentReason.Damaged,
                     ReferenceType: StockReferenceTypes.CreditNote, ReferenceId: note.Id, ReferenceNumber: note.Number,
-                    Notes: "Came back damaged: written off"), cancellationToken);
+                    Notes: L.Msg("Came back damaged: written off")), cancellationToken);
             }
         }
     }

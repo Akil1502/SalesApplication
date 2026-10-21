@@ -12,6 +12,7 @@ import { placeholderStyle } from '@/lib/product-tile'
 import { cn } from '@/lib/utils'
 import type { Product } from './api'
 import { useRemoveProductImage, useSetProductImage } from './images'
+import { t } from '@/lib/i18n'
 
 /** The still view: the photo on a tilting card, or the product's coloured tile until it has one. */
 function StillPhoto({ product }: { product: Product }) {
@@ -19,7 +20,7 @@ function StillPhoto({ product }: { product: Product }) {
     return (
       <div className="flex size-full items-center justify-center p-6">
         <TiltCard max={10} className="rounded-xl">
-          <img src={product.image.imageUrl} alt={`Photo of ${product.name}`} className="block max-h-56 rounded-xl object-contain shadow-[var(--shadow-lifted)]" />
+          <img src={product.image.imageUrl} alt={t('Photo of {name}', { name: product.name })} className="block max-h-56 rounded-xl object-contain shadow-[var(--shadow-lifted)]" />
         </TiltCard>
       </div>
     )
@@ -49,7 +50,7 @@ export function ProductPhotoCard({ product, canEdit }: { product: Product; canEd
     setImage.mutate(
       { productId: product.id, file },
       {
-        onSuccess: () => toast.success(product.image ? 'Photo replaced' : 'Photo added'),
+        onSuccess: () => toast.success(product.image ? t('Photo replaced') : t('Photo added')),
         onError: (error) => toast.error(errorMessage(error)),
       },
     )
@@ -89,20 +90,20 @@ export function ProductPhotoCard({ product, canEdit }: { product: Product; canEd
           />
           {busy && (
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-background/60 text-sm backdrop-blur-sm" role="status">
-              <Spinner /> {setImage.isPending ? 'Preparing and uploading…' : 'Removing…'}
+              <Spinner /> {setImage.isPending ? t('Preparing and uploading…') : t('Removing…')}
             </div>
           )}
           {dragging && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-sm font-medium text-brand">Drop the picture to use it</div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-sm font-medium text-brand">{t('Drop the picture to use it')}</div>
           )}
         </div>
 
         <div className="flex flex-col justify-center gap-3 p-6">
-          <CardTitle>Photo</CardTitle>
+          <CardTitle>{t('Photo')}</CardTitle>
           <CardDescription>
             {product.image
-              ? 'Shown next to this product in lists, order entry, invoices and stock. Point at it to tilt it.'
-              : 'No photo yet. Until there is one, a 3D model of its kind stands in, and lists show a coloured tile.'}
+              ? t('Shown next to this product in lists, order entry, invoices and stock. Point at it to tilt it.')
+              : t('No photo yet. Until there is one, a 3D model of its kind stands in, and lists show a coloured tile.')}
           </CardDescription>
           {canEdit && (
             <>
@@ -119,7 +120,7 @@ export function ProductPhotoCard({ product, canEdit }: { product: Product; canEd
               <div className="flex flex-wrap gap-2">
                 <Button type="button" onClick={() => input.current?.click()} disabled={busy}>
                   <Upload />
-                  {product.image ? 'Replace photo' : 'Add photo'}
+                  {product.image ? t('Replace photo') : t('Add photo')}
                 </Button>
                 {product.image && (
                   <Button
@@ -128,17 +129,17 @@ export function ProductPhotoCard({ product, canEdit }: { product: Product; canEd
                     disabled={busy}
                     onClick={() =>
                       removeImage.mutate(product.id, {
-                        onSuccess: () => toast.success('Photo removed'),
+                        onSuccess: () => toast.success(t('Photo removed')),
                         onError: (error) => toast.error(errorMessage(error)),
                       })
                     }
                   >
                     <Trash2 />
-                    Remove
+                    {t('Remove')}
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">JPEG, PNG or WebP. Drop a file on the picture or choose one; it's resized in your browser before uploading.</p>
+              <p className="text-xs text-muted-foreground">{t("JPEG, PNG or WebP. Drop a file on the picture or choose one; it's resized in your browser before uploading.")}</p>
             </>
           )}
         </div>

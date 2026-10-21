@@ -1,4 +1,5 @@
 import { BellOff } from 'lucide-react'
+import { t } from '@/lib/i18n'
 import type { Notification } from './api'
 import { groupByDay, KIND_LOOK, whenText } from './format'
 
@@ -27,10 +28,10 @@ function NotificationRow({ item, isNew, onOpen }: { item: Notification; isNew: b
           {item.body && <span className="mt-0.5 line-clamp-2 block text-xs text-muted-foreground">{item.body}</span>}
           <span className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
             {whenText(item.createdAtUtc)}
-            {isNew && <span className="rounded-full bg-primary/12 px-1.5 py-px font-medium text-primary">New since your last visit</span>}
+            {isNew && <span className="rounded-full bg-primary/12 px-1.5 py-px font-medium text-primary">{t('New since your last visit')}</span>}
           </span>
         </span>
-        {!item.read && <span className="mt-2 size-2 shrink-0 rounded-full bg-primary" aria-label="Unread" role="img" />}
+        {!item.read && <span className="mt-2 size-2 shrink-0 rounded-full bg-primary" aria-label={t('Unread')} role="img" />}
       </button>
     </li>
   )
@@ -50,8 +51,8 @@ export function NotificationList({ items, newAfter = Number.MAX_SAFE_INTEGER, on
   return (
     <div className="flex flex-col gap-2">
       {groupByDay(items).map((group) => (
-        <section key={group.label} aria-label={group.label}>
-          <h3 className="px-3 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{group.label}</h3>
+        <section key={group.label} aria-label={t(group.label)}>
+          <h3 className="px-3 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{t(group.label)}</h3>
           <ul className="flex flex-col">
             {group.items.map((item) => (
               <NotificationRow key={item.id} item={item} isNew={item.id > newAfter} onOpen={onOpen} />

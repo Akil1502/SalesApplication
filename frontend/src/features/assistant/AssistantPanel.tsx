@@ -20,6 +20,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { AskHandoff } from '@/features/ask/api'
 import { errorMessage } from '@/lib/api/errors'
 import { formatDate, formatINR } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 import { cn } from '@/lib/utils'
 import { useConversations, type AssistantItem, type AssistantTool } from './api'
 import { assistantStore, useAssistant } from './assistant-store'
@@ -29,10 +31,10 @@ import { MessageMarkdown } from './MessageMarkdown'
 
 // Tasks about a customer or a document; questions about figures are Ask your data's job.
 const suggestions = [
-  'Draft a payment reminder for our most overdue customer',
-  'Write a follow-up for our oldest open quotation',
-  'How is Murugan Garments doing this year?',
-  'What did Thangam Silks order last time?',
+  msg('Draft a payment reminder for our most overdue customer'),
+  msg('Write a follow-up for our oldest open quotation'),
+  msg('How is Murugan Garments doing this year?'),
+  msg('What did Thangam Silks order last time?'),
 ]
 
 /** Opens Ask your data with the question filled in, for a table, chart and Excel export of the same figures. */
@@ -47,7 +49,7 @@ function AskDataLink({ question }: { question: string }) {
     >
       <ChartColumn />
       <span>
-        Open in Ask your data <span className="text-muted-foreground">for a table, chart and Excel export</span>
+        <T text="Open in Ask your data {details}" values={{ details: <span className="text-muted-foreground">{t('for a table, chart and Excel export')}</span> }} />
       </span>
     </Button>
   )
@@ -100,7 +102,7 @@ function Item({ item, replying }: { item: AssistantItem; replying: boolean }) {
       return (
         <div className="flex flex-col gap-1">
           <MessageMarkdown text={item.text ?? ''} />
-          {item.interrupted && <p className="text-xs text-muted-foreground">Stopped before the reply was finished.</p>}
+          {item.interrupted && <p className="text-xs text-muted-foreground">{t('Stopped before the reply was finished.')}</p>}
         </div>
       )
     case 'Tool':
@@ -119,19 +121,19 @@ function HistoryMenu() {
       <Tooltip>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Recent conversations" disabled={status === 'replying'}>
+            <Button variant="ghost" size="icon-sm" aria-label={t('Recent conversations')} disabled={status === 'replying'}>
               <History />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent>Recent conversations</TooltipContent>
+        <TooltipContent>{t('Recent conversations')}</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Recent conversations</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('Recent conversations')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {conversations.isPending && <p className="px-2 py-1.5 text-sm text-muted-foreground">Loading…</p>}
+        {conversations.isPending && <p className="px-2 py-1.5 text-sm text-muted-foreground">{t('Loading…')}</p>}
         {conversations.isError && <p className="px-2 py-1.5 text-sm text-destructive">{errorMessage(conversations.error)}</p>}
-        {conversations.data?.length === 0 && <p className="px-2 py-1.5 text-sm text-muted-foreground">No conversations yet.</p>}
+        {conversations.data?.length === 0 && <p className="px-2 py-1.5 text-sm text-muted-foreground">{t('No conversations yet.')}</p>}
         {conversations.data?.map((c) => (
           <DropdownMenuItem key={c.id} onSelect={() => void assistantStore.open(c.id)} className={cn('flex flex-col items-start gap-0', c.id === conversationId && 'bg-accent')}>
             <span className="line-clamp-1 w-full">{c.title}</span>
@@ -177,7 +179,7 @@ export default function AssistantChat() {
     if (!conversationId) return
     try {
       await assistantStore.remove(conversationId)
-      toast.success('Conversation deleted.')
+      toast.success(t('Conversation deleted.'))
     } catch (e) {
       toast.error(errorMessage(e))
     }
@@ -188,29 +190,29 @@ export default function AssistantChat() {
       <SheetHeader className="flex-row items-center gap-2 border-b py-3 pr-12 pl-4">
         <Sparkles className="size-4 shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
-          <SheetTitle className="truncate text-sm">{title ?? 'Assistant'}</SheetTitle>
+          <SheetTitle className="truncate text-sm">{title ?? t('Assistant')}</SheetTitle>
           <SheetDescription className="sr-only">
-            Look up customers, orders, invoices and payments, or have a message drafted for a customer.
+            {t('Look up customers, orders, invoices and payments, or have a message drafted for a customer.')}
           </SheetDescription>
         </div>
         <HistoryMenu />
         {conversationId && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Delete this conversation" disabled={replying} onClick={() => setConfirmDelete(true)}>
+              <Button variant="ghost" size="icon-sm" aria-label={t('Delete this conversation')} disabled={replying} onClick={() => setConfirmDelete(true)}>
                 <Trash2 />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Delete this conversation</TooltipContent>
+            <TooltipContent>{t('Delete this conversation')}</TooltipContent>
           </Tooltip>
         )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="New conversation" disabled={replying || items.length === 0} onClick={() => assistantStore.newChat()}>
+            <Button variant="ghost" size="icon-sm" aria-label={t('New conversation')} disabled={replying || items.length === 0} onClick={() => assistantStore.newChat()}>
               <Plus />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>New conversation</TooltipContent>
+          <TooltipContent>{t('New conversation')}</TooltipContent>
         </Tooltip>
       </SheetHeader>
 
@@ -225,27 +227,31 @@ export default function AssistantChat() {
       >
         {status === 'loading' && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Spinner className="size-4" /> Opening the conversation…
+            <Spinner className="size-4" /> {t('Opening the conversation…')}
           </p>
         )}
 
         {items.length === 0 && status === 'idle' && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
-              Look up a customer, order, invoice or payment, in English or Tamil, and have payment reminders, follow-ups and quotation
-              notes drafted; you review and send them yourself.
+              {t('Look up a customer, order, invoice or payment, in English or Tamil, and have payment reminders, follow-ups and quotation notes drafted; you review and send them yourself.')}
             </p>
             <p className="text-sm text-muted-foreground">
-              For figures as a table or chart, such as monthly sales or top customers, use{' '}
-              <Button variant="link" className="h-auto p-0 text-sm" onClick={() => void navigate('/ask')}>
-                Ask your data
-              </Button>
-              .
+              <T
+                text="For figures as a table or chart, such as monthly sales or top customers, use {link}."
+                values={{
+                  link: (
+                    <Button variant="link" className="h-auto p-0 text-sm" onClick={() => void navigate('/ask')}>
+                      {t('Ask your data')}
+                    </Button>
+                  ),
+                }}
+              />
             </p>
             <div className="flex flex-col items-start gap-2">
               {suggestions.map((suggestion) => (
-                <Button key={suggestion} size="sm" variant="outline" className="h-auto py-1.5 text-left whitespace-normal" onClick={() => send(suggestion)}>
-                  {suggestion}
+                <Button key={suggestion} size="sm" variant="outline" className="h-auto py-1.5 text-left whitespace-normal" onClick={() => send(t(suggestion))}>
+                  {t(suggestion)}
                 </Button>
               ))}
             </div>
@@ -261,13 +267,13 @@ export default function AssistantChat() {
 
         {thinking && (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Spinner className="size-4" /> Thinking…
+            <Spinner className="size-4" /> {t('Thinking…')}
           </p>
         )}
 
         {error && (
           <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{t(error)}</AlertDescription>
           </Alert>
         )}
       </div>
@@ -277,7 +283,7 @@ export default function AssistantChat() {
           <div className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
             <span>{notice}</span>
             <Button size="sm" variant="outline" className="h-7 shrink-0" disabled={replying} onClick={() => assistantStore.newChat()}>
-              New conversation
+              {t('New conversation')}
             </Button>
           </div>
         )}
@@ -289,7 +295,7 @@ export default function AssistantChat() {
           }}
         >
           <Textarea
-            aria-label="Message the assistant"
+            aria-label={t('Message the assistant')}
             rows={2}
             maxLength={4000}
             value={message}
@@ -300,32 +306,36 @@ export default function AssistantChat() {
                 send(message)
               }
             }}
-            placeholder="Ask a question or ask for a draft…"
+            placeholder={t('Ask a question or ask for a draft…')}
             disabled={status === 'loading'}
             className="max-h-40 min-h-12 flex-1 resize-none"
           />
           {replying ? (
-            <Button type="button" variant="outline" size="icon" aria-label="Stop" onClick={() => assistantStore.stop()}>
+            <Button type="button" variant="outline" size="icon" aria-label={t('Stop')} onClick={() => assistantStore.stop()}>
               <Square />
             </Button>
           ) : (
-            <Button type="submit" size="icon" aria-label="Send" disabled={!message.trim() || status !== 'idle'}>
+            <Button type="submit" size="icon" aria-label={t('Send')} disabled={!message.trim() || status !== 'idle'}>
               <Send />
             </Button>
           )}
         </form>
         <p className="text-[11px] text-muted-foreground">
-          Reads your data, never changes it. Check figures before you rely on them.
-          {costInr > 0 && ` This conversation: about ${formatINR(costInr)}${lastCostInr !== null ? ` (last reply ${formatINR(lastCostInr)})` : ''}.`}
+          {t('Reads your data, never changes it. Check figures before you rely on them.')}
+          {costInr > 0 &&
+            ' ' +
+              (lastCostInr !== null
+                ? t('This conversation: about {cost} (last reply {last}).', { cost: formatINR(costInr), last: formatINR(lastCostInr) })
+                : t('This conversation: about {cost}.', { cost: formatINR(costInr) }))}
         </p>
       </div>
 
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Delete this conversation?"
-        description="Its messages and drafts are removed for good."
-        confirmLabel="Delete"
+        title={t('Delete this conversation?')}
+        description={t('Its messages and drafts are removed for good.')}
+        confirmLabel={t('Delete')}
         destructive
         onConfirm={() => void remove()}
       />

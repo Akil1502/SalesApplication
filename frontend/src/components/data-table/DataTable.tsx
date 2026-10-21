@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { errorMessage } from '@/lib/api/errors'
 import { todayInIndia } from '@/lib/format'
+import { msg, t, tn } from '@/lib/i18n'
 import { isTyping, overlayOpen, plainKey } from '@/lib/keyboard'
 import { cn } from '@/lib/utils'
 import { ColumnsMenu } from './ColumnsMenu'
@@ -21,6 +22,7 @@ import { useTableSettings } from './table-settings'
 
 export interface Column<T> {
   key: string
+  /** Marked with t() or msg(); the table translates it, so a list's columns can be defined outside the component. */
   header: string
   cell: (row: T) => ReactNode
   /** Server-side sort key; omit for unsortable columns. */
@@ -69,7 +71,7 @@ export function DataTable<T>({
   isLoading,
   error,
   onRowClick,
-  emptyTitle = 'Nothing here yet',
+  emptyTitle = msg('Nothing here yet'),
   emptyDescription,
   sort,
   onSortChange,
@@ -157,7 +159,7 @@ export function DataTable<T>({
     const element = table.current?.querySelector('table')
     if (!element || !settingsKey) return
     downloadText(tableRowsCsv(element, selected), `${settingsKey}-${todayInIndia()}.csv`)
-    toast.success(`Exported ${selected.size} ${selected.size === 1 ? 'row' : 'rows'} for Excel`)
+    toast.success(tn(selected.size, 'Exported {count} row for Excel', 'Exported {count} rows for Excel'))
   }
 
   return (
@@ -174,21 +176,21 @@ export function DataTable<T>({
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
                 role="region"
-                aria-label="Ticked rows"
+                aria-label={t('Ticked rows')}
               >
-                <span className="px-1 text-sm font-medium tabular-nums">{selected.size} ticked</span>
+                <span className="px-1 text-sm font-medium tabular-nums">{t('{count} ticked', { count: selected.size })}</span>
                 <Button size="sm" variant="ghost" onClick={exportSelected}>
-                  <FileSpreadsheet /> Export for Excel
+                  <FileSpreadsheet /> {t('Export for Excel')}
                 </Button>
                 {bulkActions.map((action) => {
                   const reason = action.unavailable?.(selectedRows)
                   return (
-                    <Button key={action.label} size="sm" variant="ghost" disabled={!!reason} title={reason} onClick={() => action.run(selectedRows)}>
-                      <action.icon /> {action.label}
+                    <Button key={action.label} size="sm" variant="ghost" disabled={!!reason} title={reason && t(reason)} onClick={() => action.run(selectedRows)}>
+                      <action.icon /> {t(action.label)}
                     </Button>
                   )
                 })}
-                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} aria-label="Untick all">
+                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())} aria-label={t('Untick all')}>
                   <X />
                 </Button>
               </motion.div>
@@ -218,7 +220,7 @@ export function DataTable<T>({
               {selectable && (
                 <TableHead className="w-10" data-skip-export>
                   <Checkbox
-                    aria-label="Tick every row on this page"
+                    aria-label={t('Tick every row on this page')}
                     checked={allTicked ? true : selected.size > 0 ? 'indeterminate' : false}
                     onCheckedChange={() => setSelected(allTicked ? new Set() : new Set(keys))}
                     disabled={keys.length === 0}
@@ -233,7 +235,7 @@ export function DataTable<T>({
                       className={cn('inline-flex items-center gap-1 hover:text-foreground', column.align === 'right' && 'flex-row-reverse')}
                       onClick={() => onSortChange(activeKey === column.sortKey && !descending ? `-${column.sortKey}` : column.sortKey!)}
                     >
-                      {column.header}
+                      {t(column.header)}
                       {activeKey === column.sortKey ? (
                         descending ? <ArrowDown className="size-3.5" /> : <ArrowUp className="size-3.5" />
                       ) : (
@@ -241,7 +243,7 @@ export function DataTable<T>({
                       )}
                     </button>
                   ) : (
-                    column.header
+                    t(column.header)
                   )}
                 </TableHead>
               ))}
@@ -267,8 +269,8 @@ export function DataTable<T>({
                       <EmptyMedia>
                         <EmptyArt />
                       </EmptyMedia>
-                      <EmptyTitle>{emptyTitle}</EmptyTitle>
-                      {emptyDescription && <EmptyDescription>{emptyDescription}</EmptyDescription>}
+                      <EmptyTitle>{emptyTitle && t(emptyTitle)}</EmptyTitle>
+                      {emptyDescription && <EmptyDescription>{t(emptyDescription)}</EmptyDescription>}
                     </EmptyHeader>
                   </Empty>
                 </TableCell>
@@ -303,7 +305,7 @@ export function DataTable<T>({
                     {selectable && (
                       // Ticking a row never opens it.
                       <TableCell data-skip-export onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
-                        <Checkbox checked={ticked} onCheckedChange={() => toggle(key)} aria-label="Tick this row" />
+                        <Checkbox checked={ticked} onCheckedChange={() => toggle(key)} aria-label={t('Tick this row')} />
                       </TableCell>
                     )}
                     {visible.map((column) => (

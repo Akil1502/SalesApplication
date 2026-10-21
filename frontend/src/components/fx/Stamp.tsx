@@ -1,5 +1,6 @@
 import { motion } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { confettiFrom } from './confetti'
 import { useMotionLevel } from './preferences-context'
@@ -45,5 +46,5 @@ export function Stamp({ label, celebrate = false, className }: { label: string; 
 export function PaidStamp({ paid, className }: { paid: boolean; className?: string }) {
   const [paidWhenOpened] = useState(paid)
   if (!paid) return null
-  return <Stamp label="Paid" celebrate={!paidWhenOpened} className={className} />
+  return <Stamp label={t('Paid')} celebrate={!paidWhenOpened} className={className} />
 }

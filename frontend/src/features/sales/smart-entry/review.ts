@@ -1,5 +1,6 @@
 import type { PickedProduct } from '@/components/ProductPicker'
 import { formatBusinessDate } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
 import type { ExtractedLine, ExtractionConfidence, OrderExtraction, ProductMatchSource, SmartOrderConfirmRequest } from './api'
 
 /** One line on the review screen: what the order said, what was suggested, and what the user has settled on. */
@@ -67,9 +68,10 @@ export function parseQuantity(value: string): number | null {
   return quantity > 0 ? quantity : null
 }
 
+/** The problem in English, for comparing; translate it with t() to show it. */
 export function lineProblem(line: ReviewLine): string | null {
-  if (!line.product) return 'Choose a product'
-  if (parseQuantity(line.quantity) === null) return 'Enter a quantity'
+  if (!line.product) return msg('Choose a product')
+  if (parseQuantity(line.quantity) === null) return msg('Enter a quantity')
   return null
 }
 
@@ -86,7 +88,7 @@ export function needsAttention(line: ReviewLine): boolean {
 /** The order's own notes plus the delivery date it asked for, which has no field of its own on an order. */
 export function initialNotes(extraction: OrderExtraction): string {
   const parts = [extraction.notes?.trim()]
-  if (extraction.requestedDeliveryDate) parts.push(`Requested delivery: ${formatBusinessDate(extraction.requestedDeliveryDate)}`)
+  if (extraction.requestedDeliveryDate) parts.push(t('Requested delivery: {date}', { date: formatBusinessDate(extraction.requestedDeliveryDate) }))
   return parts.filter(Boolean).join('\n')
 }
 

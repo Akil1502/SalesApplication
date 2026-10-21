@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { useAiStatus } from '@/features/ai/api'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
+import { t } from '@/lib/i18n'
 import { useAssistant } from './assistant-store'
 
 const AssistantChat = lazy(() => import('./AssistantPanel'))
@@ -32,19 +33,19 @@ export function AssistantLauncher() {
       <span className="relative inline-flex">
         <GlowRing>
           <Button variant="ghost" size="sm" onClick={() => setOpenAt(location.key)}>
-            <Sparkles className="text-brand" /> Assistant
+            <Sparkles className="text-brand" /> {t('Assistant')}
           </Button>
         </GlowRing>
         {chat === 'replying' && !open && (
-          <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-primary" role="status" aria-label="The assistant is replying" />
+          <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-primary" role="status" aria-label={t('The assistant is replying')} />
         )}
       </span>
       <SheetContent className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
         <Suspense
           fallback={
             <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <SheetTitle className="sr-only">Assistant</SheetTitle>
-              <Spinner className="size-4" /> Loading…
+              <SheetTitle className="sr-only">{t('Assistant')}</SheetTitle>
+              <Spinner className="size-4" /> {t('Loading…')}
             </div>
           }
         >

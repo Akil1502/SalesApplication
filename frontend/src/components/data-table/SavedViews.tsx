@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { t } from '@/lib/i18n'
 import { useSavedViews, viewSearch } from './table-settings'
 
 /**
@@ -35,7 +36,7 @@ export function SavedViews({ listKey }: { listKey: string }) {
     setViews((list) => [...list.filter((view) => view.name.toLowerCase() !== trimmed.toLowerCase()), { id: crypto.randomUUID(), name: trimmed, search: current }])
     setNaming(false)
     setName('')
-    toast.success(`Saved the view "${trimmed}"`)
+    toast.success(t('Saved the view "{name}"', { name: trimmed }))
   }
 
   return (
@@ -44,12 +45,12 @@ export function SavedViews({ listKey }: { listKey: string }) {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="bg-card">
             <Bookmark className={active ? 'fill-current text-brand' : undefined} />
-            {active ? active.name : 'Views'}
+            {active ? active.name : t('Views')}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="min-w-60">
-          <DropdownMenuLabel className="text-xs text-muted-foreground">Saved views</DropdownMenuLabel>
-          {views.length === 0 && <p className="px-2 pb-2 text-xs text-muted-foreground">Set the filters you use often, then save them as a view.</p>}
+          <DropdownMenuLabel className="text-xs text-muted-foreground">{t('Saved views')}</DropdownMenuLabel>
+          {views.length === 0 && <p className="px-2 pb-2 text-xs text-muted-foreground">{t('Set the filters you use often, then save them as a view.')}</p>}
           {views.map((view) => (
             <DropdownMenuItem key={view.id} className="group/view" onSelect={() => navigate({ pathname: location.pathname, search: view.search })}>
               <Check className={view.id === active?.id ? 'opacity-100' : 'opacity-0'} />
@@ -57,7 +58,7 @@ export function SavedViews({ listKey }: { listKey: string }) {
               <button
                 type="button"
                 className="rounded p-0.5 text-muted-foreground opacity-0 group-hover/view:opacity-100 group-focus/view:opacity-100 hover:text-destructive focus-visible:opacity-100"
-                aria-label={`Delete the view ${view.name}`}
+                aria-label={t('Delete the view {name}', { name: view.name })}
                 onClick={(event) => {
                   event.preventDefault()
                   event.stopPropagation()
@@ -71,7 +72,7 @@ export function SavedViews({ listKey }: { listKey: string }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setNaming(true)} disabled={!current}>
             <BookmarkPlus />
-            Save the current filters…
+            {t('Save the current filters…')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -79,8 +80,8 @@ export function SavedViews({ listKey }: { listKey: string }) {
       <Dialog open={naming} onOpenChange={setNaming}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Save this view</DialogTitle>
-            <DialogDescription>The list's filters, search and sort, under a name. Only you see your views.</DialogDescription>
+            <DialogTitle>{t('Save this view')}</DialogTitle>
+            <DialogDescription>{t("The list's filters, search and sort, under a name. Only you see your views.")}</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(event) => {
@@ -89,14 +90,14 @@ export function SavedViews({ listKey }: { listKey: string }) {
             }}
             className="grid gap-2"
           >
-            <Label htmlFor="view-name">Name</Label>
-            <Input id="view-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder="e.g. Overdue, Tiruppur" autoFocus />
+            <Label htmlFor="view-name">{t('Name')}</Label>
+            <Input id="view-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={t('e.g. Overdue, Tiruppur')} autoFocus />
             <DialogFooter className="mt-2">
               <Button type="button" variant="outline" onClick={() => setNaming(false)}>
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button type="submit" disabled={!name.trim()}>
-                Save view
+                {t('Save view')}
               </Button>
             </DialogFooter>
           </form>

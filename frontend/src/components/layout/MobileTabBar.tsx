@@ -7,20 +7,22 @@ import { useAiStatus } from '@/features/ai/api'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { RecordPaymentPicker } from '@/features/sales/RecordPaymentPicker'
+import { msg, t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 interface Tab {
   to: string
+  /** English, marked with msg(). */
   label: string
   icon: LucideIcon
   permission?: string
 }
 
 const LEFT: Tab[] = [
-  { to: '/', label: 'Home', icon: House },
-  { to: '/orders', label: 'Orders', icon: ClipboardList, permission: Permissions.OrdersView },
+  { to: '/', label: msg('Home'), icon: House },
+  { to: '/orders', label: msg('Orders'), icon: ClipboardList, permission: Permissions.OrdersView },
 ]
-const RIGHT: Tab[] = [{ to: '/invoices', label: 'Invoices', icon: ReceiptIndianRupee, permission: Permissions.InvoicesView }]
+const RIGHT: Tab[] = [{ to: '/invoices', label: msg('Invoices'), icon: ReceiptIndianRupee, permission: Permissions.InvoicesView }]
 
 const tabClass = 'relative flex h-full flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium'
 
@@ -31,7 +33,7 @@ function TabLink({ tab, active }: { tab: Tab; active: boolean }) {
         <motion.span layoutId="tab-pill" aria-hidden className="absolute inset-x-3 top-1.5 bottom-1.5 -z-10 rounded-xl bg-accent" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />
       )}
       <tab.icon className="size-5" aria-hidden />
-      {tab.label}
+      {t(tab.label)}
     </NavLink>
   )
 }
@@ -67,20 +69,20 @@ function QuickCreate({ open, onOpenChange, onPay }: { open: boolean; onOpenChang
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
-          <SheetTitle>Start something new</SheetTitle>
-          <SheetDescription>Pick what you want to do.</SheetDescription>
+          <SheetTitle>{t('Start something new')}</SheetTitle>
+          <SheetDescription>{t('Pick what you want to do.')}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-2 px-4">
           {can(Permissions.OrdersEdit) && (
             <Link to="/orders/new" onClick={close} className={cn(choice, 'border-primary/30')}>
               <ChoiceIcon icon={ClipboardPlus} strong />
-              <ChoiceText title="New order" detail="A quotation or confirmed order for a customer" strong />
+              <ChoiceText title={t('New order')} detail={t('A quotation or confirmed order for a customer')} strong />
             </Link>
           )}
           {can(Permissions.SmartEntryUse) && ai.data?.enabled && (
             <Link to="/orders/smart-entry" onClick={close} className={choice}>
               <ChoiceIcon icon={ScanText} />
-              <ChoiceText title="Smart order entry" detail="From a photo, PDF or WhatsApp message" />
+              <ChoiceText title={t('Smart order entry')} detail={t('From a photo, PDF or WhatsApp message')} />
             </Link>
           )}
           {can(Permissions.PaymentsEdit) && (
@@ -93,13 +95,13 @@ function QuickCreate({ open, onOpenChange, onPay }: { open: boolean; onOpenChang
               }}
             >
               <ChoiceIcon icon={HandCoins} />
-              <ChoiceText title="Record payment" detail="Money received against an invoice" />
+              <ChoiceText title={t('Record payment')} detail={t('Money received against an invoice')} />
             </button>
           )}
           {can(Permissions.CustomersEdit) && (
             <Link to="/customers/new" onClick={close} className={choice}>
               <ChoiceIcon icon={UserPlus} />
-              <ChoiceText title="New customer" detail="With GSTIN, address and credit terms" />
+              <ChoiceText title={t('New customer')} detail={t('With GSTIN, address and credit terms')} />
             </Link>
           )}
         </div>
@@ -124,7 +126,7 @@ export function MobileTabBar({ onMenu }: { onMenu: () => void }) {
   return (
     <>
       <nav
-        aria-label="Quick menu"
+        aria-label={t('Quick menu')}
         data-tour="nav"
         className="fx-glass fixed inset-x-0 bottom-0 z-40 flex h-[calc(4rem+env(safe-area-inset-bottom))] items-stretch border-t px-1 pb-[env(safe-area-inset-bottom)] md:hidden"
       >
@@ -136,7 +138,7 @@ export function MobileTabBar({ onMenu }: { onMenu: () => void }) {
             <motion.button
               type="button"
               data-tour="new"
-              aria-label="Start something new"
+              aria-label={t('Start something new')}
               aria-expanded={creating}
               aria-haspopup="dialog"
               onClick={() => setCreating(true)}
@@ -153,9 +155,9 @@ export function MobileTabBar({ onMenu }: { onMenu: () => void }) {
         {RIGHT.filter(allowed).map((tab) => (
           <TabLink key={tab.to} tab={tab} active={isActive(tab)} />
         ))}
-        <button type="button" onClick={onMenu} className={cn(tabClass, 'text-muted-foreground')} aria-label="Open the full menu">
+        <button type="button" onClick={onMenu} className={cn(tabClass, 'text-muted-foreground')} aria-label={t('Open the full menu')}>
           <Menu className="size-5" aria-hidden />
-          Menu
+          {t('Menu')}
         </button>
       </nav>
       {canCreate && <QuickCreate open={creating} onOpenChange={setCreating} onPay={() => setPaying(true)} />}

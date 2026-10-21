@@ -80,6 +80,8 @@ public sealed record OrderDto(
     decimal RoundOff,
     decimal GrandTotal,
     string AmountInWords,
+    string AmountInWordsTamil,
+    DocumentLanguage DocumentLanguage,
     string CreatedByName,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
@@ -171,7 +173,9 @@ public sealed record InvoiceListItemDto(
     decimal AmountCredited,
     decimal Balance,
     InvoiceStatus Status,
-    int? DaysOverdue);
+    int? DaysOverdue,
+    // For payment reminders: the customer's own language, or the company's default.
+    DocumentLanguage DocumentLanguage);
 
 public sealed record InvoiceAddressDto(string Line1, string? Line2, string City, string StateCode, string StateName, string Pincode);
 
@@ -259,6 +263,8 @@ public sealed record InvoiceDto(
     decimal Balance,
     int? DaysOverdue,
     string AmountInWords,
+    string AmountInWordsTamil,
+    DocumentLanguage DocumentLanguage,
     IReadOnlyList<PaymentDto> Payments,
     IReadOnlyList<Returns.CreditUseDto> CreditsApplied,
     IReadOnlyList<Returns.ReturnSummaryDto> CreditNotes,

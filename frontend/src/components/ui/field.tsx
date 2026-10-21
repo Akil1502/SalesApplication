@@ -4,6 +4,7 @@ import { cn } from "cn"
 
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { t } from "@/lib/i18n"
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
@@ -193,14 +194,15 @@ function FieldError({
     ]
 
     if (uniqueErrors?.length == 1) {
-      return uniqueErrors[0]?.message
+      // Messages may be English marked with msg() (form schemas), so they're translated here.
+      return uniqueErrors[0]?.message && t(uniqueErrors[0].message)
     }
 
     return (
       <ul className="ml-4 flex list-disc flex-col gap-1">
         {uniqueErrors.map(
           (error, index) =>
-            error?.message && <li key={index}>{error.message}</li>
+            error?.message && <li key={index}>{t(error.message)}</li>
         )}
       </ul>
     )

@@ -20,41 +20,42 @@ import { unwrap } from '@/lib/api/errors'
 import { formatBusinessDate, formatINR } from '@/lib/format'
 import { useSupplierBills, useSupplierBillSummary, type SupplierBillListItem, type SupplierBillStatus } from './api'
 import { BillStatusBadge, MatchBadge, PurchaseOrderStatusBadge } from './badges'
+import { msg, t, tn } from '@/lib/i18n'
 
 const ALL = 'all'
 const APPROVAL = 'approval'
 const UNPAID = 'unpaid'
 const OVERDUE = 'overdue'
 const tabs = [
-  { value: ALL, label: 'All' },
-  { value: APPROVAL, label: 'Needs approval' },
-  { value: UNPAID, label: 'Unpaid' },
-  { value: OVERDUE, label: 'Overdue' },
-  { value: 'Paid', label: 'Paid' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: ALL, label: msg('All') },
+  { value: APPROVAL, label: msg('Needs approval') },
+  { value: UNPAID, label: msg('Unpaid') },
+  { value: OVERDUE, label: msg('Overdue') },
+  { value: 'Paid', label: msg('Paid') },
+  { value: 'Cancelled', label: msg('Cancelled') },
 ]
 
 const columns: Column<SupplierBillListItem>[] = [
   {
     key: 'number',
-    header: 'Bill',
+    header: msg('Bill'),
     cell: (b) => (
       <div className="flex flex-col">
         <span className="font-mono text-xs">{b.number}</span>
-        <span className="text-xs text-muted-foreground">Their {b.supplierInvoiceNumber}</span>
+        <span className="text-xs text-muted-foreground">{t('Their {number}', { number: b.supplierInvoiceNumber })}</span>
       </div>
     ),
     className: 'w-40',
   },
-  { key: 'date', header: 'Date', cell: (b) => formatBusinessDate(b.billDate), className: 'w-28' },
-  { key: 'supplier', header: 'Supplier', cell: (b) => <span className="font-medium">{b.supplierName}</span> },
-  { key: 'order', header: 'Order', cell: (b) => <span className="font-mono text-xs">{b.purchaseOrderNumber}</span> },
-  { key: 'total', header: 'Total', align: 'right', cell: (b) => formatINR(b.grandTotal) },
-  { key: 'balance', header: 'To pay', align: 'right', cell: (b) => (b.balance > 0 ? formatINR(b.balance) : '—') },
-  { key: 'due', header: 'Due', cell: (b) => formatBusinessDate(b.dueDate), className: 'w-28' },
+  { key: 'date', header: msg('Date'), cell: (b) => formatBusinessDate(b.billDate), className: 'w-28' },
+  { key: 'supplier', header: msg('Supplier'), cell: (b) => <span className="font-medium">{b.supplierName}</span> },
+  { key: 'order', header: msg('Order'), cell: (b) => <span className="font-mono text-xs">{b.purchaseOrderNumber}</span> },
+  { key: 'total', header: msg('Total'), align: 'right', cell: (b) => formatINR(b.grandTotal) },
+  { key: 'balance', header: msg('To pay'), align: 'right', cell: (b) => (b.balance > 0 ? formatINR(b.balance) : '—') },
+  { key: 'due', header: msg('Due'), cell: (b) => formatBusinessDate(b.dueDate), className: 'w-28' },
   {
     key: 'status',
-    header: 'Status',
+    header: msg('Status'),
     cell: (b) => (
       <span className="inline-flex flex-wrap gap-1">
         {b.matchStatus !== 'Matched' && b.status !== 'Cancelled' && <MatchBadge status={b.matchStatus} />}
@@ -68,10 +69,14 @@ function SummaryCards() {
   const summary = useSupplierBillSummary()
   const s = summary.data
   const cards = [
-    { label: 'We owe', value: s && formatINR(s.payable, 0), hint: s && `${s.openBills} unpaid bill${s.openBills === 1 ? '' : 's'}` },
-    { label: 'Overdue', value: s && formatINR(s.overdue, 0), hint: s && `${s.overdueBills} past due date` },
-    { label: 'Due in the next 7 days', value: s && formatINR(s.dueNextSevenDays, 0) },
-    { label: 'Paid this month', value: s && formatINR(s.paidThisMonth, 0), hint: s && s.needsApproval > 0 ? `${s.needsApproval} bill${s.needsApproval === 1 ? '' : 's'} waiting for approval` : undefined },
+    { label: t('We owe'), value: s && formatINR(s.payable, 0), hint: s && tn(s.openBills, '{count} unpaid bill', '{count} unpaid bills') },
+    { label: t('Overdue'), value: s && formatINR(s.overdue, 0), hint: s && t('{count} past due date', { count: s.overdueBills }) },
+    { label: t('Due in the next 7 days'), value: s && formatINR(s.dueNextSevenDays, 0) },
+    {
+      label: t('Paid this month'),
+      value: s && formatINR(s.paidThisMonth, 0),
+      hint: s && s.needsApproval > 0 ? tn(s.needsApproval, '{count} bill waiting for approval', '{count} bills waiting for approval') : undefined,
+    },
   ]
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -106,13 +111,13 @@ function ChooseOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 sm:max-w-xl">
         <DialogHeader className="px-4 pt-4">
-          <DialogTitle>Which order is the bill for?</DialogTitle>
-          <DialogDescription>Bills are entered against the purchase order, so they can be checked against it and against what arrived.</DialogDescription>
+          <DialogTitle>{t('Which order is the bill for?')}</DialogTitle>
+          <DialogDescription>{t('Bills are entered against the purchase order, so they can be checked against it and against what arrived.')}</DialogDescription>
         </DialogHeader>
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search order no. or supplier…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('Search order no. or supplier…')} value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty>{orders.isFetching ? 'Searching…' : 'No placed orders match.'}</CommandEmpty>
+            <CommandEmpty>{orders.isFetching ? t('Searching…') : t('No placed orders match.')}</CommandEmpty>
             <CommandGroup>
               {billable.map((o) => (
                 <CommandItem key={o.id} value={String(o.id)} onSelect={() => navigate(`/supplier-bills/new?purchaseOrderId=${o.id}`)}>
@@ -156,13 +161,13 @@ export function SupplierBillsPage() {
   return (
     <>
       <PageHeader
-        title="Supplier bills"
-        description="Each bill is checked against its order's prices and what arrived. A bill that doesn't match waits for approval before it can be paid."
+        title={t('Supplier bills')}
+        description={t("Each bill is checked against its order's prices and what arrived. A bill that doesn't match waits for approval before it can be paid.")}
         actions={
           can(Permissions.SupplierBillsEdit) && (
             <Button onClick={() => setChoosing(true)}>
               <FilePlus2 />
-              Enter bill
+              {t('Enter bill')}
             </Button>
           )
         }
@@ -170,8 +175,8 @@ export function SupplierBillsPage() {
       <SummaryCards />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl label="Show" value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search bill, their invoice no., supplier or order" />
+        <SegmentedControl label={t('Show')} value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search bill, their invoice no., supplier or order')} />
       </div>
 
       <DataTable
@@ -182,8 +187,8 @@ export function SupplierBillsPage() {
         isLoading={bills.isPending}
         error={bills.error}
         onRowClick={(b) => navigate(`/supplier-bills/${b.id}`)}
-        emptyTitle={tab === OVERDUE ? 'Nothing overdue' : tab === APPROVAL ? 'Nothing waiting for approval' : 'No bills'}
-        emptyDescription={tab === ALL && !params.q ? 'Enter a supplier bill from its purchase order once the goods have arrived.' : undefined}
+        emptyTitle={tab === OVERDUE ? t('Nothing overdue') : tab === APPROVAL ? t('Nothing waiting for approval') : t('No bills')}
+        emptyDescription={tab === ALL && !params.q ? t('Enter a supplier bill from its purchase order once the goods have arrived.') : undefined}
       />
       {bills.data && (
         <Pagination

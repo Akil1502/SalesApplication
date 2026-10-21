@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatBusinessDate, formatINR } from '@/lib/format'
+import { msg, t, tn } from '@/lib/i18n'
 import { useSupplierReturns, useSupplierReturnSummary, type SupplierReturnListItem } from './api'
 import { NoGstBadge, ReturnStatusBadge } from './badges'
 import { returnReasonLabels } from './labels'
@@ -16,16 +17,16 @@ const ALL = 'all'
 const AWAITING = 'awaiting'
 const CREDIT = 'credit'
 const tabs = [
-  { value: ALL, label: 'All' },
-  { value: AWAITING, label: 'Awaiting their credit note' },
-  { value: CREDIT, label: 'Credit left' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: ALL, label: msg('All') },
+  { value: AWAITING, label: msg('Awaiting their credit note') },
+  { value: CREDIT, label: msg('Credit left') },
+  { value: 'Cancelled', label: msg('Cancelled') },
 ]
 
 const columns: Column<SupplierReturnListItem>[] = [
   {
     key: 'number',
-    header: 'Debit note',
+    header: msg('Debit note'),
     cell: (r) => (
       <div className="flex flex-col">
         <span className="font-mono text-xs">{r.number}</span>
@@ -34,24 +35,28 @@ const columns: Column<SupplierReturnListItem>[] = [
     ),
     className: 'w-40',
   },
-  { key: 'supplier', header: 'Supplier', cell: (r) => <span className="font-medium">{r.supplierName}</span> },
+  { key: 'supplier', header: msg('Supplier'), cell: (r) => <span className="font-medium">{r.supplierName}</span> },
   {
     key: 'bill',
-    header: 'Against bill',
+    header: msg('Against bill'),
     cell: (r) => (
       <div className="flex flex-col">
         <span className="font-mono text-xs">{r.billNumber}</span>
-        <span className="text-xs text-muted-foreground">Their {r.supplierInvoiceNumber}</span>
+        <span className="text-xs text-muted-foreground">{t('Their {number}', { number: r.supplierInvoiceNumber })}</span>
       </div>
     ),
   },
-  { key: 'reason', header: 'Reason', cell: (r) => returnReasonLabels[r.reason] },
-  { key: 'theirs', header: 'Their credit note', cell: (r) => (r.supplierCreditNoteNumber ? <span className="font-mono text-xs">{r.supplierCreditNoteNumber}</span> : 'Awaited') },
-  { key: 'total', header: 'Total', align: 'right', cell: (r) => formatINR(r.grandTotal) },
-  { key: 'credit', header: 'Credit left', align: 'right', cell: (r) => (r.creditAvailable > 0 ? formatINR(r.creditAvailable) : '—') },
+  { key: 'reason', header: msg('Reason'), cell: (r) => t(returnReasonLabels[r.reason]) },
+  {
+    key: 'theirs',
+    header: msg('Their credit note'),
+    cell: (r) => (r.supplierCreditNoteNumber ? <span className="font-mono text-xs">{r.supplierCreditNoteNumber}</span> : t('Awaited')),
+  },
+  { key: 'total', header: msg('Total'), align: 'right', cell: (r) => formatINR(r.grandTotal) },
+  { key: 'credit', header: msg('Credit left'), align: 'right', cell: (r) => (r.creditAvailable > 0 ? formatINR(r.creditAvailable) : '—') },
   {
     key: 'status',
-    header: 'Status',
+    header: msg('Status'),
     cell: (r) => (
       <span className="inline-flex flex-wrap gap-1">
         <ReturnStatusBadge status={r.status} />
@@ -65,9 +70,13 @@ function SummaryCards() {
   const summary = useSupplierReturnSummary()
   const s = summary.data
   const cards = [
-    { label: 'Returned this month', value: s && formatINR(s.returnedThisMonth, 0), hint: s && `${s.countThisMonth} debit note${s.countThisMonth === 1 ? '' : 's'}` },
-    { label: 'Credit with suppliers', value: s && formatINR(s.supplierCreditAvailable, 0) },
-    { label: 'Awaiting their credit note', value: s && String(s.awaitingSupplierNote) },
+    {
+      label: t('Returned this month'),
+      value: s && formatINR(s.returnedThisMonth, 0),
+      hint: s && tn(s.countThisMonth, '{count} debit note', '{count} debit notes'),
+    },
+    { label: t('Credit with suppliers'), value: s && formatINR(s.supplierCreditAvailable, 0) },
+    { label: t('Awaiting their credit note'), value: s && String(s.awaitingSupplierNote) },
   ]
   return (
     <div className="grid gap-4 sm:grid-cols-3">
@@ -103,14 +112,16 @@ export function SupplierReturnsPage() {
   return (
     <>
       <PageHeader
-        title="Supplier returns"
-        description="Goods sent back to suppliers (our debit notes). Return goods from the supplier's bill; the value comes off what we owe and the input GST is reversed."
+        title={t('Supplier returns')}
+        description={t(
+          "Goods sent back to suppliers (our debit notes). Return goods from the supplier's bill; the value comes off what we owe and the input GST is reversed.",
+        )}
       />
       <SummaryCards />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl label="Show" value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search debit note, bill, supplier or their credit note" />
+        <SegmentedControl label={msg('Show')} value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search debit note, bill, supplier or their credit note')} />
       </div>
 
       <DataTable
@@ -121,8 +132,8 @@ export function SupplierReturnsPage() {
         isLoading={returns.isPending}
         error={returns.error}
         onRowClick={(r) => navigate(`/supplier-returns/${r.id}`)}
-        emptyTitle={tab === AWAITING ? 'No credit notes awaited' : 'No supplier returns'}
-        emptyDescription={tab === ALL && !params.q ? 'Open a supplier bill and choose Return goods when something has to go back.' : undefined}
+        emptyTitle={tab === AWAITING ? t('No credit notes awaited') : t('No supplier returns')}
+        emptyDescription={tab === ALL && !params.q ? t('Open a supplier bill and choose Return goods when something has to go back.') : undefined}
       />
       {returns.data && (
         <Pagination

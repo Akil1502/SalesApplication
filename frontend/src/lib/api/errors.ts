@@ -1,4 +1,5 @@
 import type { FieldValues, Path, UseFormSetError } from 'react-hook-form'
+import { t } from '@/lib/i18n'
 import type { Schemas } from './client'
 
 export type ApiError = Schemas['ApiError']
@@ -41,7 +42,7 @@ export async function unwrap<T>(call: Promise<ClientResult<T>>): Promise<T> {
     result = await call
   } catch {
     throw new ApiRequestError(0, {
-      message: 'Could not reach the server. Check that the API is running and try again.',
+      message: t('Could not reach the server. Check that the API is running and try again.'),
       traceId: '',
     })
   }
@@ -59,15 +60,15 @@ export async function unwrap<T>(call: Promise<ClientResult<T>>): Promise<T> {
  * restarting (502, 503, 504) gets plain words rather than its status code.
  */
 export function statusMessage(response: Pick<Response, 'status' | 'statusText'>): string {
-  if (response.status >= 502 && response.status <= 504) return "Can't reach the SalesApp server right now. It may be restarting; try again in a moment."
-  return `The server returned ${response.status} ${response.statusText}.`
+  if (response.status >= 502 && response.status <= 504) return t("Can't reach the SalesApp server right now. It may be restarting; try again in a moment.")
+  return t('The server returned {status} {text}.', { status: response.status, text: response.statusText })
 }
 
 /** A user-facing message for any thrown value. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiRequestError) return error.body.message
   if (error instanceof Error && error.message) return error.message
-  return 'Something went wrong. Please try again.'
+  return t('Something went wrong. Please try again.')
 }
 
 /**

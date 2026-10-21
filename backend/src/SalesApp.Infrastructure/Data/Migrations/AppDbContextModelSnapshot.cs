@@ -732,6 +732,12 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<string>("DocumentLanguage")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -819,6 +825,7 @@ namespace SalesApp.Infrastructure.Data.Migrations
                             AddressLine1 = "12 Mill Road",
                             BillPriceTolerancePercent = 2m,
                             City = "Coimbatore",
+                            DocumentLanguage = "English",
                             Email = "accounts@demotextiles.example",
                             Gstin = "33ABCDE1234F1Z7",
                             InvoicePrefix = "INV",
@@ -1220,6 +1227,11 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("DocumentLanguage")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -1437,6 +1449,9 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasMaxLength(20)
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("NarrativeTamilJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("RequestedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -2898,6 +2913,11 @@ namespace SalesApp.Infrastructure.Data.Migrations
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("DocumentLanguage")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)

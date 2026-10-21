@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
+import { t } from '@/lib/i18n'
 
 interface ReasonDialogProps {
   open: boolean
@@ -39,9 +40,9 @@ function ReasonForm({
   confirmLabel,
   onConfirm,
   onCancel,
-  label = 'Reason',
-  requiredMessage = 'Give a reason.',
-  cancelLabel = 'Keep it',
+  label = t('Reason'),
+  requiredMessage = t('Give a reason.'),
+  cancelLabel = t('Keep it'),
   destructive = true,
 }: Omit<ReasonDialogProps, 'open' | 'onOpenChange'> & { onCancel: () => void }) {
   const id = useId()

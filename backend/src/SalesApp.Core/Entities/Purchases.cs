@@ -31,6 +31,9 @@ public sealed class Supplier : IAuditable
     public string? BankIfsc { get; set; }
 
     public string? Notes { get; set; }
+
+    /// <summary>Null: the company's default (Company settings).</summary>
+    public DocumentLanguage? DocumentLanguage { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }

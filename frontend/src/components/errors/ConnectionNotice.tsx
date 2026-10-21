@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { connection, useOnline, useServerUnreachable } from '@/lib/connection'
+import { t } from '@/lib/i18n'
 
 /**
  * A slim notice under the top bar while the browser is offline or the server can't be reached. While the server is
@@ -40,7 +41,7 @@ export function ConnectionNotice() {
     if (wasDown.current) {
       wasDown.current = false
       void queryClient.refetchQueries({ type: 'active' })
-      toast.success('Back online')
+      toast.success(t('Back online'))
     }
   }, [down, queryClient])
 
@@ -60,14 +61,14 @@ export function ConnectionNotice() {
             {online ? <CloudOff className="size-4 shrink-0" /> : <WifiOff className="size-4 shrink-0" />}
             <span className="flex-1">
               {online
-                ? "Can't reach the SalesApp server. Checking again every few seconds; nothing you've saved is lost."
-                : "You're offline. Changes can't be saved until the connection is back."}
+                ? t("Can't reach the SalesApp server. Checking again every few seconds; nothing you've saved is lost.")
+                : t("You're offline. Changes can't be saved until the connection is back.")}
             </span>
             {online && (
               <span className="flex items-center gap-2">
                 <Spinner className="size-3.5" />
                 <Button size="xs" variant="outline" className="bg-transparent" onClick={() => void queryClient.refetchQueries({ type: 'active' })}>
-                  <RotateCcw /> Try now
+                  <RotateCcw /> {t('Try now')}
                 </Button>
               </span>
             )}

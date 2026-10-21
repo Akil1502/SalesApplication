@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { setFaviconDot } from '@/features/branding/apply'
 import { useBranding } from '@/features/branding/api'
 import { errorMessage } from '@/lib/api/errors'
+import { t } from '@/lib/i18n'
 import { setUnreadCount } from '@/lib/unread-count'
 import { useMarkAllRead, useMarkRead, useNotificationPreferences, useNotifications, useOpened, useSaveNotificationPreferences, type Notification } from './api'
 import { useDesktopNotifications } from './desktop'
@@ -32,13 +33,13 @@ function NotificationSettings({ desktop, onBack }: { desktop: Desktop; onBack: (
   return (
     <div className="flex max-h-[min(34rem,75vh)] flex-col">
       <div className="flex items-center gap-2 border-b px-2 py-2">
-        <Button variant="ghost" size="icon" className="size-8" onClick={onBack} aria-label="Back to notifications">
+        <Button variant="ghost" size="icon" className="size-8" onClick={onBack} aria-label={t('Back to notifications')}>
           <ArrowLeft />
         </Button>
-        <h2 className="text-sm font-semibold">Notification settings</h2>
+        <h2 className="text-sm font-semibold">{t('Notification settings')}</h2>
       </div>
       <div className="flex flex-col gap-1 overflow-y-auto p-2">
-        <p className="px-2 pb-1 text-xs text-muted-foreground">Choose what you hear about. You only ever get what your role lets you see.</p>
+        <p className="px-2 pb-1 text-xs text-muted-foreground">{t('Choose what you hear about. You only ever get what your role lets you see.')}</p>
         {preferences.isPending
           ? Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="m-2 h-10" />)
           : kinds.map((k) => {
@@ -61,16 +62,15 @@ function NotificationSettings({ desktop, onBack }: { desktop: Desktop; onBack: (
           <div className="mt-1 border-t pt-2">
             <div className="flex items-center gap-3 rounded-lg px-2 py-2">
               <label htmlFor={desktopId} className="min-w-0 flex-1 cursor-pointer">
-                <span className="block text-sm font-medium">Windows notifications</span>
+                <span className="block text-sm font-medium">{t('Windows notifications')}</span>
                 <span className="block text-xs text-muted-foreground">
-                  Payments received and things waiting for your approval also pop up from Windows while this browser is in the background. Only on this
-                  computer.
+                  {t('Payments received and things waiting for your approval also pop up from Windows while this browser is in the background. Only on this computer.')}
                 </span>
               </label>
               <Switch id={desktopId} checked={desktop.on} onCheckedChange={(next) => void desktop.setOn(next)} disabled={desktop.permission === 'denied'} />
             </div>
             {desktop.permission === 'denied' && (
-              <p className="px-2 pb-1 text-xs text-destructive">This browser has blocked notifications for this site. Allow them in the browser's site settings, then turn this on.</p>
+              <p className="px-2 pb-1 text-xs text-destructive">{t("This browser has blocked notifications for this site. Allow them in the browser's site settings, then turn this on.")}</p>
             )}
           </div>
         )}
@@ -143,7 +143,7 @@ export function NotificationBell() {
         toast(item.title, {
           description: item.body ?? undefined,
           icon: createElement(KIND_LOOK[item.kind].icon, { className: 'size-4' }),
-          action: { label: 'Open', onClick: () => openItem(item) },
+          action: { label: t('Open'), onClick: () => openItem(item) },
         })
       }
     }
@@ -176,7 +176,7 @@ export function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-full" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} data-tour="notifications">
+        <Button variant="ghost" size="icon" className="relative rounded-full" aria-label={unread ? t('Notifications, {count} unread', { count: unread }) : t('Notifications')} data-tour="notifications">
           <motion.span key={rings} className="flex" animate={rings ? { rotate: [0, -20, 16, -12, 8, -4, 0] } : undefined} transition={{ duration: 0.9 }} style={{ transformOrigin: '50% 10%' }}>
             <Bell />
           </motion.span>
@@ -193,22 +193,22 @@ export function NotificationBell() {
         ) : (
           <div className="flex max-h-[min(34rem,75vh)] flex-col">
             <div className="flex items-center gap-1 border-b px-3 py-2">
-              <h2 className="mr-auto text-sm font-semibold">Notifications</h2>
+              <h2 className="mr-auto text-sm font-semibold">{t('Notifications')}</h2>
               <Button variant="ghost" size="sm" disabled={unread === 0} onClick={() => data?.items[0] && markAllRead.mutate(data.items[0].id)}>
-                <CheckCheck /> Mark all read
+                <CheckCheck /> {t('Mark all read')}
               </Button>
-              <Button variant="ghost" size="icon" className="size-8" onClick={() => setSettings(true)} aria-label="Notification settings">
+              <Button variant="ghost" size="icon" className="size-8" onClick={() => setSettings(true)} aria-label={t('Notification settings')}>
                 <Settings2 />
               </Button>
             </div>
             <div className="px-3 pt-2 pb-1">
               <SegmentedControl
-                label="Show"
+                label={t('Show')}
                 value={tab}
                 onValueChange={setTab}
                 options={[
-                  { value: 'all', label: 'All' },
-                  { value: 'unread', label: unread ? `Unread (${unread > 99 ? '99+' : unread})` : 'Unread' },
+                  { value: 'all', label: t('All') },
+                  { value: 'unread', label: unread ? t('Unread ({count})', { count: unread > 99 ? '99+' : unread }) : t('Unread') },
                 ]}
               />
             </div>
@@ -224,7 +224,7 @@ export function NotificationBell() {
                   items={items}
                   newAfter={visitMarker}
                   onOpen={openItem}
-                  emptyText={tab === 'unread' ? "You're all caught up." : 'Nothing yet. Payments, orders and anything waiting for you will show up here.'}
+                  emptyText={tab === 'unread' ? t("You're all caught up.") : t('Nothing yet. Payments, orders and anything waiting for you will show up here.')}
                 />
               )}
             </div>

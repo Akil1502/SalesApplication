@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useRef } from 'react'
 import { NavLink } from 'react-router'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useBrandName } from '@/features/branding/api'
 import { BrandMark } from './BrandMark'
@@ -27,7 +28,7 @@ export function RailNav({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
   return (
     <motion.nav
-      aria-label="Main menu"
+      aria-label={t('Main menu')}
       className="fixed inset-y-0 left-0 z-40 hidden p-2 md:block"
       initial={{ x: -96, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
@@ -47,11 +48,11 @@ export function RailNav({ open, onOpenChange }: { open: boolean; onOpenChange: (
         initial={false}
         transition={railSpring}
       >
-        <NavLink to="/" className="flex h-14 shrink-0 items-center gap-3 px-2.5" aria-label={`${name} home`}>
+        <NavLink to="/" className="flex h-14 shrink-0 items-center gap-3 px-2.5" aria-label={t('{name} home', { name })}>
           <BrandMark />
           <RailLabel open={open} className="min-w-0 font-semibold tracking-tight">
             <span className="block truncate">{name}</span>
-            <span className="block text-xs font-normal text-sidebar-foreground/60">Sales &amp; GST billing</span>
+            <span className="block text-xs font-normal text-sidebar-foreground/60">{t('Sales & GST billing')}</span>
           </RailLabel>
         </NavLink>
 

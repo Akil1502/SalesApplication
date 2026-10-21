@@ -6,6 +6,7 @@ import { useLocation, useNavigate, useOutlet } from 'react-router'
 import { useMotionLevel, usePreferences } from '@/components/fx/preferences-context'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { msg, t } from '@/lib/i18n'
 import { isTyping, overlayOpen } from '@/lib/keyboard'
 import { findNavItem } from './navigation'
 import { RAIL_WIDTH } from './rail'
@@ -45,6 +46,7 @@ function Panel({
   onClose,
   children,
 }: {
+  /** The list's title in English (marked with msg()): remembered as is for recently viewed, translated where shown. */
   listTitle: string
   steps: Steps | undefined
   onStep: (id: string) => void
@@ -125,7 +127,7 @@ function Panel({
       <motion.aside
         ref={panel}
         tabIndex={-1}
-        aria-label={`${listTitle}: record`}
+        aria-label={t('{list}: record', { list: t(listTitle) })}
         className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-background shadow-[0_30px_80px_-20px_oklch(0.2_0.08_268/55%)] outline-none md:inset-auto md:top-2 md:right-2 md:bottom-2 md:w-(--panel-width) md:rounded-2xl md:border md:transition-[width] md:duration-500 md:ease-[var(--ease-out)]"
         style={{ '--panel-width': width } as React.CSSProperties}
         initial={morph ? { opacity: 0, x: 24 } : { x: '105%' }}
@@ -134,19 +136,19 @@ function Panel({
         transition={morph ? { delay: 0.18, duration: 0.4, ease: [0.16, 1, 0.3, 1] } : spring}
       >
         <div className="flex h-12 shrink-0 items-center gap-1 border-b px-2">
-          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close" aria-keyshortcuts="Escape">
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label={t('Close')} aria-keyshortcuts="Escape">
             <X />
           </Button>
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
-            {listTitle} <ChevronRight className="size-3.5" />
+            {t(listTitle)} <ChevronRight className="size-3.5" />
           </span>
           {current && (
             <Button
               variant="ghost"
               size="icon-sm"
               aria-pressed={isFavourite(current.path)}
-              aria-label={isFavourite(current.path) ? 'Remove from favourites' : 'Add to favourites'}
-              title={isFavourite(current.path) ? 'Remove from favourites' : 'Add to favourites (shown in Ctrl+K search)'}
+              aria-label={isFavourite(current.path) ? t('Remove from favourites') : t('Add to favourites')}
+              title={isFavourite(current.path) ? t('Remove from favourites') : t('Add to favourites (shown in Ctrl+K search)')}
               onClick={() => toggle({ path: current.path, label: current.title, list: listTitle })}
             >
               <Star className={isFavourite(current.path) ? 'fill-amber-400 text-amber-500' : undefined} />
@@ -154,20 +156,20 @@ function Panel({
           )}
           {steps && (
             <span className="ml-2 flex items-center gap-0.5">
-              <StepButton label="Previous" keys="K Alt+ArrowUp" disabled={!steps.previous} onClick={() => steps.previous && onStep(steps.previous)}>
+              <StepButton label={t('Previous')} keys="K Alt+ArrowUp" disabled={!steps.previous} onClick={() => steps.previous && onStep(steps.previous)}>
                 <ChevronUp />
               </StepButton>
-              <StepButton label="Next" keys="J Alt+ArrowDown" disabled={!steps.next} onClick={() => steps.next && onStep(steps.next)}>
+              <StepButton label={t('Next')} keys="J Alt+ArrowDown" disabled={!steps.next} onClick={() => steps.next && onStep(steps.next)}>
                 <ChevronDown />
               </StepButton>
               <span className="ml-1 text-xs text-muted-foreground tabular-nums" aria-live="polite">
-                {steps.position} of {steps.count}
+                {t('{position} of {count}', { position: steps.position, count: steps.count })}
               </span>
             </span>
           )}
           <Button variant="ghost" size="sm" className="ml-auto hidden md:inline-flex" onClick={() => setExpanded((on) => !on)} aria-pressed={expanded}>
             {expanded ? <Minimize2 /> : <Maximize2 />}
-            {expanded ? 'Side panel' : 'Full width'}
+            {expanded ? t('Side panel') : t('Full width')}
           </Button>
         </div>
         {/* A query container, so the page inside can rearrange to the panel's width (see the stacked tables). */}
@@ -241,7 +243,7 @@ export function RecordPanelLayout({ list, children }: { list: string; children: 
       {createPortal(
         <AnimatePresence>
           {open && (
-            <Panel key="record-panel" listTitle={findNavItem(list)?.title ?? 'Back'} steps={steps} onStep={step} onClose={close}>
+            <Panel key="record-panel" listTitle={findNavItem(list)?.title ?? msg('Back')} steps={steps} onStep={step} onClose={close}>
               {outlet}
             </Panel>
           )}

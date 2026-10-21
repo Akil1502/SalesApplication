@@ -3,30 +3,31 @@ import { motion } from 'motion/react'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useRouteError } from 'react-router'
 import { Button } from '@/components/ui/button'
+import { msg, t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { ErrorArt } from './ErrorArt'
 import { errorDetails, errorKind, type ErrorKind } from './error-kind'
 
 const copy: Record<ErrorKind, { title: string; body: string }> = {
   'new-version': {
-    title: 'SalesApp has been updated',
-    body: 'A newer version was installed while this page was open. Reload to carry on with it; nothing you saved is lost.',
+    title: msg('SalesApp has been updated'),
+    body: msg('A newer version was installed while this page was open. Reload to carry on with it; nothing you saved is lost.'),
   },
   unreachable: {
-    title: "Can't reach the SalesApp server",
-    body: 'The server may be restarting or the network is down. Try again in a moment.',
+    title: msg("Can't reach the SalesApp server"),
+    body: msg('The server may be restarting or the network is down. Try again in a moment.'),
   },
   'not-found': {
-    title: "This page or record doesn't exist",
-    body: 'It may have been removed, or the link is mistyped.',
+    title: msg("This page or record doesn't exist"),
+    body: msg('It may have been removed, or the link is mistyped.'),
   },
   forbidden: {
-    title: "You don't have access to this",
-    body: 'Ask an administrator if you need it.',
+    title: msg("You don't have access to this"),
+    body: msg('Ask an administrator if you need it.'),
   },
   broken: {
-    title: 'Something went wrong on this page',
-    body: 'Try again. If it keeps happening, copy the details below and send them to whoever looks after SalesApp.',
+    title: msg('Something went wrong on this page'),
+    body: msg('Try again. If it keeps happening, copy the details below and send them to whoever looks after SalesApp.'),
   },
 }
 
@@ -57,32 +58,32 @@ export function RouteError({ variant = 'page' }: { variant?: 'page' | 'panel' | 
     >
       <ErrorArt />
       <div className="space-y-2">
-        <h2 className="text-xl font-semibold tracking-tight">{text.title}</h2>
-        <p className="text-sm text-muted-foreground">{text.body}</p>
+        <h2 className="text-xl font-semibold tracking-tight">{t(text.title)}</h2>
+        <p className="text-sm text-muted-foreground">{t(text.body)}</p>
       </div>
       <div className="flex flex-wrap justify-center gap-2">
         {kind === 'new-version' ? (
           <Button onClick={() => window.location.reload()}>
-            <RefreshCw /> Reload
+            <RefreshCw /> {t('Reload')}
           </Button>
         ) : (
           kind !== 'not-found' &&
           kind !== 'forbidden' && (
             <Button onClick={retry}>
-              <RotateCcw /> Try again
+              <RotateCcw /> {t('Try again')}
             </Button>
           )
         )}
         <Button asChild variant="outline">
           <Link to="/">
-            <House /> Dashboard
+            <House /> {t('Dashboard')}
           </Link>
         </Button>
       </div>
       {kind === 'broken' && (
         <details className="group w-full rounded-lg border bg-muted/40 text-left text-xs">
           <summary className="flex cursor-pointer list-none items-center gap-1 px-3 py-2 font-medium text-muted-foreground">
-            <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" /> Technical details
+            <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" /> {t('Technical details')}
           </summary>
           <div className="space-y-2 border-t px-3 py-2">
             <pre className="font-mono break-words whitespace-pre-wrap">{details}</pre>
@@ -93,7 +94,7 @@ export function RouteError({ variant = 'page' }: { variant?: 'page' | 'panel' | 
                 void navigator.clipboard?.writeText(`${details}\nPage: ${location.pathname}${location.search}\nTime: ${new Date().toISOString()}`).then(() => setCopied(true))
               }
             >
-              <Copy /> {copied ? 'Copied' : 'Copy details'}
+              <Copy /> {copied ? t('Copied') : t('Copy details')}
             </Button>
           </div>
         </details>

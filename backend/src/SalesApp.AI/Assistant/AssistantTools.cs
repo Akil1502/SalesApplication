@@ -31,14 +31,14 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
     /// <summary>The permission each lookup needs, and what to call the data when it's missing.</summary>
     private static readonly Dictionary<string, (string Permission, string What)> Needs = new()
     {
-        [AssistantPrompt.SearchCustomers] = (Permissions.CustomersView, "customers"),
-        [AssistantPrompt.GetCustomer] = (Permissions.CustomersView, "customers"),
-        [AssistantPrompt.ListInvoices] = (Permissions.InvoicesView, "invoices"),
-        [AssistantPrompt.SearchProducts] = (Permissions.ProductsView, "products"),
-        [AssistantPrompt.SearchSuppliers] = (Permissions.SuppliersView, "suppliers"),
-        [AssistantPrompt.GetSupplier] = (Permissions.SuppliersView, "suppliers"),
-        [AssistantPrompt.QuerySalesData] = (Permissions.AskDataUse, "sales data (Ask your data)"),
-        [AssistantPrompt.CreateDraft] = (Permissions.CustomersView, "customers' contact details"),
+        [AssistantPrompt.SearchCustomers] = (Permissions.CustomersView, L.Msg("customers")),
+        [AssistantPrompt.GetCustomer] = (Permissions.CustomersView, L.Msg("customers")),
+        [AssistantPrompt.ListInvoices] = (Permissions.InvoicesView, L.Msg("invoices")),
+        [AssistantPrompt.SearchProducts] = (Permissions.ProductsView, L.Msg("products")),
+        [AssistantPrompt.SearchSuppliers] = (Permissions.SuppliersView, L.Msg("suppliers")),
+        [AssistantPrompt.GetSupplier] = (Permissions.SuppliersView, L.Msg("suppliers")),
+        [AssistantPrompt.QuerySalesData] = (Permissions.AskDataUse, L.Msg("sales data (Ask your data)")),
+        [AssistantPrompt.CreateDraft] = (Permissions.CustomersView, L.Msg("customers' contact details")),
     };
 
     /// <summary>The refusal for a lookup the user isn't allowed, or null when they are. A draft to a supplier needs suppliers.</summary>
@@ -46,7 +46,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
     {
         if (name == AssistantPrompt.CreateDraft && input is not null && Number(input, "supplierId") > 0)
         {
-            return currentUser.Has(Permissions.SuppliersView) ? null : NoAccess("suppliers' contact details");
+            return currentUser.Has(Permissions.SuppliersView) ? null : NoAccess(L.Msg("suppliers' contact details"));
         }
 
         return Needs.TryGetValue(name, out var need) && !currentUser.Has(need.Permission) ? NoAccess(need.What) : null;
@@ -56,7 +56,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         $"This user doesn't have permission to see {what} in SalesApp, so you can't look that up for them. Tell them, " +
         "and that an administrator can give them access under Users & roles.",
         true,
-        $"No access to {what}");
+        L.Msg($"No access to {what}"));
 
     public async Task<ToolOutcome> RunAsync(Guid conversationId, string name, IReadOnlyDictionary<string, JsonElement> input, CancellationToken cancellationToken) =>
         Refusal(name) ?? name switch
@@ -75,15 +75,15 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
     /// <summary>A short label for a lookup while it runs, before its result (and the customer's name) is known.</summary>
     public static string RunningLabel(string name, IReadOnlyDictionary<string, JsonElement> input) => name switch
     {
-        AssistantPrompt.SearchCustomers => $"Searching customers for “{Text(input, "query")}”",
-        AssistantPrompt.GetCustomer => "Looking up the customer",
-        AssistantPrompt.ListInvoices => "Checking invoices",
-        AssistantPrompt.GetDocument => $"Opening {Text(input, "number")}",
-        AssistantPrompt.SearchProducts => $"Searching products for “{Text(input, "query")}”",
-        AssistantPrompt.SearchSuppliers => $"Searching suppliers for “{Text(input, "query")}”",
-        AssistantPrompt.GetSupplier => "Looking up the supplier",
-        AssistantPrompt.QuerySalesData => Text(input, "purpose") is { Length: > 0 } purpose ? purpose : "Querying sales data",
-        AssistantPrompt.CreateDraft => "Writing a draft",
+        AssistantPrompt.SearchCustomers => L.Msg($"Searching customers for “{Text(input, "query")}”"),
+        AssistantPrompt.GetCustomer => L.Msg("Looking up the customer"),
+        AssistantPrompt.ListInvoices => L.Msg("Checking invoices"),
+        AssistantPrompt.GetDocument => L.Msg($"Opening {Text(input, "number")}"),
+        AssistantPrompt.SearchProducts => L.Msg($"Searching products for “{Text(input, "query")}”"),
+        AssistantPrompt.SearchSuppliers => L.Msg($"Searching suppliers for “{Text(input, "query")}”"),
+        AssistantPrompt.GetSupplier => L.Msg("Looking up the supplier"),
+        AssistantPrompt.QuerySalesData => Text(input, "purpose") is { Length: > 0 } purpose ? purpose : L.Msg("Querying sales data"),
+        AssistantPrompt.CreateDraft => L.Msg("Writing a draft"),
         _ => name,
     };
 
@@ -91,7 +91,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
     {
         if (query.Length < 2)
         {
-            return new ToolOutcome("Give at least two characters to search for.", true, "Searched customers");
+            return new ToolOutcome("Give at least two characters to search for.", true, L.Msg("Searched customers"));
         }
 
         var digits = new string([.. query.Where(char.IsDigit)]);
@@ -106,7 +106,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             .ToListAsync(cancellationToken);
 
         var balances = await BalancesAsync([.. customers.Select(c => c.Id)], cancellationToken);
-        var label = $"Searched customers for “{query}”";
+        var label = L.Msg($"Searched customers for “{query}”");
         if (customers.Count == 0)
         {
             return new ToolOutcome(Serialize(new { matches = 0, note = "No customer matches. Try part of the name, the city or the code." }), false, label);
@@ -130,6 +130,10 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         }), false, label);
     }
 
+    /// <summary>The company's language for documents and messages, for customers and suppliers who haven't chosen one.</summary>
+    private Task<DocumentLanguage> DefaultDocumentLanguageAsync(CancellationToken cancellationToken) =>
+        db.CompanySettings.AsNoTracking().Select(s => s.DocumentLanguage).SingleAsync(cancellationToken);
+
     private async Task<ToolOutcome> GetCustomerAsync(int customerId, CancellationToken cancellationToken)
     {
         var customer = await db.Customers.AsNoTracking()
@@ -138,6 +142,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             {
                 c.Id, c.Code, c.Name, c.TradeName, c.ContactPerson, c.Gstin, City = c.BillingAddress.City, StateCode = c.BillingAddress.StateCode,
                 c.CreditLimit, c.PaymentTermsDays, SalesRep = c.AssignedRep != null ? c.AssignedRep.FullName : null, c.Notes, c.IsActive,
+                c.DocumentLanguage,
             })
             .SingleOrDefaultAsync(cancellationToken);
         if (customer is null)
@@ -200,6 +205,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             customer.SalesRep,
             active = customer.IsActive,
             customer.Notes,
+            documentLanguage = (customer.DocumentLanguage ?? await DefaultDocumentLanguageAsync(cancellationToken)).ToString(),
             salesThisFinancialYear = (salesByYear.FirstOrDefault(s => s.Year == thisYear)?.Sales ?? 0m) - returnsByYear.GetValueOrDefault(thisYear),
             invoicesThisFinancialYear = salesByYear.FirstOrDefault(s => s.Year == thisYear)?.Invoices ?? 0,
             returnsThisFinancialYear = returnsByYear.GetValueOrDefault(thisYear),
@@ -212,7 +218,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             unusedCredit,
             recentOrders = recentOrders.Select(o => new { number = o.QuotationNumber ?? o.Number, o.Status, date = o.OrderDate, o.GrandTotal }),
             topProductsThisFinancialYear = topProducts.Select(p => new { sku = p.ProductSku, name = p.ProductName, unit = p.Unit.ToString(), p.Quantity, p.Sales }),
-        }), false, $"Looked up {customer.Name}");
+        }), false, L.Msg($"Looked up {customer.Name}"));
     }
 
     private async Task<ToolOutcome> ListInvoicesAsync(int customerId, string status, CancellationToken cancellationToken)
@@ -256,7 +262,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             .Select(i => new { i.Number, i.CustomerId, i.CustomerName, i.InvoiceDate, i.DueDate, i.GrandTotal, i.AmountPaid, i.AmountCredited, i.Status })
             .ToListAsync(cancellationToken);
 
-        var which = status switch { "overdue" => "overdue invoices", "all" => "invoices", _ => "outstanding invoices" };
+        var which = status switch { "overdue" => L.Msg("overdue invoices"), "all" => L.Msg("invoices"), _ => L.Msg("outstanding invoices") };
         return new ToolOutcome(Serialize(new
         {
             customer = customerName,
@@ -279,7 +285,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 daysOverdue = Open.Contains(i.Status) && i.DueDate < today ? today.DayNumber - i.DueDate.DayNumber : 0,
                 status = i.Status.ToString(),
             }),
-        }), false, customerName is null ? $"Listed {which}" : $"Listed {which} for {customerName}");
+        }), false, customerName is null ? L.Msg($"Listed {which}") : L.Msg($"Listed {which} for {customerName}"));
     }
 
     private async Task<ToolOutcome> GetDocumentAsync(string number, CancellationToken cancellationToken)
@@ -292,7 +298,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         {
             if (!currentUser.Has(Permissions.InvoicesView))
             {
-                return NoAccess("invoices");
+                return NoAccess(L.Msg("invoices"));
             }
 
             var today = clock.Today;
@@ -326,7 +332,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 daysOverdue = Open.Contains(invoice.Status) && invoice.DueDate < today ? today.DayNumber - invoice.DueDate.DayNumber : 0,
                 payments = invoice.Payments.OrderBy(p => p.PaymentDate).Select(p => new { date = p.PaymentDate, p.Amount, mode = p.Mode.ToString(), p.Reference }),
                 creditNotes = credits,
-            }), false, $"Opened invoice {invoice.Number}");
+            }), false, L.Msg($"Opened invoice {invoice.Number}"));
         }
 
         if (await GetCreditNoteAsync(number, cancellationToken) is { } creditNote)
@@ -344,12 +350,12 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             .SingleOrDefaultAsync(o => o.Number == number || o.QuotationNumber == number, cancellationToken);
         if (order is null)
         {
-            return new ToolOutcome($"No invoice, credit note, order, quotation, purchase order, supplier bill or supplier return is numbered {number}.", true, $"Looked for {number}");
+            return new ToolOutcome($"No invoice, credit note, order, quotation, purchase order, supplier bill or supplier return is numbered {number}.", true, L.Msg($"Looked for {number}"));
         }
 
         if (!currentUser.Has(Permissions.OrdersView))
         {
-            return NoAccess("orders and quotations");
+            return NoAccess(L.Msg("orders and quotations"));
         }
 
         var invoiceNumber = order.InvoiceId is { } invoiceId
@@ -375,14 +381,14 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             order.TaxableValue,
             gst = order.TaxAmount,
             order.GrandTotal,
-        }), false, $"Opened {(order.QuotationNumber == number ? "quotation" : "order")} {number}");
+        }), false, order.QuotationNumber == number ? L.Msg($"Opened quotation {number}") : L.Msg($"Opened order {number}"));
     }
 
     private async Task<ToolOutcome> SearchProductsAsync(string query, CancellationToken cancellationToken)
     {
         if (query.Length < 2)
         {
-            return new ToolOutcome("Give at least two characters to search for.", true, "Searched products");
+            return new ToolOutcome("Give at least two characters to search for.", true, L.Msg("Searched products"));
         }
 
         var alias = AliasText.Normalize(query);
@@ -415,12 +421,12 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 priceToday = p.rate ?? p.ListPrice, p.gstRate, p.onHand, p.ReorderLevel, p.LeadTimeDays, p.active,
                 stockStatus = p.onHand <= 0 ? "OutOfStock" : p.onHand <= p.ReorderLevel ? "Low" : "InStock",
             }),
-        }), false, $"Searched products for “{query}”");
+        }), false, L.Msg($"Searched products for “{query}”"));
     }
 
     private async Task<ToolOutcome> QueryAsync(Guid conversationId, string sql, string purpose, CancellationToken cancellationToken)
     {
-        var label = purpose.Length > 0 ? purpose : "Queried sales data";
+        var label = purpose.Length > 0 ? purpose : L.Msg("Queried sales data");
         var outcome = await queries.RunAsync(conversationId, $"Assistant: {purpose}", sql, cancellationToken);
         return outcome switch
         {
@@ -434,7 +440,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
     {
         if (query.Length < 2)
         {
-            return new ToolOutcome("Give at least two characters to search for.", true, "Searched suppliers");
+            return new ToolOutcome("Give at least two characters to search for.", true, L.Msg("Searched suppliers"));
         }
 
         var today = clock.Today;
@@ -454,7 +460,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             })
             .ToListAsync(cancellationToken);
 
-        var label = $"Searched suppliers for “{query}”";
+        var label = L.Msg($"Searched suppliers for “{query}”");
         return suppliers.Count == 0
             ? new ToolOutcome(Serialize(new { matches = 0, note = "No supplier matches. Try part of the name, the city or the code." }), false, label)
             : new ToolOutcome(Serialize(new { matches = suppliers.Count, suppliers }), false, label);
@@ -464,11 +470,11 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
     {
         var supplier = await db.Suppliers.AsNoTracking()
             .Where(s => s.Id == supplierId)
-            .Select(s => new { s.Id, s.Code, s.Name, s.TradeName, s.ContactPerson, s.Gstin, City = s.Address.City, StateCode = s.Address.StateCode, s.PaymentTermsDays, s.Notes, s.IsActive })
+            .Select(s => new { s.Id, s.Code, s.Name, s.TradeName, s.ContactPerson, s.Gstin, City = s.Address.City, StateCode = s.Address.StateCode, s.PaymentTermsDays, s.Notes, s.IsActive, s.DocumentLanguage })
             .SingleOrDefaultAsync(cancellationToken);
         if (supplier is null)
         {
-            return new ToolOutcome($"No supplier has id {supplierId}. Use {AssistantPrompt.SearchSuppliers} to find the right id.", true, "Looked up a supplier");
+            return new ToolOutcome($"No supplier has id {supplierId}. Use {AssistantPrompt.SearchSuppliers} to find the right id.", true, L.Msg("Looked up a supplier"));
         }
 
         var today = clock.Today;
@@ -548,6 +554,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             supplier.PaymentTermsDays,
             active = supplier.IsActive,
             supplier.Notes,
+            documentLanguage = (supplier.DocumentLanguage ?? await DefaultDocumentLanguageAsync(cancellationToken)).ToString(),
             purchasesThisFinancialYear = purchasesThisYear,
             lastBillDate = lastBill,
             payable,
@@ -555,7 +562,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             unusedCredit,
             openPurchaseOrders = orders ?? "No permission to see purchase orders.",
             unpaidBills = bills ?? "No permission to see supplier bills.",
-        }), false, $"Looked up {supplier.Name}");
+        }), false, L.Msg($"Looked up {supplier.Name}"));
     }
 
     /// <summary>A purchase order or supplier bill by number (ours, or the supplier's invoice number), or null.</summary>
@@ -568,7 +575,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         {
             if (!currentUser.Has(Permissions.PurchaseOrdersView))
             {
-                return NoAccess("purchase orders");
+                return NoAccess(L.Msg("purchase orders"));
             }
 
             var today = clock.Today;
@@ -592,7 +599,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 order.TaxableValue,
                 gst = order.TaxAmount,
                 order.GrandTotal,
-            }), false, $"Opened purchase order {order.Number}");
+            }), false, L.Msg($"Opened purchase order {order.Number}"));
         }
 
         var bill = await db.SupplierBills.AsNoTracking()
@@ -607,7 +614,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
 
         if (!currentUser.Has(Permissions.SupplierBillsView))
         {
-            return NoAccess("supplier bills");
+            return NoAccess(L.Msg("supplier bills"));
         }
 
         var day = clock.Today;
@@ -642,7 +649,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             daysOverdue = OpenBills.Contains(bill.Status) && bill.DueDate < day ? day.DayNumber - bill.DueDate.DayNumber : 0,
             payments = bill.Payments.OrderBy(p => p.PaymentDate).Select(p => new { date = p.PaymentDate, p.Amount, mode = p.Mode.ToString(), p.Reference }),
             returns = billReturns,
-        }), false, $"Opened supplier bill {bill.Number}");
+        }), false, L.Msg($"Opened supplier bill {bill.Number}"));
     }
 
     /// <summary>A credit note or supplier return (debit note) by number, or null.</summary>
@@ -655,7 +662,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
         {
             if (!currentUser.Has(Permissions.CreditNotesView))
             {
-                return NoAccess("credit notes");
+                return NoAccess(L.Msg("credit notes"));
             }
 
             return new ToolOutcome(Serialize(new
@@ -681,7 +688,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
                 setAgainstInvoices = note.AmountAdjusted,
                 refunded = note.AmountRefunded,
                 creditLeft = note.Status == ReturnDocumentStatus.Issued ? note.GrandTotal - note.AmountAdjusted - note.AmountRefunded : 0m,
-            }), false, $"Opened credit note {note.Number}");
+            }), false, L.Msg($"Opened credit note {note.Number}"));
         }
 
         var ret = await db.SupplierReturns.AsNoTracking()
@@ -694,7 +701,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
 
         if (!currentUser.Has(Permissions.SupplierReturnsView))
         {
-            return NoAccess("supplier returns");
+            return NoAccess(L.Msg("supplier returns"));
         }
 
         return new ToolOutcome(Serialize(new
@@ -717,7 +724,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
             setAgainstBills = ret.AmountAdjusted,
             refunded = ret.AmountRefunded,
             creditLeft = ret.Status == ReturnDocumentStatus.Issued ? ret.GrandTotal - ret.AmountAdjusted - ret.AmountRefunded : 0m,
-        }), false, $"Opened supplier return {ret.Number}");
+        }), false, L.Msg($"Opened supplier return {ret.Number}"));
     }
 
     /// <summary>Outstanding and overdue amounts for each customer.</summary>
@@ -738,7 +745,7 @@ public sealed class AssistantTools(AppDbContext db, IGuardedQueryRunner queries,
     }
 
     private static ToolOutcome NoCustomer(int id) =>
-        new($"No customer has id {id}. Use {AssistantPrompt.SearchCustomers} to find the right id.", true, "Looked up a customer");
+        new($"No customer has id {id}. Use {AssistantPrompt.SearchCustomers} to find the right id.", true, L.Msg("Looked up a customer"));
 
     private static string Serialize(object value) => JsonSerializer.Serialize(value, Json);
 

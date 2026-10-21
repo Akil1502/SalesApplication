@@ -296,10 +296,10 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
             var lostValue = Rupees(sold.Value / sold.Quantity * lostQuantity);
             var ongoing = longest.To == today;
             var anomaly = new AnomalyDto(AnomalyKind.Stockout,
-                ongoing ? $"{product.Sku} has been out of stock for {days} days" : $"{product.Sku} was out of stock for {days} days",
+                ongoing ? L.Msg($"{product.Sku} has been out of stock for {days} days") : L.Msg($"{product.Sku} was out of stock for {days} days"),
                 ongoing
-                    ? $"{product.Name}: out of stock since {Day(longest.From)}. At its usual rate that's about {Quantity(lostQuantity, product.Unit.ToString())} of sales missed so far (about {Money(lostValue)})."
-                    : $"{product.Name}: from {Day(longest.From)} to {Day(longest.To)}. At its usual rate that's about {Quantity(lostQuantity, product.Unit.ToString())} of sales missed (about {Money(lostValue)}).",
+                    ? L.Msg($"{product.Name}: out of stock since {Day(longest.From)}. At its usual rate that's about {Quantity(lostQuantity, product.Unit.ToString())} of sales missed so far (about {Money(lostValue)}).")
+                    : L.Msg($"{product.Name}: from {Day(longest.From)} to {Day(longest.To)}. At its usual rate that's about {Quantity(lostQuantity, product.Unit.ToString())} of sales missed (about {Money(lostValue)})."),
                 days / 7.0, longest.From, lostValue, lostQuantity, null, null, days, null, product.Id, null);
             found.Add(new Stockout(product.Id, longest.From, longest.To, anomaly));
         }
@@ -338,8 +338,8 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
             var yearBefore = customer.Where(i => i.InvoiceDate > last.AddYears(-1)).Sum(i => i.TaxableValue);
             var gap = (int)Math.Round(usualGap);
             found.Add(new AnomalyDto(AnomalyKind.StoppedBuying,
-                $"{name} hasn't bought for {since} days",
-                $"Usually orders every {gap} days; the last invoice was on {Day(last)}. Bought {Money(yearBefore)} in the year before that.",
+                L.Msg($"{name} hasn't bought for {since} days"),
+                L.Msg($"Usually orders every {gap} days; the last invoice was on {Day(last)}. Bought {Money(yearBefore)} in the year before that."),
                 since / usualGap, last, Rupees(yearBefore), null, gap, null, since, customer.Key, null, null));
         }
 
@@ -375,8 +375,8 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
                 if (ratio >= 4 && invoice.TaxableValue >= 2 * large)
                 {
                     found.Add(new AnomalyDto(AnomalyKind.UnusualInvoice,
-                        $"{invoice.InvoiceNumber} for {invoice.CustomerName} was {Math.Round(ratio, 1).ToString(India)} times their usual invoice",
-                        $"{Money(invoice.TaxableValue)} on {Day(invoice.InvoiceDate)}, against a usual {Money(usual)} (excluding GST).",
+                        L.Msg($"{invoice.InvoiceNumber} for {invoice.CustomerName} was {Math.Round(ratio, 1).ToString(India)} times their usual invoice"),
+                        L.Msg($"{Money(invoice.TaxableValue)} on {Day(invoice.InvoiceDate)}, against a usual {Money(usual)} (excluding GST)."),
                         z, invoice.InvoiceDate, Rupees(invoice.TaxableValue), null, Rupees(usual), Math.Round(ratio, 1), null,
                         customer.Key, null, invoice.InvoiceNumber));
                 }
@@ -434,16 +434,16 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
                 if (z >= 3.5 && ratio >= 2 && (spike is null || z > spike.Score))
                 {
                     spike = new AnomalyDto(AnomalyKind.DemandSpike,
-                        $"{sample.Sku} sold {Math.Round(ratio, 1).ToString(India)} times its usual amount in {label}",
-                        $"{sample.ProductName}: {Quantity(quantity, sample.Unit)} against a usual {Quantity(typical, sample.Unit)} for that time of year.",
+                        L.Msg($"{sample.Sku} sold {Math.Round(ratio, 1).ToString(India)} times its usual amount in {label}"),
+                        L.Msg($"{sample.ProductName}: {Quantity(quantity, sample.Unit)} against a usual {Quantity(typical, sample.Unit)} for that time of year."),
                         z, point.Month, null, quantity, typical, Math.Round((decimal)ratio, 1), null, null, product.Key, null);
                 }
                 else if (typicalAdjusted > 0 && ratio <= 0.25 && (drop is null || 1 - ratio > drop.Score)
                     && !stockouts.Any(o => o.ProductId == product.Key && o.From < point.Month.AddMonths(1) && o.To >= point.Month))
                 {
                     drop = new AnomalyDto(AnomalyKind.DemandDrop,
-                        $"{sample.Sku} nearly stopped selling in {label}",
-                        $"{sample.ProductName}: {Quantity(quantity, sample.Unit)} against a usual {Quantity(typical, sample.Unit)}, though it was in stock.",
+                        L.Msg($"{sample.Sku} nearly stopped selling in {label}"),
+                        L.Msg($"{sample.ProductName}: {Quantity(quantity, sample.Unit)} against a usual {Quantity(typical, sample.Unit)}, though it was in stock."),
                         1 - ratio, point.Month, null, quantity, typical, Math.Round((decimal)ratio, 2), null, null, product.Key, null);
                 }
             }
@@ -489,9 +489,10 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
             .OrderByDescending(o => o.Late)
             .Take(MaxPerKind)
             .Select(o => new AnomalyDto(AnomalyKind.PaymentRisk,
-                $"{o.Name}: {Money(o.Late)} more than 60 days overdue",
-                (lastPaid.TryGetValue(o.CustomerId, out var last) ? $"Last payment on {Day(last)}. " : "No payment on record. ")
-                    + $"The oldest overdue invoice is {o.Oldest} days past due; {Money(o.Overdue)} is overdue in all.",
+                L.Msg($"{o.Name}: {Money(o.Late)} more than 60 days overdue"),
+                string.Join(' ',
+                    lastPaid.TryGetValue(o.CustomerId, out var last) ? L.Msg($"Last payment on {Day(last)}.") : L.Msg("No payment on record."),
+                    L.Msg($"The oldest overdue invoice is {o.Oldest} days past due; {Money(o.Overdue)} is overdue in all.")),
                 (double)(o.Late / 100_000), lastPaid.TryGetValue(o.CustomerId, out var paid) ? paid : null,
                 Rupees(o.Late), null, null, null, o.Oldest, o.CustomerId, null, null))];
     }
@@ -537,9 +538,10 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
             .OrderByDescending(x => x.Rate)
             .Take(MaxPerKind)
             .Select(x => new AnomalyDto(AnomalyKind.HighReturns,
-                $"{x.p.Sku}: {x.Rate.ToString("0.#", India)}% of what was sold came back",
-                $"{x.p.ProductName}: {Quantity(Math.Round(x.p.Returned, 0), x.p.Unit)} returned out of {Quantity(Math.Round(x.p.Sold, 0), x.p.Unit)} sold in the last 12 months, " +
-                $"on {x.p.Notes} credit notes. " + (typicalProduct > 0 ? $"Across products the usual rate is {typicalProduct.ToString("0.#", India)}%." : "Most products had no returns at all."),
+                L.Msg($"{x.p.Sku}: {x.Rate.ToString("0.#", India)}% of what was sold came back"),
+                string.Join(' ',
+                    L.Msg($"{x.p.ProductName}: {Quantity(Math.Round(x.p.Returned, 0), x.p.Unit)} returned out of {Quantity(Math.Round(x.p.Sold, 0), x.p.Unit)} sold in the last 12 months, on {x.p.Notes} credit notes."),
+                    typicalProduct > 0 ? L.Msg($"Across products the usual rate is {typicalProduct.ToString("0.#", India)}%.") : L.Msg("Most products had no returns at all.")),
                 (double)(x.Rate / Math.Max(typicalProduct, 0.5m)), null, null, Math.Round(x.p.Returned, 0), typicalProduct, x.Rate, null, null, x.p.ProductId, null));
 
         var buyers = customers.Where(c => c.Bought > 0).ToList();
@@ -550,9 +552,10 @@ public sealed class InsightMetricsService(AppDbContext db, IBusinessClock clock)
             .OrderByDescending(x => x.c.Returned)
             .Take(MaxPerKind)
             .Select(x => new AnomalyDto(AnomalyKind.HighReturns,
-                $"{x.c.CustomerName} returned {x.Rate.ToString("0.#", India)}% of what they bought",
-                $"{Money(x.c.Returned)} of goods came back out of {Money(x.c.Bought)} bought in the last 12 months, on {x.c.Notes} credit notes. " +
-                (typicalCustomer > 0 ? $"Customers usually return {typicalCustomer.ToString("0.#", India)}%." : "Most customers returned nothing."),
+                L.Msg($"{x.c.CustomerName} returned {x.Rate.ToString("0.#", India)}% of what they bought"),
+                string.Join(' ',
+                    L.Msg($"{Money(x.c.Returned)} of goods came back out of {Money(x.c.Bought)} bought in the last 12 months, on {x.c.Notes} credit notes."),
+                    typicalCustomer > 0 ? L.Msg($"Customers usually return {typicalCustomer.ToString("0.#", India)}%.") : L.Msg("Most customers returned nothing.")),
                 (double)(x.Rate / Math.Max(typicalCustomer, 0.5m)), null, Rupees(x.c.Returned), null, typicalCustomer, x.Rate, null, x.c.CustomerId, null, null));
 
         return [.. productAlerts, .. customerAlerts];

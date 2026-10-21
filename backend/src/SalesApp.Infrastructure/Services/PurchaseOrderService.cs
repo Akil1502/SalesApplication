@@ -157,6 +157,8 @@ public sealed class PurchaseOrderService(
             supplier.ContactPerson, order.IsInterState, order.SupplierReference, order.Notes, lineDtos,
             totals.TaxableValue, totals.CgstAmount, totals.SgstAmount, totals.IgstAmount, totals.RoundOff, totals.GrandTotal,
             AmountInWords.Rupees(totals.GrandTotal),
+            AmountInWords.TamilRupees(totals.GrandTotal),
+            supplier.DocumentLanguage ?? settings.DocumentLanguage,
             limit is { } l && totals.GrandTotal > l, limit,
             order.SubmittedAtUtc, order.ApprovedBy?.FullName, order.ApprovedAtUtc, order.RejectionReason, order.OrderedAtUtc,
             order.ClosedAtUtc, order.CloseReason, order.CancelledAtUtc, order.CancellationReason,
@@ -246,10 +248,11 @@ public sealed class PurchaseOrderService(
         await db.SaveChangesAsync(cancellationToken);
         if (order.Status == PurchaseOrderStatus.PendingApproval)
         {
+            var (title, body) = NotificationText.PurchaseOrderApproval(order.Number, supplier.Name, order.GrandTotal, settings.PurchaseApprovalLimit ?? 0);
             await notifications.RaiseAsync(new NotificationEvent(
                 NotificationKind.PurchaseOrderApproval,
-                $"Purchase order {order.Number} needs your approval",
-                $"{supplier.Name} · {NotificationText.Money(order.GrandTotal)}, above the {NotificationText.Money(settings.PurchaseApprovalLimit ?? 0)} limit",
+                title,
+                body,
                 $"/purchase-orders/{order.Id}"), cancellationToken);
         }
 
@@ -568,10 +571,16 @@ public sealed class PurchaseOrderService(
         return quantity > 0 ? quantity : reorderLevel;
     }
 
+    /// <summary>The status as a word inside a sentence ("PO/26-27/00042 is closed"); marked so it's translated with it.</summary>
     private static string Describe(PurchaseOrderStatus status) => status switch
     {
-        PurchaseOrderStatus.PendingApproval => "waiting for approval",
-        PurchaseOrderStatus.PartlyReceived => "partly received",
+        PurchaseOrderStatus.Draft => L.Msg("a draft"),
+        PurchaseOrderStatus.PendingApproval => L.Msg("waiting for approval"),
+        PurchaseOrderStatus.Ordered => L.Msg("ordered"),
+        PurchaseOrderStatus.PartlyReceived => L.Msg("partly received"),
+        PurchaseOrderStatus.Received => L.Msg("received"),
+        PurchaseOrderStatus.Closed => L.Msg("closed"),
+        PurchaseOrderStatus.Cancelled => L.Msg("cancelled"),
         _ => status.ToString().ToLowerInvariant(),
     };
 

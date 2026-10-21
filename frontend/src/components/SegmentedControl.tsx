@@ -1,10 +1,12 @@
 import { motion } from 'motion/react'
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 interface SegmentedControlProps<T extends string> {
   value: T
   onValueChange: (value: T) => void
+  /** Text labels are translated here, so options can be defined outside the component with msg(). */
   options: readonly { value: T; label: ReactNode }[]
   /** What the choice is about, for screen readers ("Show", "Kind of credit note"). */
   label: string
@@ -34,7 +36,7 @@ export function SegmentedControl<T extends string>({ value, onValueChange, optio
   return (
     <div
       role="radiogroup"
-      aria-label={label}
+      aria-label={t(label)}
       className={cn('inline-flex flex-wrap items-center gap-0.5 rounded-lg bg-muted p-[3px]', fullWidth && 'flex w-full', className)}
     >
       {options.map((option, index) => {
@@ -63,7 +65,7 @@ export function SegmentedControl<T extends string>({ value, onValueChange, optio
                 transition={{ type: 'spring', stiffness: 500, damping: 38 }}
               />
             )}
-            {option.label}
+            {typeof option.label === 'string' ? t(option.label) : option.label}
           </button>
         )
       })}

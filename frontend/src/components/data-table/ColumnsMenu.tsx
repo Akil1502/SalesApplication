@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { t } from '@/lib/i18n'
 import type { Density } from './table-settings'
 
 interface ColumnsMenuProps {
@@ -29,12 +30,12 @@ export function ColumnsMenu({ columns, hidden, onToggle, density, onDensity, onR
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="bg-card">
           <Columns3 />
-          Columns
-          {hidden.length > 0 && <span className="rounded-full bg-brand px-1.5 text-[10px] text-white">{hidden.length} hidden</span>}
+          {t('Columns')}
+          {hidden.length > 0 && <span className="rounded-full bg-brand px-1.5 text-[10px] text-white">{t('{count} hidden', { count: hidden.length })}</span>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-52">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Show columns</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">{t('Show columns')}</DropdownMenuLabel>
         {columns.map((column, index) => (
           <DropdownMenuCheckboxItem
             key={column.key}
@@ -43,19 +44,19 @@ export function ColumnsMenu({ columns, hidden, onToggle, density, onDensity, onR
             onSelect={(event) => event.preventDefault()}
             onCheckedChange={() => onToggle(column.key)}
           >
-            {column.header || 'Actions'}
+            {column.header ? t(column.header) : t('Actions')}
           </DropdownMenuCheckboxItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Rows</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">{t('Rows')}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={density} onValueChange={(value) => onDensity(value as Density)}>
-          <DropdownMenuRadioItem value="comfortable">Comfortable</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="compact">Compact</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="comfortable">{t('Comfortable')}</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="compact">{t('Compact')}</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onReset}>
           <RotateCcw />
-          Back to the standard layout
+          {t('Back to the standard layout')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

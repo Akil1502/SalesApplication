@@ -88,7 +88,7 @@ public sealed class ProductImageService(AppDbContext db, IProductImageUrls urls,
         var imageType = Check("image", image, MaxImageBytes);
         var thumbnailType = Check("thumbnail", thumbnail, MaxThumbnailBytes);
 
-        var version = await ChangeAsync(productId, hadPhoto => hadPhoto ? ("Earlier photo", "New photo") : (null, "Added"), photo =>
+        var version = await ChangeAsync(productId, hadPhoto => hadPhoto ? (L.Msg("Earlier photo"), L.Msg("New photo")) : (null, L.Msg("Added")), photo =>
         {
             photo.ContentType = imageType;
             photo.ImageData = image;
@@ -99,7 +99,7 @@ public sealed class ProductImageService(AppDbContext db, IProductImageUrls urls,
     }
 
     public Task DeleteAsync(int productId, CancellationToken cancellationToken) =>
-        ChangeAsync(productId, hadPhoto => hadPhoto ? ("Photo", "Removed") : throw new NotFoundException("This product has no photo."), photo =>
+        ChangeAsync(productId, hadPhoto => hadPhoto ? (L.Msg("Photo"), L.Msg("Removed")) : throw new NotFoundException("This product has no photo."), photo =>
         {
             photo.ContentType = null;
             photo.ImageData = null;
@@ -164,5 +164,5 @@ public sealed class ProductImageService(AppDbContext db, IProductImageUrls urls,
 
     /// <summary>A photo change, in the product's own history (the picture itself is never copied into the trail).</summary>
     private static AuditEvent PhotoChanged(int productId, string label, string? before, string after) => new(
-        AuditAction.Updated, "Product", productId.ToString(CultureInfo.InvariantCulture), label, Changes: [new AuditChange("Photo", before, after)]);
+        AuditAction.Updated, L.Msg("Product"), productId.ToString(CultureInfo.InvariantCulture), label, Changes: [new AuditChange(L.Msg("Photo"), before, after)]);
 }

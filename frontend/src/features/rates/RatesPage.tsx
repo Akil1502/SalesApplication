@@ -27,12 +27,13 @@ import { useCategories } from '@/lib/lookups'
 import { cn } from '@/lib/utils'
 import { downloadRateSheet, useDeleteRate, useGridProducts, useImportRates, useRates, useSaveRates, useUpdateRate, type ProductRate } from './api'
 import { applyPercent, monthPeriod, parseRate, type Rounding } from './rate-math'
+import { msg, t, tn } from '@/lib/i18n'
 
 const ALL = 'all'
 const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
 
 function describePeriod(from: string, to: string | null | undefined) {
-  return to ? `${formatBusinessDate(from)} to ${formatBusinessDate(to)}` : `${formatBusinessDate(from)} onwards`
+  return to ? t('{from} to {to}', { from: formatBusinessDate(from), to: formatBusinessDate(to) }) : t('{from} onwards', { from: formatBusinessDate(from) })
 }
 
 /** Set the rates for one period: type them, change all by a percentage, or fill them from an Excel sheet. */
@@ -62,18 +63,18 @@ function NewRatesTab() {
   const shownIds = new Set(shown.map((p) => p.id))
   const hidden = entries.filter(([id]) => !shownIds.has(Number(id))).length
   const periodProblem = !isDate(from)
-    ? 'Choose the first day the rates apply.'
+    ? t('Choose the first day the rates apply.')
     : to && !isDate(to)
-      ? 'Enter the last day as a full date, or leave it empty.'
+      ? t('Enter the last day as a full date, or leave it empty.')
       : to && to < from
-        ? "The last day can't be before the first day."
+        ? t("The last day can't be before the first day.")
         : null
   const canSave = entries.length > 0 && invalid.length === 0 && !periodProblem && !save.isPending
 
   function applyToShown() {
     const value = Number(percent)
     if (!percent.trim() || Number.isNaN(value)) {
-      toast.error('Enter the change as a percentage, like 5 or -2.5.')
+      toast.error(t('Enter the change as a percentage, like 5 or -2.5.'))
       return
     }
     setRates((current) => {
@@ -81,7 +82,7 @@ function NewRatesTab() {
       for (const product of shown) next[product.id] = applyPercent(product.price, value, rounding)
       return next
     })
-    toast.success(`New rates filled in for ${shown.length} products`, { description: 'Review them, then save.' })
+    toast.success(t('New rates filled in for {count} products', { count: shown.length }), { description: t('Review them, then save.') })
   }
 
   async function upload(file: File) {
@@ -93,8 +94,8 @@ function NewRatesTab() {
         return next
       })
       setProblems(result.problems)
-      toast.success(`Read ${result.lines.length} rates from the sheet`, {
-        description: result.problems.length > 0 ? `${result.problems.length} rows were skipped; see the list.` : 'Review them, then save.',
+      toast.success(t('Read {count} rates from the sheet', { count: result.lines.length }), {
+        description: result.problems.length > 0 ? t('{count} rows were skipped; see the list.', { count: result.problems.length }) : t('Review them, then save.'),
       })
     } catch (error) {
       toast.error(errorMessage(error))
@@ -112,8 +113,10 @@ function NewRatesTab() {
         note: note.trim() || null,
         lines: entries.map(([id, text]) => ({ productId: Number(id), rate: parseRate(text)! })),
       })
-      toast.success(`Rates saved for ${describePeriod(from, to)}`, {
-        description: [result.created > 0 && `${result.created} new`, result.updated > 0 && `${result.updated} changed`].filter(Boolean).join(', '),
+      toast.success(t('Rates saved for {period}', { period: describePeriod(from, to) }), {
+        description: [result.created > 0 && t('{count} new', { count: result.created }), result.updated > 0 && t('{count} changed', { count: result.updated })]
+          .filter(Boolean)
+          .join(', '),
       })
       setRates({})
       setProblems([])
@@ -126,25 +129,24 @@ function NewRatesTab() {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader>
-          <CardTitle>Period</CardTitle>
+          <CardTitle>{t('Period')}</CardTitle>
           <CardDescription>
-            Orders dated in this period use these rates. Leave the last day empty for rates that run until a later period
-            replaces them.
+            {t('Orders dated in this period use these rates. Leave the last day empty for rates that run until a later period replaces them.')}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rate-from">First day</Label>
+            <Label htmlFor="rate-from">{t('First day')}</Label>
             <Input id="rate-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-44" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="rate-to">Last day</Label>
+            <Label htmlFor="rate-to">{t('Last day')}</Label>
             <Input id="rate-to" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className="w-44" />
           </div>
           <div className="flex gap-2">
             {[
-              { label: 'This month', period: monthPeriod(today) },
-              { label: 'Next month', period: nextMonth },
+              { label: t('This month'), period: monthPeriod(today) },
+              { label: t('Next month'), period: nextMonth },
             ].map(({ label, period }) => (
               <Button
                 key={label}
@@ -161,21 +163,21 @@ function NewRatesTab() {
             ))}
           </div>
           <div className="flex min-w-60 flex-1 flex-col gap-1.5">
-            <Label htmlFor="rate-note">Note</Label>
-            <Input id="rate-note" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder="Optional, e.g. Cotton price rise" />
+            <Label htmlFor="rate-note">{t('Note')}</Label>
+            <Input id="rate-note" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder={t('Optional, e.g. Cotton price rise')} />
           </div>
           {periodProblem && <p className="w-full text-sm text-destructive">{periodProblem}</p>}
         </CardContent>
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput value={q} onChange={setQ} placeholder="Search SKU or name" />
+        <SearchInput value={q} onChange={setQ} placeholder={t('Search SKU or name')} />
         <Select value={categoryId?.toString() ?? ALL} onValueChange={(value) => setCategoryId(value === ALL ? undefined : Number(value))}>
-          <SelectTrigger className="w-52" aria-label="Filter by category">
+          <SelectTrigger className="w-52" aria-label={t('Filter by category')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All categories</SelectItem>
+            <SelectItem value={ALL}>{t('All categories')}</SelectItem>
             {categories.data?.map((c) => (
               <SelectItem key={c.id} value={c.id.toString()}>
                 {c.name}
@@ -185,7 +187,7 @@ function NewRatesTab() {
         </Select>
         <div className="flex items-center gap-2">
           <Input
-            aria-label="Percentage change"
+            aria-label={t('Percentage change')}
             inputMode="decimal"
             value={percent}
             onChange={(e) => setPercent(e.target.value)}
@@ -193,17 +195,17 @@ function NewRatesTab() {
             className="w-20"
           />
           <Select value={rounding} onValueChange={(value) => setRounding(value as Rounding)}>
-            <SelectTrigger className="w-40" aria-label="Rounding">
+            <SelectTrigger className="w-40" aria-label={t('Rounding')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="rupee">Whole rupees</SelectItem>
-              <SelectItem value="paisa">To the paisa</SelectItem>
+              <SelectItem value="rupee">{t('Whole rupees')}</SelectItem>
+              <SelectItem value="paisa">{t('To the paisa')}</SelectItem>
             </SelectContent>
           </Select>
           <Button type="button" variant="outline" onClick={applyToShown} disabled={shown.length === 0}>
             <Percent />
-            Change all shown
+            {t('Change all shown')}
           </Button>
         </div>
         <div className="ml-auto flex gap-2">
@@ -214,11 +216,11 @@ function NewRatesTab() {
             onClick={() => void downloadRateSheet({ on: from, categoryId, q: q || undefined }).catch((e: unknown) => toast.error(errorMessage(e)))}
           >
             <Download />
-            Download sheet
+            {t('Download sheet')}
           </Button>
           <Button type="button" variant="outline" disabled={importSheet.isPending} onClick={() => fileInput.current?.click()}>
             {importSheet.isPending ? <Spinner /> : <Upload />}
-            Upload sheet
+            {t('Upload sheet')}
           </Button>
           <input
             ref={fileInput}
@@ -236,13 +238,13 @@ function NewRatesTab() {
       {problems.length > 0 && (
         <Alert>
           <TriangleAlert />
-          <AlertTitle>Some rows of the sheet were skipped</AlertTitle>
+          <AlertTitle>{t('Some rows of the sheet were skipped')}</AlertTitle>
           <AlertDescription>
             <ul className="list-disc pl-4">
               {problems.slice(0, 20).map((p) => (
                 <li key={p}>{p}</li>
               ))}
-              {problems.length > 20 && <li>and {problems.length - 20} more</li>}
+              {problems.length > 20 && <li>{t('and {count} more', { count: problems.length - 20 })}</li>}
             </ul>
           </AlertDescription>
         </Alert>
@@ -253,11 +255,11 @@ function NewRatesTab() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-36">SKU</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead className="w-20">Unit</TableHead>
-              <TableHead className="w-40 text-right">Price on {isDate(from) ? formatBusinessDate(from) : 'the first day'}</TableHead>
-              <TableHead className="w-36">New rate (₹)</TableHead>
-              <TableHead className="w-24 text-right">Change</TableHead>
+              <TableHead>{t('Product')}</TableHead>
+              <TableHead className="w-20">{t('Unit')}</TableHead>
+              <TableHead className="w-40 text-right">{isDate(from) ? t('Price on {date}', { date: formatBusinessDate(from) }) : t('Price on the first day')}</TableHead>
+              <TableHead className="w-36">{t('New rate (₹)')}</TableHead>
+              <TableHead className="w-24 text-right">{t('Change')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -271,7 +273,7 @@ function NewRatesTab() {
             {!products.isPending && shown.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
-                  No active products match.
+                  {t('No active products match.')}
                 </TableCell>
               </TableRow>
             )}
@@ -288,8 +290,8 @@ function NewRatesTab() {
                   <TableCell className="text-right tabular-nums">
                     <span className="inline-flex items-center gap-1.5">
                       {product.hasRate && (
-                        <Badge variant="outline" title="From a rate list period">
-                          Rate list
+                        <Badge variant="outline" title={t('From a rate list period')}>
+                          {t('Rate list')}
                         </Badge>
                       )}
                       {formatINR(product.price)}
@@ -297,7 +299,7 @@ function NewRatesTab() {
                   </TableCell>
                   <TableCell>
                     <Input
-                      aria-label={`New rate for ${product.name}`}
+                      aria-label={t('New rate for {name}', { name: product.name })}
                       aria-invalid={bad}
                       inputMode="decimal"
                       value={text}
@@ -325,27 +327,30 @@ function NewRatesTab() {
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         <span className="mr-auto text-sm text-muted-foreground">
           {entries.length === 0
-            ? 'Type new rates, change all shown by a percentage, or upload a filled-in sheet.'
-            : `${entries.length} new ${entries.length === 1 ? 'rate' : 'rates'}${hidden > 0 ? ` (${hidden} not shown by the current filter)` : ''}${
-                invalid.length > 0 ? `; ${invalid.length} ${invalid.length === 1 ? "isn't a valid rate" : "aren't valid rates"}` : ''
-              }.`}
+            ? t('Type new rates, change all shown by a percentage, or upload a filled-in sheet.')
+            : [
+                tn(entries.length, '{count} new rate', '{count} new rates'),
+                hidden > 0 ? ` ${t('({count} not shown by the current filter)', { count: hidden })}` : '',
+                invalid.length > 0 ? `; ${tn(invalid.length, "{count} isn't a valid rate", "{count} aren't valid rates")}` : '',
+                '.',
+              ].join('')}
         </span>
         <Button type="button" variant="ghost" disabled={entries.length === 0} onClick={() => setRates({})}>
           <Eraser />
-          Clear
+          {t('Clear')}
         </Button>
         <Button type="button" disabled={!canSave} onClick={() => setConfirming(true)}>
           {save.isPending ? <Spinner /> : <Save />}
-          Save rates
+          {t('Save rates')}
         </Button>
       </div>
 
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
-        title={`Save ${entries.length} ${entries.length === 1 ? 'rate' : 'rates'}?`}
-        description={`They apply to orders dated ${describePeriod(from, to)}. Orders already saved keep their prices.`}
-        confirmLabel="Save rates"
+        title={tn(entries.length, 'Save {count} rate?', 'Save {count} rates?')}
+        description={t('They apply to orders dated {period}. Orders already saved keep their prices.', { period: describePeriod(from, to) })}
+        confirmLabel={t('Save rates')}
         onConfirm={() => void confirmSave()}
       />
     </div>
@@ -373,7 +378,7 @@ function EditRateForm({ rate, onDone }: { rate: ProductRate; onDone: () => void 
     if (value === null || !isDate(from)) return
     try {
       await update.mutateAsync({ id: rate.id, body: { rate: value, effectiveFrom: from, effectiveTo: to || null, note: note.trim() || null } })
-      toast.success(`Rate for ${rate.productName} updated`)
+      toast.success(t('Rate for {name} updated', { name: rate.productName }))
       onDone()
     } catch (error) {
       toast.error(errorMessage(error))
@@ -391,35 +396,35 @@ function EditRateForm({ rate, onDone }: { rate: ProductRate; onDone: () => void 
       <DialogHeader>
         <DialogTitle>{rate.productName}</DialogTitle>
         <DialogDescription>
-          {rate.sku}. Orders already saved keep their prices; the change applies to orders priced from now on.
+          {t('{sku}. Orders already saved keep their prices; the change applies to orders priced from now on.', { sku: rate.sku })}
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="edit-rate">Rate (₹)</Label>
+          <Label htmlFor="edit-rate">{t('Rate (₹)')}</Label>
           <Input id="edit-rate" inputMode="decimal" value={amount} aria-invalid={value === null} onChange={(e) => setAmount(e.target.value)} autoFocus />
         </div>
         <div />
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="edit-from">First day</Label>
+          <Label htmlFor="edit-from">{t('First day')}</Label>
           <Input id="edit-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="edit-to">Last day</Label>
+          <Label htmlFor="edit-to">{t('Last day')}</Label>
           <Input id="edit-to" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
         </div>
         <div className="flex flex-col gap-1.5 sm:col-span-2">
-          <Label htmlFor="edit-note">Note</Label>
+          <Label htmlFor="edit-note">{t('Note')}</Label>
           <Input id="edit-note" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
         </div>
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={value === null || !isDate(from) || update.isPending}>
           {update.isPending && <Spinner />}
-          Save
+          {t('Save')}
         </Button>
       </DialogFooter>
     </form>
@@ -438,7 +443,7 @@ function HistoryTab({ canEdit }: { canEdit: boolean }) {
   const columns: Column<ProductRate>[] = [
     {
       key: 'product',
-      header: 'Product',
+      header: msg('Product'),
       cell: (r) => (
         <div className="flex flex-col">
           <span className="font-medium">{r.productName}</span>
@@ -446,10 +451,10 @@ function HistoryTab({ canEdit }: { canEdit: boolean }) {
         </div>
       ),
     },
-    { key: 'rate', header: 'Rate', align: 'right', cell: (r) => `${formatINR(r.rate)} / ${r.unit.toLowerCase()}` },
-    { key: 'period', header: 'Period', cell: (r) => describePeriod(r.effectiveFrom, r.effectiveTo) },
-    { key: 'note', header: 'Note', cell: (r) => r.note ?? '—', className: 'whitespace-normal' },
-    { key: 'by', header: 'Set by', cell: (r) => (r.updatedBy ? `${r.updatedBy}, ${formatDate(r.updatedAtUtc)}` : formatDate(r.updatedAtUtc)) },
+    { key: 'rate', header: msg('Rate'), align: 'right', cell: (r) => `${formatINR(r.rate)} / ${r.unit.toLowerCase()}` },
+    { key: 'period', header: msg('Period'), cell: (r) => describePeriod(r.effectiveFrom, r.effectiveTo) },
+    { key: 'note', header: msg('Note'), cell: (r) => r.note ?? '—', className: 'whitespace-normal' },
+    { key: 'by', header: msg('Set by'), cell: (r) => (r.updatedBy ? `${r.updatedBy}, ${formatDate(r.updatedAtUtc)}` : formatDate(r.updatedAtUtc)) },
   ]
   if (canEdit)
     columns.push({
@@ -458,10 +463,10 @@ function HistoryTab({ canEdit }: { canEdit: boolean }) {
       className: 'w-24',
       cell: (r) => (
         <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon-sm" onClick={() => setEditing(r)} aria-label={`Edit the rate for ${r.productName}`}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setEditing(r)} aria-label={t('Edit the rate for {name}', { name: r.productName })}>
             <Pencil />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(r)} aria-label={`Remove the rate for ${r.productName}`}>
+          <Button variant="ghost" size="icon-sm" onClick={() => setDeleting(r)} aria-label={t('Remove the rate for {name}', { name: r.productName })}>
             <Trash2 />
           </Button>
         </div>
@@ -472,7 +477,7 @@ function HistoryTab({ canEdit }: { canEdit: boolean }) {
     if (!deleting) return
     try {
       await remove.mutateAsync(deleting.id)
-      toast.success(`Rate for ${deleting.productName} removed`)
+      toast.success(t('Rate for {name} removed', { name: deleting.productName }))
     } catch (error) {
       toast.error(errorMessage(error))
     } finally {
@@ -483,9 +488,9 @@ function HistoryTab({ canEdit }: { canEdit: boolean }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search SKU or name" />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search SKU or name')} />
         <div className="flex items-center gap-2">
-          <Label htmlFor="active-on">In force on</Label>
+          <Label htmlFor="active-on">{t('In force on')}</Label>
           <Input
             id="active-on"
             type="date"
@@ -501,8 +506,8 @@ function HistoryTab({ canEdit }: { canEdit: boolean }) {
         getRowKey={(r) => r.id}
         isLoading={rates.isPending}
         error={rates.error}
-        emptyTitle="No rates yet"
-        emptyDescription={canEdit ? 'Set a period’s rates on the New rates tab.' : undefined}
+        emptyTitle={t('No rates yet')}
+        emptyDescription={canEdit ? t('Set a period’s rates on the New rates tab.') : undefined}
       />
       {rates.data && (
         <Pagination
@@ -517,13 +522,17 @@ function HistoryTab({ canEdit }: { canEdit: boolean }) {
       <ConfirmDialog
         open={deleting !== null}
         onOpenChange={(open) => !open && setDeleting(null)}
-        title="Remove this rate?"
+        title={t('Remove this rate?')}
         description={
           deleting
-            ? `${deleting.productName}: ${formatINR(deleting.rate)} for ${describePeriod(deleting.effectiveFrom, deleting.effectiveTo)}. Orders in that period will then use the list price. Orders already saved keep their prices.`
+            ? t('{name}: {rate} for {period}. Orders in that period will then use the list price. Orders already saved keep their prices.', {
+                name: deleting.productName,
+                rate: formatINR(deleting.rate),
+                period: describePeriod(deleting.effectiveFrom, deleting.effectiveTo),
+              })
             : ''
         }
-        confirmLabel="Remove"
+        confirmLabel={t('Remove')}
         destructive
         onConfirm={() => void confirmDelete()}
       />
@@ -540,13 +549,13 @@ export function RatesPage() {
   return (
     <>
       <PageHeader
-        title="Rate updates"
-        description="Set each product's rate for a period, such as a month. An order uses the rate for its order date; outside every period it uses the product's list price. Orders already saved keep their prices."
+        title={t('Rate updates')}
+        description={t("Set each product's rate for a period, such as a month. An order uses the rate for its order date; outside every period it uses the product's list price. Orders already saved keep their prices.")}
       />
       <Tabs value={tab} onValueChange={(next) => setSearchParams(next === 'history' ? { tab: next } : {})}>
         <TabsList>
-          {canEdit && <TabsTrigger value="new">New rates</TabsTrigger>}
-          <TabsTrigger value="history">Rate history</TabsTrigger>
+          {canEdit && <TabsTrigger value="new">{t('New rates')}</TabsTrigger>}
+          <TabsTrigger value="history">{t('Rate history')}</TabsTrigger>
         </TabsList>
         {canEdit && (
           <TabsContent value="new" className="pt-2">

@@ -9,9 +9,13 @@ import { cn } from '@/lib/utils'
 
 const deltaFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1, signDisplay: 'exceptZero', style: 'percent' })
 
-/** Signed change with an arrow, so direction never relies on colour alone. Up is good for every tile that uses it. */
-function Delta({ value, comparison }: { value: number | null; comparison: string }) {
-  if (value === null) return <p className="text-xs text-muted-foreground">No sales {comparison} to compare</p>
+/**
+ * Signed change with an arrow, so direction never relies on colour alone. Up is good for every tile that uses it.
+ * versus ("vs same days last month") and none ("No sales same days last month to compare") are whole, translated
+ * phrases.
+ */
+function Delta({ value, versus, none }: { value: number | null; versus: string; none: string }) {
+  if (value === null) return <p className="text-xs text-muted-foreground">{none}</p>
   const up = value >= 0
   const Icon = up ? ArrowUpRight : ArrowDownRight
   return (
@@ -20,7 +24,7 @@ function Delta({ value, comparison }: { value: number | null; comparison: string
         <Icon className="size-3.5" aria-hidden />
         {deltaFormatter.format(value)}
       </span>
-      <span className="text-muted-foreground">vs {comparison}</span>
+      <span className="text-muted-foreground">{versus}</span>
     </p>
   )
 }
@@ -32,7 +36,7 @@ interface StatTileProps {
   /** The number behind the value, to count up to; the value is shown as is when left out. */
   count?: { value: number; format: (value: number) => string }
   isLoading: boolean
-  delta?: { value: number | null; comparison: string }
+  delta?: { value: number | null; versus: string; none: string }
   hint?: ReactNode
   /** Where the tile leads for detail. */
   to?: string

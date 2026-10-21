@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { formatBusinessDate, formatDate, formatINR, formatQuantity } from '@/lib/format'
+import { msg, t, tc } from '@/lib/i18n'
 import { useCategories } from '@/lib/lookups'
 import {
   movementTypeLabels,
@@ -42,11 +43,11 @@ type Tab = 'levels' | 'movements' | 'receipts'
 function SummaryCards() {
   const summary = useStockSummary()
   const cards = [
-    { label: 'Active products', value: summary.data?.activeProducts.toLocaleString('en-IN'), icon: Boxes },
-    { label: 'Low stock', value: summary.data?.lowStock.toLocaleString('en-IN'), icon: TriangleAlert, hint: 'At or below reorder level' },
-    { label: 'Out of stock', value: summary.data?.outOfStock.toLocaleString('en-IN'), icon: TriangleAlert },
+    { label: t('Active products'), value: summary.data?.activeProducts.toLocaleString('en-IN'), icon: Boxes },
+    { label: t('Low stock'), value: summary.data?.lowStock.toLocaleString('en-IN'), icon: TriangleAlert, hint: t('At or below reorder level') },
+    { label: t('Out of stock'), value: summary.data?.outOfStock.toLocaleString('en-IN'), icon: TriangleAlert },
     ...(summary.data?.totalStockValue != null
-      ? [{ label: 'Stock value at cost', value: formatINR(summary.data.totalStockValue, 0), icon: Wallet, hint: 'Products with a cost price' }]
+      ? [{ label: t('Stock value at cost'), value: formatINR(summary.data.totalStockValue, 0), icon: Wallet, hint: t('Products with a cost price') }]
       : []),
   ]
 
@@ -78,10 +79,10 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
   const levels = useStockLevels({ q: params.q || undefined, page: params.page, pageSize: params.pageSize, sort: params.sort, status, categoryId })
 
   const columns: Column<StockLevel>[] = [
-    { key: 'sku', header: 'SKU', sortKey: 'sku', cell: (s) => <span className="font-mono text-xs">{s.sku}</span>, className: 'w-36' },
+    { key: 'sku', header: msg('SKU'), sortKey: 'sku', cell: (s) => <span className="font-mono text-xs">{s.sku}</span>, className: 'w-36' },
     {
       key: 'name',
-      header: 'Product',
+      header: msg('Product'),
       sortKey: 'name',
       cell: (s) => (
         <span className="flex items-center gap-3">
@@ -90,12 +91,12 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
         </span>
       ),
     },
-    { key: 'category', header: 'Category', cell: (s) => s.categoryName },
-    { key: 'onHand', header: 'On hand', sortKey: 'quantityOnHand', align: 'right', cell: (s) => formatQuantity(s.quantityOnHand, s.unit) },
-    { key: 'reorder', header: 'Reorder at', align: 'right', cell: (s) => formatQuantity(s.reorderLevel, s.unit) },
-    { key: 'status', header: 'Status', cell: (s) => <StockStatusBadge status={s.status} /> },
-    { key: 'last', header: 'Last movement', sortKey: 'lastMovement', cell: (s) => formatDate(s.lastMovementAtUtc) },
-    ...(showCost ? [{ key: 'value', header: 'Value at cost', align: 'right' as const, cell: (s: StockLevel) => formatINR(s.stockValue, 0) }] : []),
+    { key: 'category', header: msg('Category'), cell: (s) => s.categoryName },
+    { key: 'onHand', header: msg('On hand'), sortKey: 'quantityOnHand', align: 'right', cell: (s) => formatQuantity(s.quantityOnHand, s.unit) },
+    { key: 'reorder', header: msg('Reorder at'), align: 'right', cell: (s) => formatQuantity(s.reorderLevel, s.unit) },
+    { key: 'status', header: msg('Status'), cell: (s) => <StockStatusBadge status={s.status} /> },
+    { key: 'last', header: msg('Last movement'), sortKey: 'lastMovement', cell: (s) => formatDate(s.lastMovementAtUtc) },
+    ...(showCost ? [{ key: 'value', header: msg('Value at cost'), align: 'right' as const, cell: (s: StockLevel) => formatINR(s.stockValue, 0) }] : []),
     ...(canEdit
       ? [
           {
@@ -111,7 +112,7 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
                   onAdjust({ id: s.productId, sku: s.sku, name: s.name, unit: s.unit, quantityOnHand: s.quantityOnHand, price: 0, gstRate: 0 })
                 }}
               >
-                Adjust
+                {t('Adjust')}
               </Button>
             ),
           },
@@ -122,24 +123,24 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search SKU or product" />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search SKU or product')} />
         <Select value={status ?? ALL} onValueChange={(v) => update({ filters: { status: v === ALL ? undefined : v } })}>
-          <SelectTrigger className="w-44" aria-label="Filter by stock status">
+          <SelectTrigger className="w-44" aria-label={t('Filter by stock status')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All statuses</SelectItem>
-            <SelectItem value="Low">Low (incl. out)</SelectItem>
-            <SelectItem value="OutOfStock">Out of stock</SelectItem>
-            <SelectItem value="InStock">In stock</SelectItem>
+            <SelectItem value={ALL}>{t('All statuses')}</SelectItem>
+            <SelectItem value="Low">{t('Low (incl. out)')}</SelectItem>
+            <SelectItem value="OutOfStock">{t('Out of stock')}</SelectItem>
+            <SelectItem value="InStock">{t('In stock')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={categoryId?.toString() ?? ALL} onValueChange={(v) => update({ filters: { categoryId: v === ALL ? undefined : v } })}>
-          <SelectTrigger className="w-52" aria-label="Filter by category">
+          <SelectTrigger className="w-52" aria-label={t('Filter by category')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All categories</SelectItem>
+            <SelectItem value={ALL}>{t('All categories')}</SelectItem>
             {categories.data?.map((c) => (
               <SelectItem key={c.id} value={c.id.toString()}>
                 {c.name}
@@ -159,7 +160,7 @@ function LevelsTab({ canEdit, showCost, onAdjust }: { canEdit: boolean; showCost
         sort={params.sort}
         onSortChange={(sort) => update({ sort })}
         onRowClick={(s) => navigate(`/stock?tab=movements&productId=${s.productId}&product=${encodeURIComponent(`${s.sku} · ${s.name}`)}`)}
-        emptyTitle={status ? 'Nothing matches this filter' : 'No products yet'}
+        emptyTitle={status ? t('Nothing matches this filter') : t('No products yet')}
       />
       {levels.data && (
         <Pagination
@@ -184,10 +185,10 @@ function MovementsTab() {
   const movements = useStockMovements({ q: params.q || undefined, page: params.page, pageSize: params.pageSize, productId, type, from, to })
 
   const columns: Column<StockMovement>[] = [
-    { key: 'date', header: 'Date', cell: (m) => formatBusinessDate(m.movementDate), className: 'w-28' },
+    { key: 'date', header: msg('Date'), cell: (m) => formatBusinessDate(m.movementDate), className: 'w-28' },
     {
       key: 'product',
-      header: 'Product',
+      header: msg('Product'),
       cell: (m) => (
         <div className="flex items-center gap-3">
           <ProductThumb productId={m.productId} name={m.productName} />
@@ -198,12 +199,12 @@ function MovementsTab() {
         </div>
       ),
     },
-    { key: 'type', header: 'Type', cell: (m) => <MovementTypeBadge type={m.type} /> },
-    { key: 'qty', header: 'Quantity', align: 'right', cell: (m) => <SignedQuantity quantity={m.quantity} unit={m.unit} /> },
-    { key: 'balance', header: 'Balance', align: 'right', cell: (m) => formatQuantity(m.balanceAfter, m.unit) },
+    { key: 'type', header: msg('Type'), cell: (m) => <MovementTypeBadge type={m.type} /> },
+    { key: 'qty', header: msg('Quantity'), align: 'right', cell: (m) => <SignedQuantity quantity={m.quantity} unit={m.unit} /> },
+    { key: 'balance', header: tc('stock', 'Balance'), align: 'right', cell: (m) => formatQuantity(m.balanceAfter, m.unit) },
     {
       key: 'ref',
-      header: 'Reference',
+      header: msg('Reference'),
       cell: (m) =>
         m.referenceId && m.referenceType && referencePaths[m.referenceType] ? (
           <Link
@@ -217,8 +218,8 @@ function MovementsTab() {
           <span className="text-muted-foreground">{reasonLabel(m.reason) || m.referenceNumber || '—'}</span>
         ),
     },
-    { key: 'notes', header: 'Notes', cell: (m) => <span className="line-clamp-2 text-muted-foreground">{m.notes ?? ''}</span> },
-    { key: 'by', header: 'By', cell: (m) => m.createdByName },
+    { key: 'notes', header: msg('Notes'), cell: (m) => <span className="line-clamp-2 text-muted-foreground">{m.notes ?? ''}</span> },
+    { key: 'by', header: msg('By'), cell: (m) => m.createdByName },
   ]
 
   return (
@@ -226,32 +227,32 @@ function MovementsTab() {
       <div className="flex flex-wrap items-end gap-3">
         {productId ? (
           <Button variant="secondary" size="sm" onClick={() => update({ filters: { productId: undefined, product: undefined } })}>
-            {params.filters.product ?? `Product ${productId}`}
+            {params.filters.product ?? t('Product {id}', { id: productId })}
             <X />
           </Button>
         ) : (
-          <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search product or reference" />
+          <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search product or reference')} />
         )}
         <Select value={type ?? ALL} onValueChange={(v) => update({ filters: { type: v === ALL ? undefined : v } })}>
-          <SelectTrigger className="w-44" aria-label="Filter by movement type">
+          <SelectTrigger className="w-44" aria-label={t('Filter by movement type')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All types</SelectItem>
+            <SelectItem value={ALL}>{t('All types')}</SelectItem>
             {Object.entries(movementTypeLabels).map(([value, label]) => (
               <SelectItem key={value} value={value}>
-                {label}
+                {t(label)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2">
           <Label htmlFor="from" className="text-muted-foreground">
-            From
+            {t('From')}
           </Label>
           <Input id="from" type="date" className="w-40" value={from ?? ''} onChange={(e) => update({ filters: { from: e.target.value || undefined } })} />
           <Label htmlFor="to" className="text-muted-foreground">
-            to
+            {t('to')}
           </Label>
           <Input id="to" type="date" className="w-40" value={to ?? ''} onChange={(e) => update({ filters: { to: e.target.value || undefined } })} />
         </div>
@@ -264,8 +265,8 @@ function MovementsTab() {
         getRowKey={(m) => m.id}
         isLoading={movements.isPending}
         error={movements.error}
-        emptyTitle="No stock movements"
-        emptyDescription="Receipts and adjustments appear here, and sales once invoicing goes live."
+        emptyTitle={t('No stock movements')}
+        emptyDescription={t('Receipts and adjustments appear here, and sales once invoicing goes live.')}
       />
       {movements.data && (
         <Pagination
@@ -286,19 +287,19 @@ function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolea
   const receipts = useStockReceipts({ q: params.q || undefined, page: params.page, pageSize: params.pageSize })
 
   const columns: Column<StockReceiptListItem>[] = [
-    { key: 'number', header: 'GRN', cell: (r) => <span className="font-mono text-xs">{r.number}</span>, className: 'w-28' },
-    { key: 'date', header: 'Date', cell: (r) => formatBusinessDate(r.receiptDate) },
-    { key: 'order', header: 'Purchase order', cell: (r) => (r.purchaseOrderNumber ? <span className="font-mono text-xs">{r.purchaseOrderNumber}</span> : '—') },
-    { key: 'supplier', header: 'Supplier', cell: (r) => r.supplierName ?? '—' },
-    { key: 'ref', header: 'Their ref', cell: (r) => r.supplierReference ?? '—' },
-    { key: 'lines', header: 'Lines', align: 'right', cell: (r) => r.lineCount },
-    ...(showCost ? [{ key: 'cost', header: 'Total cost', align: 'right' as const, cell: (r: StockReceiptListItem) => formatINR(r.totalCost) }] : []),
-    { key: 'by', header: 'Received by', cell: (r) => r.createdByName },
+    { key: 'number', header: msg('GRN'), cell: (r) => <span className="font-mono text-xs">{r.number}</span>, className: 'w-28' },
+    { key: 'date', header: msg('Date'), cell: (r) => formatBusinessDate(r.receiptDate) },
+    { key: 'order', header: msg('Purchase order'), cell: (r) => (r.purchaseOrderNumber ? <span className="font-mono text-xs">{r.purchaseOrderNumber}</span> : '—') },
+    { key: 'supplier', header: msg('Supplier'), cell: (r) => r.supplierName ?? '—' },
+    { key: 'ref', header: msg('Their ref'), cell: (r) => r.supplierReference ?? '—' },
+    { key: 'lines', header: msg('Lines'), align: 'right', cell: (r) => r.lineCount },
+    ...(showCost ? [{ key: 'cost', header: msg('Total cost'), align: 'right' as const, cell: (r: StockReceiptListItem) => formatINR(r.totalCost) }] : []),
+    { key: 'by', header: msg('Received by'), cell: (r) => r.createdByName },
   ]
 
   return (
     <>
-      <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search GRN, order no., supplier or their ref" />
+      <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search GRN, order no., supplier or their ref')} />
       <DataTable
         settingsKey="stock-receipts"
         columns={columns}
@@ -307,8 +308,8 @@ function ReceiptsTab({ canEdit, showCost }: { canEdit: boolean; showCost: boolea
         isLoading={receipts.isPending}
         error={receipts.error}
         onRowClick={(r) => navigate(`/stock/receipts/${r.id}`)}
-        emptyTitle="No goods receipts yet"
-        emptyDescription={canEdit ? 'Goods are received against purchase orders: open the order and choose "Receive goods".' : undefined}
+        emptyTitle={t('No goods receipts yet')}
+        emptyDescription={canEdit ? t('Goods are received against purchase orders: open the order and choose "Receive goods".') : undefined}
       />
       {receipts.data && (
         <Pagination
@@ -343,27 +344,27 @@ export function StockPage() {
   return (
     <>
       <PageHeader
-        title="Stock"
-        description="Every change is recorded in the stock ledger, so on-hand figures can always be explained."
+        title={t('Stock')}
+        description={t('Every change is recorded in the stock ledger, so on-hand figures can always be explained.')}
         actions={
           <>
             {canEdit && (
               <Button variant="outline" onClick={() => setAdjusting({ open: true, product: null })}>
                 <SlidersHorizontal />
-                Adjust stock
+                {t('Adjust stock')}
               </Button>
             )}
             {can(Permissions.PurchaseOrdersEdit) && (
               <Button variant="outline" onClick={() => setReorderOpen(true)}>
                 <PackageSearch />
-                Reorder low stock
+                {t('Reorder low stock')}
               </Button>
             )}
             {canEdit && can(Permissions.PurchaseOrdersView) && (
               <Button asChild>
                 <Link to="/purchase-orders?view=open">
                   <PackagePlus />
-                  Receive goods
+                  {t('Receive goods')}
                 </Link>
               </Button>
             )}
@@ -376,9 +377,9 @@ export function StockPage() {
       {/* Switching tabs starts that tab with fresh filters. */}
       <Tabs value={tab} onValueChange={(next) => setSearchParams({ tab: next })}>
         <TabsList>
-          <TabsTrigger value="levels">Stock levels</TabsTrigger>
-          <TabsTrigger value="movements">Ledger</TabsTrigger>
-          <TabsTrigger value="receipts">Goods receipts</TabsTrigger>
+          <TabsTrigger value="levels">{t('Stock levels')}</TabsTrigger>
+          <TabsTrigger value="movements">{t('Ledger')}</TabsTrigger>
+          <TabsTrigger value="receipts">{t('Goods receipts')}</TabsTrigger>
         </TabsList>
         <TabsContent value="levels" className="flex flex-col gap-4 pt-2">
           {tab === 'levels' && <LevelsTab canEdit={canEdit} showCost={showCost} onAdjust={(product) => setAdjusting({ open: true, product })} />}

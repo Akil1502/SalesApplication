@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using SalesApp.Core.Contracts.Common;
+using SalesApp.Core.Entities;
 using SalesApp.Core.Validation;
 
 namespace SalesApp.Core.Contracts.Masters;
@@ -44,6 +45,7 @@ public sealed record CustomerDto(
     string? AssignedRepName,
     string? Notes,
     bool IsActive,
+    DocumentLanguage? DocumentLanguage,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
     string RowVersion);
@@ -113,6 +115,9 @@ public sealed record CustomerSaveRequest
     public string? Notes { get; init; }
 
     public bool IsActive { get; init; } = true;
+
+    /// <summary>The language of their documents and reminders; null for the company's default.</summary>
+    public DocumentLanguage? DocumentLanguage { get; init; }
 
     /// <summary>Required when updating; the value from the last GET, for optimistic concurrency.</summary>
     public string? RowVersion { get; init; }

@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatBusinessDate, formatINR } from '@/lib/format'
+import { msg, t, tn } from '@/lib/i18n'
 import { useInvoices, useInvoiceSummary, type InvoiceListItem, type InvoiceStatus } from './api'
 import { InvoiceStatusBadge } from './badges'
 import { ReminderDialog } from './ReminderDialog'
@@ -17,32 +18,32 @@ import { ReminderDialog } from './ReminderDialog'
 const ALL = 'all'
 const OVERDUE = 'overdue'
 const tabs = [
-  { value: ALL, label: 'All' },
-  { value: OVERDUE, label: 'Overdue' },
-  { value: 'Unpaid', label: 'Unpaid' },
-  { value: 'PartiallyPaid', label: 'Part paid' },
-  { value: 'Paid', label: 'Paid' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: ALL, label: msg('All') },
+  { value: OVERDUE, label: msg('Overdue') },
+  { value: 'Unpaid', label: msg('Unpaid') },
+  { value: 'PartiallyPaid', label: msg('Part paid') },
+  { value: 'Paid', label: msg('Paid') },
+  { value: 'Cancelled', label: msg('Cancelled') },
 ]
 
 const columns: Column<InvoiceListItem>[] = [
-  { key: 'number', header: 'Invoice', cell: (i) => <span className="font-mono text-xs">{i.number}</span>, className: 'w-36' },
-  { key: 'date', header: 'Date', cell: (i) => formatBusinessDate(i.invoiceDate), className: 'w-28' },
-  { key: 'customer', header: 'Customer', cell: (i) => <span className="font-medium">{i.customerName}</span> },
-  { key: 'total', header: 'Total', align: 'right', cell: (i) => formatINR(i.grandTotal) },
-  { key: 'balance', header: 'Balance due', align: 'right', cell: (i) => (i.balance > 0 ? formatINR(i.balance) : '—') },
-  { key: 'due', header: 'Due', cell: (i) => formatBusinessDate(i.dueDate), className: 'w-28' },
-  { key: 'status', header: 'Status', cell: (i) => <InvoiceStatusBadge status={i.status} daysOverdue={i.daysOverdue} settledByCredit={i.amountPaid === 0 && i.amountCredited > 0} /> },
+  { key: 'number', header: msg('Invoice'), cell: (i) => <span className="font-mono text-xs">{i.number}</span>, className: 'w-36' },
+  { key: 'date', header: msg('Date'), cell: (i) => formatBusinessDate(i.invoiceDate), className: 'w-28' },
+  { key: 'customer', header: msg('Customer'), cell: (i) => <span className="font-medium">{i.customerName}</span> },
+  { key: 'total', header: msg('Total'), align: 'right', cell: (i) => formatINR(i.grandTotal) },
+  { key: 'balance', header: msg('Balance due'), align: 'right', cell: (i) => (i.balance > 0 ? formatINR(i.balance) : '—') },
+  { key: 'due', header: msg('Due'), cell: (i) => formatBusinessDate(i.dueDate), className: 'w-28' },
+  { key: 'status', header: msg('Status'), cell: (i) => <InvoiceStatusBadge status={i.status} daysOverdue={i.daysOverdue} settledByCredit={i.amountPaid === 0 && i.amountCredited > 0} /> },
 ]
 
 function SummaryCards() {
   const summary = useInvoiceSummary()
   const s = summary.data
   const cards = [
-    { label: 'Outstanding', value: s && formatINR(s.outstandingAmount, 0), hint: s && `${s.outstandingCount} open invoice${s.outstandingCount === 1 ? '' : 's'}` },
-    { label: 'Overdue', value: s && formatINR(s.overdueAmount, 0), hint: s && `${s.overdueCount} past due date` },
-    { label: 'Invoiced this month', value: s && formatINR(s.invoicedThisMonth, 0) },
-    { label: 'Collected this month', value: s && formatINR(s.collectedThisMonth, 0) },
+    { label: t('Outstanding'), value: s && formatINR(s.outstandingAmount, 0), hint: s && tn(s.outstandingCount, '{count} open invoice', '{count} open invoices') },
+    { label: t('Overdue'), value: s && formatINR(s.overdueAmount, 0), hint: s && t('{count} past due date', { count: s.overdueCount }) },
+    { label: t('Invoiced this month'), value: s && formatINR(s.invoicedThisMonth, 0) },
+    { label: t('Collected this month'), value: s && formatINR(s.collectedThisMonth, 0) },
   ]
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -65,17 +66,17 @@ export function InvoicesPage() {
   const [reminding, setReminding] = useState<InvoiceListItem[] | null>(null)
   const bulkActions: BulkAction<InvoiceListItem>[] = [
     {
-      label: 'Print together',
+      label: t('Print together'),
       icon: Printer,
       // A new tab, like each invoice's own Print button.
       run: (rows) => window.open(`/invoices/print?ids=${rows.map((r) => r.id).join(',')}`, '_blank'),
-      unavailable: (rows) => (rows.length > 50 ? 'Print at most 50 invoices at a time' : undefined),
+      unavailable: (rows) => (rows.length > 50 ? t('Print at most 50 invoices at a time') : undefined),
     },
     {
-      label: 'Payment reminders',
+      label: t('Payment reminders'),
       icon: MessageSquareText,
       run: (rows) => setReminding(rows),
-      unavailable: (rows) => (rows.some((r) => r.balance > 0 && r.status !== 'Cancelled') ? undefined : 'None of these has anything due'),
+      unavailable: (rows) => (rows.some((r) => r.balance > 0 && r.status !== 'Cancelled') ? undefined : t('None of these has anything due')),
     },
   ]
   const navigate = useNavigate()
@@ -87,12 +88,12 @@ export function InvoicesPage() {
 
   return (
     <>
-      <PageHeader title="Invoices" description="Issued from confirmed orders. Open one to record payments or print it." />
+      <PageHeader title={t('Invoices')} description={t('Issued from confirmed orders. Open one to record payments or print it.')} />
       <SummaryCards />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SegmentedControl label="Show" value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search invoice no., customer or GSTIN" />
+        <SegmentedControl label={t('Show')} value={tab} onValueChange={(v) => update({ filters: { view: v === ALL ? undefined : v } })} options={tabs} />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search invoice no., customer or GSTIN')} />
       </div>
 
       <DataTable
@@ -104,8 +105,8 @@ export function InvoicesPage() {
         isLoading={invoices.isPending}
         error={invoices.error}
         onRowClick={(i) => navigate(`/invoices/${i.id}`)}
-        emptyTitle={tab === OVERDUE ? 'Nothing overdue' : 'No invoices'}
-        emptyDescription={tab === ALL && !params.q ? 'Invoices are issued from confirmed orders.' : undefined}
+        emptyTitle={tab === OVERDUE ? t('Nothing overdue') : t('No invoices')}
+        emptyDescription={tab === ALL && !params.q ? t('Invoices are issued from confirmed orders.') : undefined}
       />
       {invoices.data && (
         <Pagination

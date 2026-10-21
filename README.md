@@ -271,11 +271,22 @@ own logo and colour.
     seconds, and straight away when you come back to the tab). The gear in the bell switches kinds off, and turns on
     **Windows notifications** for those important ones while the browser is in the background (on that computer).
   - A **Notifications** card can be added to the dashboard. Notifications are kept for 90 days.
+- **English or தமிழ்.** Each person picks the app's language in the account menu (**Language** / மொழி), or on the
+  sign-in page before signing in; it's saved with their other settings. Everything switches: screens, messages from
+  the server, notifications, reports and their Excel files, the audit trail, and the AI (the assistant and Ask your
+  data answer in Tamil, and the nightly insights are written in both languages). Dates name the month in Tamil; amounts
+  keep digits 0–9 and Indian grouping. GST, GSTIN, HSN and similar terms stay in English letters.
+  - **Printed documents follow the customer, not the screen.** Each customer and supplier has a **Language for
+    documents**: English, Tamil, or English and Tamil (each label in English with the Tamil under it), or the
+    company's default from Company settings. Invoices, quotations, credit notes, debit notes and purchase orders print
+    in it, Tamil ones with the amount in Tamil words, and payment reminders are written in it. The print screen can
+    switch a one-off copy.
+  - The Tamil is reviewed by a Tamil speaker with an Excel sheet (see [docs/TRANSLATION.md](docs/TRANSLATION.md)).
 - **A guided tour** the first time you open the dashboard: about a minute, pointing at the menu, search, dashboard
   and account menu, with steps that match your role (smart order entry, approvals), your layout and your screen.
   **Take the tour** in the account menu runs it again. The arrow keys step through it and Esc leaves.
 - **Your settings follow you.** Layout, light/dark, motion, list columns and spacing, saved views, favourites,
-  recently viewed records, your dashboard and whether you've seen the tour are saved on the server against your user (`api/me/settings`), so they're the same on any
+  recently viewed records, your dashboard, your language and whether you've seen the tour are saved on the server against your user (`api/me/settings`), so they're the same on any
   computer you sign in from. Nobody else can see them. A copy in the browser keeps the first screen right while the
   server answers.
 - **Search everything: Ctrl+K** (⌘K on a Mac), or the search box in the top bar. Jump to any page, start a new order,
@@ -392,6 +403,7 @@ environment variables (for example `Jwt__SigningKey`).
 | `Seed:DemoUserPassword` | `appsettings.Development.json` (dev only) | Password for the demo team created by `--seed-demo` |
 | `Anthropic:ApiKey` | user-secrets / `Anthropic__ApiKey` env | Turns on the AI features. Without it the app works normally and hides them. |
 | `Ai:*` | `appsettings.json` | Model and effort per feature, daily budget per user, requests per minute, price list. See [AI features](#ai-features). |
+| Language | Account menu (each person); Company settings (documents) | No configuration: each request's `Accept-Language` picks English or Tamil. The company's default language for printed documents is in Company settings. |
 | `Notifications:DailyEnabled`, `Notifications:DailyAt` | `appsettings.json` (optional) | The morning overdue summary (and clearing out notifications older than 90 days): on by default, after `09:00` India time. |
 | `Security:PublicRequestsPerMinute` | `appsettings.json` (optional) | Requests per minute per address to the few things open before sign-in (the company's name and logo). Default 120. |
 
@@ -598,7 +610,7 @@ execution policy blocks scripts. Run the setup once with
 ```
 backend/
   src/SalesApp.Api/              Controllers, auth, error handling, OpenAPI
-  src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET)
+  src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET); Localization/: the server's Tamil
   src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data, insight metrics, notifications
                                  Sql/*.sql: reporting views (rpt, rpt_mgr), the AI read-only users and the assistant's
                                  append-only rule, applied after migrations
@@ -618,8 +630,12 @@ frontend/
   src/features/notifications/    The bell: list, settings, pop-ups and Windows notifications
   src/components/three/          The 3D scenes (loaded on demand)
   src/lib/api/                   Typed API client generated from OpenAPI
+  src/lib/i18n/, src/locales/    English and Tamil: t(), msg(), the language switch, and the Tamil texts (ta.json)
+  src/features/sales/print/      Printed documents and their language (English, Tamil or both)
 scripts/setup-dev.ps1            One-time developer setup
+scripts/translations.cs          The Tamil review sheet: export to Excel, import the reviewer's corrections
 docs/DEPLOYMENT-IIS.md           Publishing to IIS
+docs/TRANSLATION.md              How the app is translated, the Tamil style and the glossary
 ```
 
 ## Conventions
@@ -627,6 +643,8 @@ docs/DEPLOYMENT-IIS.md           Publishing to IIS
 - **One error shape** for every API failure: `{ message, traceId, errors? }`. `errors` is keyed by camelCase field name, so forms can show messages next to the right input.
 - **UTC timestamps** everywhere (`*Utc` columns, `TimeProvider` for testability), sent to the browser with a `Z` so it
   shows them in the viewer's own time zone.
+- **English text is the translation key**, in the web app (`t('Save')`) and on the server (`L.T(...)` where text leaves
+  it). Tests fail when something shown isn't marked or has no Tamil; see [docs/TRANSLATION.md](docs/TRANSLATION.md).
 - **`CancellationToken`** passed through every async layer.
 - **Money is `decimal(18,2)`**; quantities are `decimal(18,3)` (kg to the gram, metres to the millimetre).
 - **Optimistic concurrency**: editable records carry a `rowVersion`; saving a stale copy returns 409 and the UI offers a reload.

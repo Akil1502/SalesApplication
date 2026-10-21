@@ -59,7 +59,7 @@ public sealed class AssistantDrafts(AppDbContext db, TimeProvider time)
 
         foreach (var amount in DraftChecker.UnknownAmounts(body, DraftChecker.NumbersIn(toolResultsSoFar)))
         {
-            warnings.Add($"{amount} doesn't match any amount the assistant looked up.");
+            warnings.Add(L.Msg($"{amount} doesn't match any amount the assistant looked up."));
         }
 
         warnings = [.. warnings.Take(MaxWarnings)];
@@ -88,7 +88,7 @@ public sealed class AssistantDrafts(AppDbContext db, TimeProvider time)
             recipientOnFile = contact is not null,
             warnings,
         };
-        var label = $"Drafted a {channel} to {recipientName}";
+        var label = kind == AiDraftKind.Email ? L.Msg($"Drafted an email to {recipientName}") : L.Msg($"Drafted a WhatsApp message to {recipientName}");
         return (new ToolOutcome(JsonSerializer.Serialize(result, JsonSerializerOptions.Web), false, label), dto);
     }
 
@@ -147,11 +147,11 @@ public sealed class AssistantDrafts(AppDbContext db, TimeProvider time)
                     .FirstOrDefault();
                 if (owner is null)
                 {
-                    warnings.Add($"{number} isn't an invoice, credit note, order or quotation in SalesApp.");
+                    warnings.Add(L.Msg($"{number} isn't an invoice, credit note, order or quotation in SalesApp."));
                 }
                 else if (owner.Value.CustomerId != customer.Id)
                 {
-                    warnings.Add($"{number} belongs to {owner.Value.CustomerName}, not {customer.Name}.");
+                    warnings.Add(L.Msg($"{number} belongs to {owner.Value.CustomerName}, not {customer.Name}."));
                 }
             }
         }
@@ -190,11 +190,11 @@ public sealed class AssistantDrafts(AppDbContext db, TimeProvider time)
                     .FirstOrDefault();
                 if (owner is null)
                 {
-                    warnings.Add($"{number} isn't a purchase order, bill or supplier return in SalesApp.");
+                    warnings.Add(L.Msg($"{number} isn't a purchase order, bill or supplier return in SalesApp."));
                 }
                 else if (owner.Value.SupplierId != supplier.Id)
                 {
-                    warnings.Add($"{number} belongs to {owner.Value.SupplierName}, not {supplier.Name}.");
+                    warnings.Add(L.Msg($"{number} belongs to {owner.Value.SupplierName}, not {supplier.Name}."));
                 }
             }
         }

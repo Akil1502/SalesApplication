@@ -112,4 +112,31 @@ public sealed class AmountInWordsTests
     {
         Assert.Equal(expected, AmountInWords.Rupees(amount));
     }
+
+    [Theory]
+    [InlineData(0, "ரூபாய் பூஜ்ஜியம் மட்டும்")]
+    [InlineData(1, "ரூபாய் ஒன்று மட்டும்")]
+    [InlineData(15, "ரூபாய் பதினைந்து மட்டும்")]
+    [InlineData(21, "ரூபாய் இருபத்தொன்று மட்டும்")]
+    [InlineData(43, "ரூபாய் நாற்பத்து மூன்று மட்டும்")]
+    [InlineData(99, "ரூபாய் தொண்ணூற்றொன்பது மட்டும்")]
+    [InlineData(100, "ரூபாய் நூறு மட்டும்")]
+    [InlineData(105, "ரூபாய் நூற்று ஐந்து மட்டும்")]
+    [InlineData(950, "ரூபாய் தொள்ளாயிரத்து ஐம்பது மட்டும்")]
+    [InlineData(1000, "ரூபாய் ஆயிரம் மட்டும்")]
+    [InlineData(1474, "ரூபாய் ஆயிரத்து நானூற்று எழுபத்து நான்கு மட்டும்")]
+    [InlineData(2000, "ரூபாய் இரண்டாயிரம் மட்டும்")]
+    [InlineData(11000, "ரூபாய் பதினோராயிரம் மட்டும்")]
+    [InlineData(12450, "ரூபாய் பன்னிரண்டாயிரத்து நானூற்று ஐம்பது மட்டும்")]
+    [InlineData(21500, "ரூபாய் இருபத்தோராயிரத்து ஐந்நூறு மட்டும்")]
+    [InlineData(100000, "ரூபாய் ஒரு லட்சம் மட்டும்")]
+    [InlineData(123456.50, "ரூபாய் ஒரு லட்சத்து இருபத்து மூன்றாயிரத்து நானூற்று ஐம்பத்தாறு மற்றும் ஐம்பது பைசா மட்டும்")]
+    [InlineData(2500000, "ரூபாய் இருபத்தைந்து லட்சம் மட்டும்")]
+    [InlineData(32763100, "ரூபாய் மூன்று கோடியே இருபத்தேழு லட்சத்து அறுபத்து மூன்றாயிரத்து நூறு மட்டும்")]
+    [InlineData(10000000, "ரூபாய் ஒரு கோடி மட்டும்")]
+    [InlineData(0.05, "ரூபாய் பூஜ்ஜியம் மற்றும் ஐந்து பைசா மட்டும்")]
+    public void Tamil_amounts_use_the_indian_numbering_system(decimal amount, string expected)
+    {
+        Assert.Equal(expected, AmountInWords.TamilRupees(amount));
+    }
 }

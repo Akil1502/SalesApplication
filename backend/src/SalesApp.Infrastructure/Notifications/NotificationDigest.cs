@@ -73,11 +73,11 @@ public sealed class NotificationDigest(AppDbContext db, IPermissionService permi
 
             var oldest = await overdue.OrderBy(i => i.DueDate).ThenBy(i => i.Id).Select(i => new { i.Number, i.CustomerName, i.DueDate }).FirstAsync(cancellationToken);
             var late = day.DayNumber - oldest.DueDate.DayNumber;
+            var (title, body) = NotificationText.OverdueSummary(summary.Count, summary.Total, oldest.Number, oldest.CustomerName, late);
             await writer.RaiseAsync(new NotificationEvent(
                 NotificationKind.OverdueSummary,
-                summary.Count == 1 ? "1 invoice is overdue" : string.Create(CultureInfo.InvariantCulture, $"{summary.Count} invoices are overdue"),
-                string.Create(CultureInfo.InvariantCulture,
-                    $"{AuditFormat.Money(summary.Total)} in all. The oldest, {oldest.Number} for {oldest.CustomerName}, is {late} {(late == 1 ? "day" : "days")} late."),
+                title,
+                body,
                 "/invoices?view=overdue",
                 ByCurrentUser: false,
                 RecipientUserId: userId,

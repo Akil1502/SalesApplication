@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { t } from '@/lib/i18n'
 import type { InvoiceStatus, OrderStatus } from './api'
 import { invoiceStatusLabels, orderStatusLabels } from './labels'
 
@@ -22,7 +23,7 @@ const orderTones: Record<OrderStatus, string> = {
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   return (
     <Badge variant="outline" className={orderTones[status]}>
-      {orderStatusLabels[status]}
+      {t(orderStatusLabels[status])}
     </Badge>
   )
 }
@@ -39,11 +40,11 @@ export function InvoiceStatusBadge({ status, daysOverdue, settledByCredit }: { s
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <Badge variant="outline" className={invoiceTones[status]}>
-        {status === 'Paid' && settledByCredit ? 'Credited' : invoiceStatusLabels[status]}
+        {status === 'Paid' && settledByCredit ? t('Credited') : t(invoiceStatusLabels[status])}
       </Badge>
       {daysOverdue != null && (
         <Badge variant="outline" className={tone.red}>
-          {daysOverdue}d overdue
+          {t('{days}d overdue', { days: daysOverdue })}
         </Badge>
       )}
     </span>

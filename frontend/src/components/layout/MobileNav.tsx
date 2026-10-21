@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { NavLink } from 'react-router'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useBrandName } from '@/features/branding/api'
 import { BrandMark } from './BrandMark'
@@ -18,10 +19,10 @@ export function MobileNav({ open, onOpenChange }: { open: boolean; onOpenChange:
           <BrandMark className="size-8" />
           <div className="min-w-0">
             <SheetTitle className="truncate text-sidebar-foreground">{name}</SheetTitle>
-            <SheetDescription className="text-xs text-sidebar-foreground/60">Sales &amp; GST billing</SheetDescription>
+            <SheetDescription className="text-xs text-sidebar-foreground/60">{t('Sales & GST billing')}</SheetDescription>
           </div>
         </div>
-        <nav aria-label="Main menu" className="flex-1 overflow-y-auto p-3">
+        <nav aria-label={t('Main menu')} className="flex-1 overflow-y-auto p-3">
           {groups.map((group, groupIndex) => (
             <div key={group.label} className="mb-3">
               <p className="px-2 pb-1 text-[11px] font-medium tracking-wide text-sidebar-foreground/65 uppercase">{group.label}</p>

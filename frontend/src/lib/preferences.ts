@@ -1,5 +1,7 @@
+import type { Language } from '@/lib/i18n'
+
 /**
- * Display preferences: light or dark, how much motion, and how the menus are laid out. They're remembered per user
+ * Display preferences: light or dark, how much motion, how the menus are laid out, and English or Tamil. They're remembered per user
  * in this browser, plus a copy for the device so the sign-in page (and the first paint, see public/theme-init.js)
  * use the last choice.
  */
@@ -14,6 +16,8 @@ export interface Preferences {
   /** Unset until the user picks one: until then the Windows "reduce animations" setting decides. */
   motion?: MotionLevel
   layout?: LayoutChoice
+  /** Unset means English. */
+  language?: Language
 }
 
 export const DEFAULT_PREFERENCES: Preferences = { theme: 'system' }
@@ -27,6 +31,7 @@ const userKey = (userId: string) => `salesapp.prefs.${userId}`
 const THEMES: readonly ThemeChoice[] = ['light', 'dark', 'system']
 const MOTION_LEVELS: readonly MotionLevel[] = ['full', 'subtle', 'off']
 const LAYOUTS: readonly LayoutChoice[] = ['rail', 'top', 'dock']
+const LANGUAGE_CHOICES: readonly Language[] = ['en', 'ta']
 
 /** Anything unreadable falls back to the defaults, field by field. */
 export function parsePreferences(raw: string | null | undefined): Preferences {
@@ -36,7 +41,8 @@ export function parsePreferences(raw: string | null | undefined): Preferences {
     const theme = THEMES.find((t) => t === value.theme) ?? DEFAULT_PREFERENCES.theme
     const motion = MOTION_LEVELS.find((m) => m === value.motion)
     const layout = LAYOUTS.find((l) => l === value.layout)
-    return { theme, ...(motion && { motion }), ...(layout && { layout }) }
+    const language = LANGUAGE_CHOICES.find((l) => l === value.language)
+    return { theme, ...(motion && { motion }), ...(layout && { layout }), ...(language && { language }) }
   } catch {
     return { ...DEFAULT_PREFERENCES }
   }

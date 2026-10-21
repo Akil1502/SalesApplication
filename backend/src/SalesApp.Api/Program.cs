@@ -12,6 +12,7 @@ using Scalar.AspNetCore;
 using SalesApp.AI;
 using SalesApp.Api.Errors;
 using SalesApp.Api.Json;
+using SalesApp.Api.Localization;
 using SalesApp.Api.OpenApi;
 using SalesApp.Api.Security;
 using SalesApp.Core.Security;
@@ -73,6 +74,7 @@ builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
     options.AddOperationTransformer<CamelCaseQueryParametersTransformer>();
+    options.AddSchemaTransformer<DateTimeSchemaTransformer>();
 });
 
 builder.Services
@@ -151,6 +153,8 @@ builder.Services.AddAuthorizationBuilder()
 // ---- Pipeline ----------------------------------------------------------------
 var app = builder.Build();
 
+// First, so everything after it (error responses included) answers in the request's language.
+app.UseRequestLanguage();
 app.UseExceptionHandler();
 app.UseSecurityHeaders(contentSecurityPolicy: !app.Environment.IsDevelopment());
 

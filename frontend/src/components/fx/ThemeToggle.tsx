@@ -1,6 +1,7 @@
 import { Moon, Sun } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/i18n'
 import { usePreferences } from './preferences-context'
 
 /** Switches between light and dark; the sun and moon spin past each other. */
@@ -14,8 +15,8 @@ export function ThemeToggle() {
       size="icon"
       className="relative overflow-hidden"
       onClick={() => setTheme(dark ? 'light' : 'dark')}
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={dark ? 'Light mode' : 'Dark mode'}
+      aria-label={dark ? t('Switch to light mode') : t('Switch to dark mode')}
+      title={dark ? t('Light mode') : t('Dark mode')}
     >
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span

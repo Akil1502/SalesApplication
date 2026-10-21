@@ -9,6 +9,8 @@ import { AuthProvider } from '@/features/auth/AuthProvider'
 import { BrandingSync } from '@/features/branding/BrandingSync'
 import { ApiRequestError } from '@/lib/api/errors'
 import { connection } from '@/lib/connection'
+import { prepareLanguage } from '@/lib/i18n'
+import { LanguageBoundary } from '@/lib/i18n/LanguageBoundary'
 import { router } from './routes'
 import './index.css'
 
@@ -27,16 +29,21 @@ const queryClient = new QueryClient({
   },
 })
 
+// Tamil users get their texts before the first paint, so the app never flashes up in English.
+await prepareLanguage()
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrandingSync />
       <AuthProvider>
         <PreferencesProvider>
-          <TooltipProvider>
-            <RouterProvider router={router} />
-            <Toaster richColors position="top-right" />
-          </TooltipProvider>
+          <LanguageBoundary>
+            <TooltipProvider>
+              <RouterProvider router={router} />
+              <Toaster richColors position="top-right" />
+            </TooltipProvider>
+          </LanguageBoundary>
         </PreferencesProvider>
       </AuthProvider>
     </QueryClientProvider>

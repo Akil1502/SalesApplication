@@ -305,7 +305,7 @@ internal static class AuditCollector
 
         var old = Summary(mine.Where(l => l.State is EntityState.Deleted or EntityState.Modified).Select(l => Row(l, original: true)));
         var current = Summary(mine.Where(l => l.State is EntityState.Added or EntityState.Modified).Select(l => Row(l, original: false)));
-        return old == current ? null : new AuditChange("Lines", old, current);
+        return old == current ? null : new AuditChange(L.Msg("Lines"), old, current);
     }
 
     private static string? Display(string property, object? value, AuditLookups lookups) =>

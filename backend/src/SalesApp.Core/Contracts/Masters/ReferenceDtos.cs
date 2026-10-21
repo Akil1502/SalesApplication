@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SalesApp.Core.Entities;
 using SalesApp.Core.Validation;
 
 namespace SalesApp.Core.Contracts.Masters;
@@ -61,6 +62,7 @@ public sealed record CompanySettingsDto(
     decimal OverReceiptTolerancePercent,
     decimal BillPriceTolerancePercent,
     string? BrandColour,
+    DocumentLanguage DocumentLanguage,
     string? LogoUrl,
     string RowVersion);
 
@@ -134,6 +136,9 @@ public sealed record CompanySettingsSaveRequest
     /// <summary>The app's colour as #rrggbb; empty keeps the standard indigo.</summary>
     [RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Choose a colour such as #4F46E5.")]
     public string? BrandColour { get; init; }
+
+    /// <summary>Printed documents for customers and suppliers who haven't chosen their own language.</summary>
+    public DocumentLanguage DocumentLanguage { get; init; }
 
     [Required]
     public string RowVersion { get; init; } = string.Empty;

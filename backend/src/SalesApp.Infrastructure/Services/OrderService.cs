@@ -121,8 +121,21 @@ public sealed class OrderService(
             order.InvoiceId, invoiceNumber, lines,
             totals.TaxableValue, totals.CgstAmount, totals.SgstAmount, totals.IgstAmount, totals.RoundOff, totals.GrandTotal,
             AmountInWords.Rupees(totals.GrandTotal),
+            AmountInWords.TamilRupees(totals.GrandTotal),
+            await DocumentLanguages.ForCustomerAsync(db, order.CustomerId, cancellationToken),
             order.CreatedBy!.FullName, order.CreatedAtUtc, order.UpdatedAtUtc, RowVersions.ToToken(order.RowVersion));
     }
+
+    /// <summary>The status as a word inside a sentence ("SO/26-27/00042 is invoiced"); marked so it's translated with it.</summary>
+    internal static string Describe(SalesOrderStatus status) => status switch
+    {
+        SalesOrderStatus.Draft => L.Msg("a draft"),
+        SalesOrderStatus.Quoted => L.Msg("quoted"),
+        SalesOrderStatus.Confirmed => L.Msg("confirmed"),
+        SalesOrderStatus.Invoiced => L.Msg("invoiced"),
+        SalesOrderStatus.Cancelled => L.Msg("cancelled"),
+        _ => status.ToString().ToLowerInvariant(),
+    };
 
     public async Task<OrderDto> CreateAsync(OrderSaveRequest request, CancellationToken cancellationToken)
     {
@@ -145,10 +158,11 @@ public sealed class OrderService(
 
         db.SalesOrders.Add(order);
         await db.SaveChangesAsync(cancellationToken);
+        var (title, body) = NotificationText.OrderCreated(order.Number, customer.Name, order.Lines.Count, order.GrandTotal);
         await notifications.RaiseAsync(new NotificationEvent(
             NotificationKind.OrderCreated,
-            $"New order {order.Number} for {customer.Name}",
-            $"{order.Lines.Count} {(order.Lines.Count == 1 ? "line" : "lines")} · {NotificationText.Money(order.GrandTotal)}",
+            title,
+            body,
             $"/orders/{order.Id}",
             customer.Id), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
@@ -161,7 +175,7 @@ public sealed class OrderService(
         var order = await LoadForChangeAsync(id, request.RowVersion, cancellationToken);
         if (order.Status is not (SalesOrderStatus.Draft or SalesOrderStatus.Quoted))
         {
-            throw new ConflictException($"Order {order.Number} is {order.Status.ToString().ToLowerInvariant()} and can no longer be edited.");
+            throw new ConflictException($"Order {order.Number} is {Describe(order.Status)} and can no longer be edited.");
         }
 
         var customer = await LoadCustomerAsync(request.CustomerId, cancellationToken);
@@ -183,7 +197,7 @@ public sealed class OrderService(
         var order = await LoadForChangeAsync(id, request.RowVersion, cancellationToken);
         if (order.Status != SalesOrderStatus.Draft)
         {
-            throw new ConflictException($"Only draft orders can be marked as quoted; {order.Number} is {order.Status.ToString().ToLowerInvariant()}.");
+            throw new ConflictException($"Only draft orders can be marked as quoted; {order.Number} is {Describe(order.Status)}.");
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -206,7 +220,7 @@ public sealed class OrderService(
         var order = await LoadForChangeAsync(id, request.RowVersion, cancellationToken);
         if (order.Status is not (SalesOrderStatus.Draft or SalesOrderStatus.Quoted))
         {
-            throw new ConflictException($"Only draft or quoted orders can be confirmed; {order.Number} is {order.Status.ToString().ToLowerInvariant()}.");
+            throw new ConflictException($"Only draft or quoted orders can be confirmed; {order.Number} is {Describe(order.Status)}.");
         }
 
         var customer = await LoadCustomerAsync(order.CustomerId, cancellationToken);
@@ -216,10 +230,11 @@ public sealed class OrderService(
         order.Status = SalesOrderStatus.Confirmed;
         order.ConfirmedAtUtc = Now;
         await db.SaveChangesAsync(cancellationToken);
+        var (title, body) = NotificationText.OrderConfirmed(order.Number, customer.Name, order.GrandTotal);
         await notifications.RaiseAsync(new NotificationEvent(
             NotificationKind.OrderConfirmed,
-            $"Order {order.Number} confirmed for {customer.Name}",
-            $"{NotificationText.Money(order.GrandTotal)}, ready to invoice",
+            title,
+            body,
             $"/orders/{order.Id}",
             customer.Id), cancellationToken);
         return await GetAsync(id, cancellationToken);

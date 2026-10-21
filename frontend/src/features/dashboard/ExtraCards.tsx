@@ -15,6 +15,7 @@ import { paymentModeLabel } from '@/features/sales/labels'
 import { RecordPaymentPicker } from '@/features/sales/RecordPaymentPicker'
 import { ReminderDialog } from '@/features/sales/ReminderDialog'
 import { formatBusinessDate, formatINR, formatINRCompact } from '@/lib/format'
+import { t, tn } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 function Rows({ loading, empty, children }: { loading: boolean; empty: string | false; children: ReactNode }) {
@@ -39,16 +40,18 @@ export function ChaseCard() {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Invoices to chase</CardTitle>
-        <CardDescription>{invoices.data ? `${invoices.data.totalCount.toLocaleString('en-IN')} overdue · most overdue first` : 'Most overdue first'}</CardDescription>
+        <CardTitle>{t('Invoices to chase')}</CardTitle>
+        <CardDescription>
+          {invoices.data ? t('{count} overdue · most overdue first', { count: invoices.data.totalCount.toLocaleString('en-IN') }) : t('Most overdue first')}
+        </CardDescription>
         <CardAction>
           <Button variant="ghost" size="sm" disabled={items.length === 0} onClick={() => setReminding(items)}>
-            <BellRing /> Remind all
+            <BellRing /> {t('Remind all')}
           </Button>
         </CardAction>
       </CardHeader>
       <CardContent>
-        <Rows loading={invoices.isPending} empty={items.length === 0 && 'Nothing is overdue.'}>
+        <Rows loading={invoices.isPending} empty={items.length === 0 && t('Nothing is overdue.')}>
           {items.map((invoice) => (
             <li key={invoice.id} className="flex items-center gap-3 py-2 text-sm">
               <Link to={`/invoices/${invoice.id}`} className="min-w-0 flex-1 hover:underline">
@@ -58,10 +61,10 @@ export function ChaseCard() {
               <span className="text-right">
                 <span className="block font-medium tabular-nums">{formatINR(invoice.balance)}</span>
                 <span className={cn('block text-xs', (invoice.daysOverdue ?? 0) > 60 ? 'text-destructive' : 'text-muted-foreground')}>
-                  {invoice.daysOverdue} {invoice.daysOverdue === 1 ? 'day' : 'days'} late
+                  {tn(invoice.daysOverdue ?? 0, '{count} day late', '{count} days late')}
                 </span>
               </span>
-              <Button variant="ghost" size="icon" className="size-8" aria-label={`Payment reminder to ${invoice.customerName}`} title="Payment reminder" onClick={() => setReminding([invoice])}>
+              <Button variant="ghost" size="icon" className="size-8" aria-label={t('Payment reminder to {name}', { name: invoice.customerName })} title={t('Payment reminder')} onClick={() => setReminding([invoice])}>
                 <BellRing />
               </Button>
             </li>
@@ -69,7 +72,7 @@ export function ChaseCard() {
         </Rows>
         {items.length > 0 && (
           <Button asChild variant="link" size="sm" className="mt-2 px-0">
-            <Link to="/invoices?view=overdue">All overdue invoices</Link>
+            <Link to="/invoices?view=overdue">{t('All overdue invoices')}</Link>
           </Button>
         )}
       </CardContent>
@@ -85,16 +88,16 @@ export function RecentPaymentsCard() {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Recent payments</CardTitle>
-        <CardDescription>The latest money received from customers</CardDescription>
+        <CardTitle>{t('Recent payments')}</CardTitle>
+        <CardDescription>{t('The latest money received from customers')}</CardDescription>
         <CardAction>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/payments">All</Link>
+            <Link to="/payments">{t('All')}</Link>
           </Button>
         </CardAction>
       </CardHeader>
       <CardContent>
-        <Rows loading={payments.isPending} empty={items.length === 0 && 'No payments yet.'}>
+        <Rows loading={payments.isPending} empty={items.length === 0 && t('No payments yet.')}>
           {items.map((payment) => (
             <li key={payment.id} className="flex items-center gap-3 py-2 text-sm">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground">
@@ -103,7 +106,7 @@ export function RecentPaymentsCard() {
               <Link to={`/invoices/${payment.invoiceId}`} className="min-w-0 flex-1 hover:underline">
                 <span className="block truncate font-medium">{payment.customerName}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {paymentModeLabel(payment.mode)} · {payment.invoiceNumber}
+                  {t(paymentModeLabel(payment.mode))} · {payment.invoiceNumber}
                 </span>
               </Link>
               <span className="text-right">
@@ -118,7 +121,8 @@ export function RecentPaymentsCard() {
   )
 }
 
-function ActionRow({ icon: Icon, count, label, to, detail, loading }: { icon: typeof Timer; count: number | undefined; label: string; to: string; detail?: string; loading: boolean }) {
+/** text is the whole line with the count in it, from tn(). */
+function ActionRow({ icon: Icon, count, text, to, detail, loading }: { icon: typeof Timer; count: number | undefined; text: string; to: string; detail?: string; loading: boolean }) {
   if (loading) return <Skeleton className="h-12 w-full" />
   return (
     <Link to={to} className="flex items-center gap-3 rounded-lg p-2 text-sm hover:bg-accent">
@@ -126,9 +130,7 @@ function ActionRow({ icon: Icon, count, label, to, detail, loading }: { icon: ty
         <Icon className="size-4" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block font-medium">
-          <span className="tabular-nums">{(count ?? 0).toLocaleString('en-IN')}</span> {label}
-        </span>
+        <span className="block font-medium tabular-nums">{text}</span>
         {detail && <span className="block truncate text-xs text-muted-foreground">{detail}</span>}
       </span>
     </Link>
@@ -140,7 +142,14 @@ const supplierNames = (items: { supplierName: string }[] | undefined) => (items?
 function OrdersAwaitingApproval() {
   const orders = usePurchaseOrders({ status: 'PendingApproval', page: 1, pageSize: 3 })
   return (
-    <ActionRow icon={ShoppingBag} loading={orders.isPending} count={orders.data?.totalCount} label="purchase orders waiting for approval" to="/purchase-orders?view=PendingApproval" detail={supplierNames(orders.data?.items)} />
+    <ActionRow
+      icon={ShoppingBag}
+      loading={orders.isPending}
+      count={orders.data?.totalCount}
+      text={tn(orders.data?.totalCount ?? 0, '{count} purchase order waiting for approval', '{count} purchase orders waiting for approval')}
+      to="/purchase-orders?view=PendingApproval"
+      detail={supplierNames(orders.data?.items)}
+    />
   )
 }
 
@@ -149,14 +158,21 @@ function BillsNeedingAction() {
   const overdue = useSupplierBills({ overdueOnly: true, page: 1, pageSize: 3 })
   return (
     <>
-      <ActionRow icon={FileWarning} loading={onHold.isPending} count={onHold.data?.totalCount} label="bills on hold (don't match the order)" to="/supplier-bills?view=approval" detail={supplierNames(onHold.data?.items)} />
+      <ActionRow
+        icon={FileWarning}
+        loading={onHold.isPending}
+        count={onHold.data?.totalCount}
+        text={tn(onHold.data?.totalCount ?? 0, "{count} bill on hold (doesn't match the order)", "{count} bills on hold (don't match the order)")}
+        to="/supplier-bills?view=approval"
+        detail={supplierNames(onHold.data?.items)}
+      />
       <ActionRow
         icon={Timer}
         loading={overdue.isPending}
         count={overdue.data?.totalCount}
-        label="bills past their due date"
+        text={tn(overdue.data?.totalCount ?? 0, '{count} bill past its due date', '{count} bills past their due date')}
         to="/supplier-bills?view=overdue"
-        detail={overdue.data?.items.length ? `${formatINRCompact(overdue.data.items.reduce((sum, b) => sum + b.balance, 0))} on the oldest three` : undefined}
+        detail={overdue.data?.items.length ? t('{amount} on the oldest three', { amount: formatINRCompact(overdue.data.items.reduce((sum, b) => sum + b.balance, 0)) }) : undefined}
       />
     </>
   )
@@ -168,8 +184,8 @@ export function PurchasesCard() {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Purchases needing action</CardTitle>
-        <CardDescription>What's waiting on someone</CardDescription>
+        <CardTitle>{t('Purchases needing action')}</CardTitle>
+        <CardDescription>{t("What's waiting on someone")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-1">
         {can(Permissions.PurchaseOrdersView) && <OrdersAwaitingApproval />}
@@ -188,22 +204,22 @@ export function QuickActionsCard() {
   const actions = [
     can(Permissions.OrdersEdit) && (
       <Link key="order" to="/orders/new" className={tile}>
-        <ClipboardPlus className="size-5 text-primary" aria-hidden /> New order
+        <ClipboardPlus className="size-5 text-primary" aria-hidden /> {t('New order')}
       </Link>
     ),
     can(Permissions.SmartEntryUse) && ai.data?.enabled && (
       <Link key="smart" to="/orders/smart-entry" className={tile}>
-        <ScanText className="size-5 text-primary" aria-hidden /> Smart order entry
+        <ScanText className="size-5 text-primary" aria-hidden /> {t('Smart order entry')}
       </Link>
     ),
     can(Permissions.PaymentsEdit) && (
       <button key="pay" type="button" className={tile} onClick={() => setPaying(true)}>
-        <HandCoins className="size-5 text-primary" aria-hidden /> Record payment
+        <HandCoins className="size-5 text-primary" aria-hidden /> {t('Record payment')}
       </button>
     ),
     can(Permissions.CustomersEdit) && (
       <Link key="customer" to="/customers/new" className={tile}>
-        <UserPlus className="size-5 text-primary" aria-hidden /> New customer
+        <UserPlus className="size-5 text-primary" aria-hidden /> {t('New customer')}
       </Link>
     ),
   ].filter(Boolean)
@@ -211,11 +227,11 @@ export function QuickActionsCard() {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Quick actions</CardTitle>
-        <CardDescription>What you do most, one tap away</CardDescription>
+        <CardTitle>{t('Quick actions')}</CardTitle>
+        <CardDescription>{t('What you do most, one tap away')}</CardDescription>
       </CardHeader>
       <CardContent>
-        {actions.length ? <div className="grid grid-cols-2 gap-2">{actions}</div> : <p className="text-sm text-muted-foreground">Nothing here for your role yet.</p>}
+        {actions.length ? <div className="grid grid-cols-2 gap-2">{actions}</div> : <p className="text-sm text-muted-foreground">{t('Nothing here for your role yet.')}</p>}
       </CardContent>
       {can(Permissions.PaymentsEdit) && <RecordPaymentPicker open={paying} onOpenChange={setPaying} />}
     </Card>
@@ -232,11 +248,11 @@ export function NotificationsCard() {
   return (
     <Card className="h-full">
       <CardHeader>
-        <CardTitle>Notifications</CardTitle>
-        <CardDescription>{data?.unreadCount ? `${data.unreadCount} unread` : 'All caught up'}</CardDescription>
+        <CardTitle>{t('Notifications')}</CardTitle>
+        <CardDescription>{data?.unreadCount ? t('{count} unread', { count: data.unreadCount }) : t('All caught up')}</CardDescription>
         <CardAction>
           <Button variant="ghost" size="sm" disabled={!data?.unreadCount} onClick={() => data?.items[0] && markAllRead.mutate(data.items[0].id)}>
-            <CheckCheck /> Mark all read
+            <CheckCheck /> {t('Mark all read')}
           </Button>
         </CardAction>
       </CardHeader>
@@ -254,7 +270,7 @@ export function NotificationsCard() {
               if (!item.read) markRead.mutate(item.id)
               navigate(item.link)
             }}
-            emptyText="Nothing yet. Payments, orders and anything waiting for you will show up here."
+            emptyText={t('Nothing yet. Payments, orders and anything waiting for you will show up here.')}
           />
         )}
       </CardContent>

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { AuroraBackground } from '@/components/fx/AuroraBackground'
 import { EmptyArt } from '@/components/fx/EmptyArt'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/i18n'
 
 export function NotFoundPage() {
   return (
@@ -18,10 +19,10 @@ export function NotFoundPage() {
       >
         404
       </motion.p>
-      <h1 className="text-2xl font-semibold">Page not found</h1>
-      <p className="text-muted-foreground">The page you're looking for doesn't exist or has moved.</p>
+      <h1 className="text-2xl font-semibold">{t('Page not found')}</h1>
+      <p className="text-muted-foreground">{t("The page you're looking for doesn't exist or has moved.")}</p>
       <Button asChild variant="outline">
-        <Link to="/">Back to dashboard</Link>
+        <Link to="/">{t('Back to dashboard')}</Link>
       </Button>
     </main>
   )

@@ -73,6 +73,9 @@ public sealed class CompanySettings
     /// </summary>
     public string? BrandColour { get; set; }
 
+    /// <summary>The language of printed documents for customers and suppliers who haven't chosen their own.</summary>
+    public DocumentLanguage DocumentLanguage { get; set; }
+
     public byte[] RowVersion { get; set; } = [];
 }
 
@@ -123,6 +126,17 @@ public sealed class HsnCode
     public decimal GstRate { get; set; }
 
     public bool IsActive { get; set; } = true;
+}
+
+/// <summary>
+/// The language a customer's or supplier's documents are printed in (invoices, quotations, credit and debit notes,
+/// purchase orders) and their payment reminders written in. Both prints each label in English with the Tamil under it.
+/// </summary>
+public enum DocumentLanguage
+{
+    English,
+    Tamil,
+    Both,
 }
 
 public enum ProductUnit
@@ -219,6 +233,9 @@ public sealed class Customer : IAuditable
     public AppUser? AssignedRep { get; set; }
 
     public string? Notes { get; set; }
+
+    /// <summary>Null: the company's default (Company settings).</summary>
+    public DocumentLanguage? DocumentLanguage { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }

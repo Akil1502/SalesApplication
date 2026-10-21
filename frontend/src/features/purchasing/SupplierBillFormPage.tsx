@@ -27,19 +27,21 @@ import { calculateTotals } from '@/lib/gst'
 import { cn } from '@/lib/utils'
 import { useCreateSupplierBill, usePurchaseOrder, type BillExtraction, type PurchaseOrder } from './api'
 import { ReadBillCard } from './ReadBillCard'
+import { msg, t } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 
 const gstRates = ['0', '5', '12', '18', '28'].map((r) => ({ value: r, label: `${r}%` }))
 
 const schema = z
   .object({
-    supplierInvoiceNumber: z.string().trim().min(1, { error: "Enter the supplier's invoice number." }).max(30),
-    billDate: z.string().min(1, { error: 'Choose a date.' }),
+    supplierInvoiceNumber: z.string().trim().min(1, { error: msg("Enter the supplier's invoice number.") }).max(30),
+    billDate: z.string().min(1, { error: msg('Choose a date.') }),
     dueDate: z.string(),
     lines: z.array(
       z.object({
         purchaseOrderLineId: z.number(),
-        quantity: z.string().trim().regex(/^(\d+(\.\d{1,3})?)?$/, { error: 'Up to 3 decimals.' }),
-        unitPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/, { error: 'Enter the rate.' }),
+        quantity: z.string().trim().regex(/^(\d+(\.\d{1,3})?)?$/, { error: msg('Up to 3 decimals.') }),
+        unitPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/, { error: msg('Enter the rate.') }),
         gstRate: z.string(),
       }),
     ),
@@ -51,10 +53,10 @@ const schema = z
   })
   .superRefine((v, ctx) => {
     if (!v.lines.some((l) => Number(l.quantity) > 0)) {
-      ctx.addIssue({ code: 'custom', path: ['lines'], message: 'Enter the quantity billed on at least one line.' })
+      ctx.addIssue({ code: 'custom', path: ['lines'], message: t('Enter the quantity billed on at least one line.') })
     }
     if (v.dueDate && v.dueDate < v.billDate) {
-      ctx.addIssue({ code: 'custom', path: ['dueDate'], message: "Can't be before the bill date." })
+      ctx.addIssue({ code: 'custom', path: ['dueDate'], message: t("Can't be before the bill date.") })
     }
   })
 
@@ -70,7 +72,16 @@ export function SupplierBillFormPage() {
     return (
       <Alert variant="destructive" className="max-w-xl">
         <AlertDescription>
-          Open the purchase order the bill is for and choose “Enter bill”, or use “Enter bill” on the <Link to="/supplier-bills" className="underline">Supplier bills</Link> page.
+          <T
+            text="Open the purchase order the bill is for and choose “Enter bill”, or use “Enter bill” on the {link} page."
+            values={{
+              link: (
+                <Link to="/supplier-bills" className="underline">
+                  {t('Supplier bills')}
+                </Link>
+              ),
+            }}
+          />
         </AlertDescription>
       </Alert>
     )
@@ -166,8 +177,9 @@ function BillForm({ order }: { order: PurchaseOrder }) {
           .filter((l) => Number(l.quantity) > 0)
           .map((l) => ({ purchaseOrderLineId: l.purchaseOrderLineId, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice), gstRate: Number(l.gstRate) })),
       })
-      if (bill.matchStatus === 'NeedsApproval') toast.warning(`Bill ${bill.number} saved. It doesn't match the order, so it needs approval before it can be paid.`)
-      else toast.success(`Bill ${bill.number} saved; it matches the order`)
+      if (bill.matchStatus === 'NeedsApproval')
+        toast.warning(t("Bill {number} saved. It doesn't match the order, so it needs approval before it can be paid.", { number: bill.number }))
+      else toast.success(t('Bill {number} saved; it matches the order', { number: bill.number }))
       setSavedId(bill.id)
     } catch (error) {
       if (error instanceof ApiRequestError && error.body.errors) {
@@ -188,21 +200,26 @@ function BillForm({ order }: { order: PurchaseOrder }) {
     <form onSubmit={onSubmit} noValidate className="flex max-w-6xl flex-col gap-6">
       <UnsavedChangesGuard when={formState.isDirty && savedId === null} />
       <PageHeader
-        title="Enter supplier bill"
+        title={t('Enter supplier bill')}
         description={
-          <>
-            For {order.supplierName}, against{' '}
-            <Link to={`/purchase-orders/${order.id}`} className="font-mono underline underline-offset-4">
-              {order.number}
-            </Link>{' '}
-            ({order.isInterState ? 'IGST' : 'CGST + SGST'}). It's checked against the order's prices and what arrived when you save.
-          </>
+          <T
+            text="For {supplier}, against {order} ({tax}). It's checked against the order's prices and what arrived when you save."
+            values={{
+              supplier: order.supplierName,
+              order: (
+                <Link to={`/purchase-orders/${order.id}`} className="font-mono underline underline-offset-4">
+                  {order.number}
+                </Link>
+              ),
+              tax: order.isInterState ? 'IGST' : 'CGST + SGST',
+            }}
+          />
         }
         actions={
           <Button variant="ghost" asChild>
             <Link to={`/purchase-orders/${order.id}`}>
               <ArrowLeft />
-              Back to the order
+              {t('Back to the order')}
             </Link>
           </Button>
         }
@@ -214,7 +231,7 @@ function BillForm({ order }: { order: PurchaseOrder }) {
         <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           <TriangleAlert />
           <AlertDescription className="text-inherit">
-            <p className="font-medium">Check these before saving:</p>
+            <p className="font-medium">{t('Check these before saving:')}</p>
             <ul className="mt-1 ml-4 list-disc">
               {extraction.warnings.map((w) => (
                 <li key={w}>{w}</li>
@@ -223,13 +240,21 @@ function BillForm({ order }: { order: PurchaseOrder }) {
                 .filter((l) => l.purchaseOrderLineId === null)
                 .map((l) => (
                   <li key={l.sourceText}>
-                    Not on the order: “{l.sourceText}”{l.quantity != null && ` (${formatQuantity(l.quantity)}`}
-                    {l.unitPrice != null && ` at ${formatINR(l.unitPrice)}`}
-                    {l.quantity != null && ')'}. Left off the bill.
+                    {l.quantity != null && l.unitPrice != null
+                      ? t('Not on the order: “{text}” ({quantity} at {price}). Left off the bill.', {
+                          text: l.sourceText,
+                          quantity: formatQuantity(l.quantity),
+                          price: formatINR(l.unitPrice),
+                        })
+                      : l.quantity != null
+                        ? t('Not on the order: “{text}” ({quantity}). Left off the bill.', { text: l.sourceText, quantity: formatQuantity(l.quantity) })
+                        : l.unitPrice != null
+                          ? t('Not on the order: “{text}” at {price}. Left off the bill.', { text: l.sourceText, price: formatINR(l.unitPrice) })
+                          : t('Not on the order: “{text}”. Left off the bill.', { text: l.sourceText })}
                   </li>
                 ))}
               {extraction.unmatched.map((u) => (
-                <li key={u}>Couldn't read: “{u}”</li>
+                <li key={u}>{t("Couldn't read: “{text}”", { text: u })}</li>
               ))}
             </ul>
           </AlertDescription>
@@ -239,36 +264,36 @@ function BillForm({ order }: { order: PurchaseOrder }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            Supplier's invoice
-            {source !== 'Manual' && <Sparkles className="size-4 text-violet-600" aria-label="Filled in by AI" />}
+            {t("Supplier's invoice")}
+            {source !== 'Manual' && <Sparkles className="size-4 text-violet-600" aria-label={t('Filled in by AI')} />}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <FieldGroup className="grid gap-4 sm:grid-cols-3">
-            <FormInput control={control} name="supplierInvoiceNumber" label="Their invoice number" maxLength={30} />
-            <FormInput control={control} name="billDate" label="Invoice date" type="date" max={todayInIndia()} />
-            <FormInput control={control} name="dueDate" label="Due date" type="date" description="Blank: the invoice date plus their payment terms." />
+            <FormInput control={control} name="supplierInvoiceNumber" label={t('Their invoice number')} maxLength={30} />
+            <FormInput control={control} name="billDate" label={t('Invoice date')} type="date" max={todayInIndia()} />
+            <FormInput control={control} name="dueDate" label={t('Due date')} type="date" description={t('Blank: the invoice date plus their payment terms.')} />
           </FieldGroup>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
-          <CardDescription>As charged on their invoice, before GST. Leave a line empty if it isn't on this bill.</CardDescription>
+          <CardTitle>{t('Items')}</CardTitle>
+          <CardDescription>{t("As charged on their invoice, before GST. Leave a line empty if it isn't on this bill.")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="overflow-x-auto rounded-lg border">
             <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="min-w-56">Product</TableHead>
-                  <TableHead className="text-right">Received</TableHead>
-                  <TableHead className="text-right">Billed before</TableHead>
-                  <TableHead className="w-32">Quantity</TableHead>
-                  <TableHead className="w-32">Rate (₹)</TableHead>
+                  <TableHead className="min-w-56">{t('Product')}</TableHead>
+                  <TableHead className="text-right">{t('Received')}</TableHead>
+                  <TableHead className="text-right">{t('Billed before')}</TableHead>
+                  <TableHead className="w-32">{t('Quantity')}</TableHead>
+                  <TableHead className="w-32">{t('Rate (₹)')}</TableHead>
                   <TableHead className="w-28">GST</TableHead>
-                  <TableHead className="w-32 text-right">Total</TableHead>
+                  <TableHead className="w-32 text-right">{t('Total')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -293,8 +318,12 @@ function BillForm({ order }: { order: PurchaseOrder }) {
                           name={`lines.${index}.quantity`}
                           render={({ field, fieldState }) => (
                             <Field data-invalid={fieldState.invalid}>
-                              <Input {...field} inputMode="decimal" placeholder="0" aria-label={`Quantity billed for ${orderLine.sku}`} aria-invalid={fieldState.invalid} />
-                              {overBilled && <span className="text-xs text-amber-700 dark:text-amber-400">More than has arrived unbilled ({formatQuantity(unbilled)})</span>}
+                              <Input {...field} inputMode="decimal" placeholder="0" aria-label={t('Quantity billed for {sku}', { sku: orderLine.sku })} aria-invalid={fieldState.invalid} />
+                              {overBilled && (
+                                <span className="text-xs text-amber-700 dark:text-amber-400">
+                                  {t('More than has arrived unbilled ({quantity})', { quantity: formatQuantity(unbilled) })}
+                                </span>
+                              )}
                               <FieldError errors={[fieldState.error]} />
                             </Field>
                           )}
@@ -306,10 +335,12 @@ function BillForm({ order }: { order: PurchaseOrder }) {
                           name={`lines.${index}.unitPrice`}
                           render={({ field, fieldState }) => (
                             <Field data-invalid={fieldState.invalid}>
-                              <Input {...field} inputMode="decimal" aria-label={`Rate for ${orderLine.sku}`} aria-invalid={fieldState.invalid} />
+                              <Input {...field} inputMode="decimal" aria-label={t('Rate for {sku}', { sku: orderLine.sku })} aria-invalid={fieldState.invalid} />
                               {Math.abs(priceDiff) >= 0.01 && (
                                 <span className={cn('text-xs', Math.abs(priceDiff) > 2 ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground')}>
-                                  {Math.abs(priceDiff).toFixed(1)}% {priceDiff > 0 ? 'above' : 'below'} the order's {formatINR(orderLine.unitPrice)}
+                                  {priceDiff > 0
+                                    ? t("{percent}% above the order's {price}", { percent: Math.abs(priceDiff).toFixed(1), price: formatINR(orderLine.unitPrice) })
+                                    : t("{percent}% below the order's {price}", { percent: Math.abs(priceDiff).toFixed(1), price: formatINR(orderLine.unitPrice) })}
                                 </span>
                               )}
                               <FieldError errors={[fieldState.error]} />
@@ -323,7 +354,7 @@ function BillForm({ order }: { order: PurchaseOrder }) {
                           name={`lines.${index}.gstRate`}
                           render={({ field }) => (
                             <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger className="w-full" aria-label={`GST rate for ${orderLine.sku}`}>
+                              <SelectTrigger className="w-full" aria-label={t('GST rate for {sku}', { sku: orderLine.sku })}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -351,25 +382,25 @@ function BillForm({ order }: { order: PurchaseOrder }) {
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <Card>
           <CardHeader>
-            <CardTitle>Charges and totals</CardTitle>
-            <CardDescription>Freight, loading and the like go into the cost of the goods. The total from their invoice is checked against ours.</CardDescription>
+            <CardTitle>{t('Charges and totals')}</CardTitle>
+            <CardDescription>{t('Freight, loading and the like go into the cost of the goods. The total from their invoice is checked against ours.')}</CardDescription>
           </CardHeader>
           <CardContent>
             <FieldGroup className="grid gap-4 sm:grid-cols-3">
-              <FormInput control={control} name="chargesAmount" label="Charges (₹, before GST)" inputMode="decimal" placeholder="0" />
-              <FormSelect control={control} name="chargesGstRate" label="GST on charges" options={gstRates} />
-              <FormInput control={control} name="chargesDescription" label="Charges for" placeholder="Freight" />
-              <FormInput control={control} name="supplierTotal" label="Total on their invoice (₹)" inputMode="decimal" placeholder="Optional" />
-              <FormTextarea control={control} name="notes" label="Notes" rows={1} className="sm:col-span-2" />
+              <FormInput control={control} name="chargesAmount" label={t('Charges (₹, before GST)')} inputMode="decimal" placeholder="0" />
+              <FormSelect control={control} name="chargesGstRate" label={t('GST on charges')} options={gstRates} />
+              <FormInput control={control} name="chargesDescription" label={t('Charges for')} placeholder={t('Freight')} />
+              <FormInput control={control} name="supplierTotal" label={t('Total on their invoice (₹)')} inputMode="decimal" placeholder={t('Optional')} />
+              <FormTextarea control={control} name="notes" label={t('Notes')} rows={1} className="sm:col-span-2" />
             </FieldGroup>
           </CardContent>
         </Card>
         <Card className="min-w-72">
           <CardContent className="flex flex-col gap-1.5 text-sm tabular-nums">
             {[
-              ['Taxable value', preview.taxableValue],
+              [t('Taxable value'), preview.taxableValue],
               ...(order.isInterState ? [['IGST', preview.igstAmount]] : [['CGST', preview.cgstAmount], ['SGST', preview.sgstAmount]]),
-              ['Round off', preview.roundOff],
+              [t('Round off'), preview.roundOff],
             ].map(([label, value]) => (
               <div key={label as string} className="flex justify-between gap-8">
                 <span className="text-muted-foreground">{label}</span>
@@ -377,21 +408,21 @@ function BillForm({ order }: { order: PurchaseOrder }) {
               </div>
             ))}
             <div className="flex justify-between gap-8 border-t pt-2 text-base font-semibold">
-              <span>Total</span>
+              <span>{t('Total')}</span>
               <span>{formatINR(preview.grandTotal)}</span>
             </div>
-            <p className="text-xs text-muted-foreground">Order {order.number} dated {formatBusinessDate(order.orderDate)}</p>
+            <p className="text-xs text-muted-foreground">{t('Order {number} dated {date}', { number: order.number, date: formatBusinessDate(order.orderDate) })}</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         <Button type="button" variant="outline" onClick={() => navigate(`/purchase-orders/${order.id}`)}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={create.isPending}>
           {create.isPending && <Spinner />}
-          Save bill
+          {t('Save bill')}
         </Button>
       </div>
     </form>

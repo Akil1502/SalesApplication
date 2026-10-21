@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
+import { msg } from '@/lib/i18n'
 import type { components } from '@/lib/api/schema'
 import { postEventStream } from '@/lib/sse'
 
@@ -109,7 +110,7 @@ export function sendMessage(conversationId: string | null, message: string, hand
           handlers.onDone(data.usage as AiUsage, (data.notice as string | undefined) ?? null)
           break
         case 'error':
-          handlers.onError((data.message as string | undefined) ?? 'Something went wrong. Please try again.')
+          handlers.onError((data.message as string | undefined) ?? msg('Something went wrong. Please try again.'))
           break
       }
     },

@@ -1,3 +1,4 @@
+import { t } from '@/lib/i18n'
 import type { AuditEntry } from './api'
 
 /** A record's changed fields, old value struck through beside the new one. */
@@ -15,10 +16,10 @@ export function ChangeList({ entry }: { entry: Pick<AuditEntry, 'changes' | 'sum
                 <span className="px-1.5 text-muted-foreground" aria-hidden>
                   →
                 </span>
-                <span className="sr-only">changed to</span>
+                <span className="sr-only">{t('changed to')}</span>
               </>
             )}
-            {change.new ?? <span className="text-muted-foreground italic">empty</span>}
+            {change.new ?? <span className="text-muted-foreground italic">{t('empty')}</span>}
           </dd>
         </div>
       ))}

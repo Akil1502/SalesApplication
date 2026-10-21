@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/auth-context'
 import { api } from '@/lib/api/client'
 import { errorMessage, unwrap } from '@/lib/api/errors'
+import { t } from '@/lib/i18n'
 
 /**
  * Each person's own settings, kept on the server so they follow them to any computer (see the UserSettings API).
@@ -35,7 +36,7 @@ function scheduleSave(queryClient: QueryClient, userId: string, key: string, val
     setTimeout(() => {
       pending.delete(key)
       unwrap(api.PUT('/api/me/settings/{key}', { params: { path: { key } }, body: value as never })).catch((error: unknown) => {
-        toast.error(`Couldn't save your setting: ${errorMessage(error)}`)
+        toast.error(t("Couldn't save your setting: {error}", { error: errorMessage(error) }))
         void queryClient.invalidateQueries({ queryKey: settingsKey(userId) })
       })
     }, 500),
