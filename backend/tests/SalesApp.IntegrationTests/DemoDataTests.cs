@@ -166,12 +166,23 @@ public sealed class DemoDataTests(DemoDataFactory factory) : IClassFixture<DemoD
     }
 
     [Fact]
-    public async Task Festive_months_outsell_the_early_summer_lull()
+    public async Task Festive_months_are_far_busier_than_the_early_summer_lull()
     {
-        var monthly = await WithDbAsync(db => db.RptSalesLines.GroupBy(l => l.MonthStart.Month).Select(g => new { Month = g.Key, Value = g.Sum(l => l.TaxableValue) }).ToListAsync(Ct));
-        decimal Average(params int[] months) => monthly.Where(m => months.Contains(m.Month)).Average(m => m.Value);
+        // Counted in orders received, as that's what the season drives. Their value also carries price rises, the
+        // one-off bulk order and the odd huge order, which blur the comparison. A festive season a year back, against
+        // a lull since in a growing business, still comes out about half as busy again; 1.2 leaves room for chance.
+        var monthly = await WithDbAsync(db => db.SalesOrders
+            .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+            .Select(g => new { g.Key.Year, g.Key.Month, Orders = g.Count() })
+            .ToListAsync(Ct));
 
-        Assert.True(Average(10, 11) > Average(4, 5, 6) * 1.25m, "October-November should clearly beat April-June");
+        // Whole months only (the history starts part-way through one and ends part-way through this one), and each
+        // calendar month counted once, however many years it falls in.
+        var whole = monthly.OrderBy(m => m.Year).ThenBy(m => m.Month).Skip(1).SkipLast(1).ToList();
+        double Average(params int[] months) => months.Average(month => whole.Where(m => m.Month == month).Average(m => m.Orders));
+
+        Assert.True(Average(10, 11) > Average(4, 5, 6) * 1.2,
+            $"October-November should clearly beat April-June: {Average(10, 11):N0} orders a month against {Average(4, 5, 6):N0}");
     }
 
     [Fact]

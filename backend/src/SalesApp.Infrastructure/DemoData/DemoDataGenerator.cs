@@ -227,6 +227,9 @@ public sealed class DemoDataGenerator(
         public double AverageDailyDemand { get; set; }
         public decimal Available => OnHand - Reserved;
 
+        /// <summary>What's been invoiced so far, for its real rate of sale (the estimate above is rough).</summary>
+        public decimal Sold { get; set; }
+
         /// <summary>Weighted average cost, kept the way the app keeps it as goods come in and bills arrive.</summary>
         public decimal? AverageCost { get; set; }
     }

@@ -85,12 +85,11 @@ internal sealed class Simulation(
 
     // Anomalies, placed relative to today so they always fall inside a long enough history.
     private DateOnly BulkOrderDay => Weekday(generator.Today.AddDays(-150));
-    private bool InStockout(DemoProduct p, DateOnly day) =>
+    private bool InStockout(DemoProduct p, DateOnly day) => NotRestocked(p, day) || _runningDown.Contains(p);
+
+    private bool NotRestocked(DemoProduct p, DateOnly day) =>
         (p.Spec.Sku == "CY-60C" && day > generator.Today.AddDays(-130) && day < generator.Today.AddDays(-88)) ||
         (p.Spec.Sku == "FB-DNM" && day > generator.Today.AddDays(-320) && day < generator.Today.AddDays(-275)) ||
-        // Supplier delays still running today. The shelf isn't always empty by then: a weekly top-up is at least the
-        // product's reorder quantity, which can last a slow seller well over 45 days.
-        (DelayedNow.ContainsKey(p.Spec.Sku) && day > generator.Today.AddDays(-45)) ||
         // Not reordered for a few weeks, so they've dropped below their reorder level with no order placed:
         // what the reorder suggestions are for.
         (NotReorderedYet.Contains(p.Spec.Sku) && day > generator.Today.AddDays(-24));
@@ -98,18 +97,58 @@ internal sealed class Simulation(
     private static readonly HashSet<string> NotReorderedYet = ["FB-CAM", "PK-CON"];
 
     /// <summary>
-    /// Products whose supplier is late as of today, with the days of demand a part delivery covered three days ago
-    /// (zero: nothing arrived). The one that got nothing is out of stock (see <see cref="RunsDry"/>); how low the other
-    /// two are depends on what was left on the shelf when their supplier stopped delivering.
+    /// Products whose supplier is late as of today, with how much of its reorder level a part delivery brought at the
+    /// end of the day (zero: nothing arrived). Their shelves are run down first (see <see cref="RunDownCap"/>): the one
+    /// that got nothing has been out of stock for three weeks; the other two ran out in the last week or two, so
+    /// they're below their reorder level with some left. That's the demo's opening scene: products to reorder and orders to
+    /// chase.
     /// </summary>
-    private static readonly Dictionary<string, double> DelayedNow = new() { ["PC-40"] = 5, ["HT-TWL"] = 6, ["GT-VST"] = 0 };
+    private static readonly Dictionary<string, decimal> DelayedNow = new() { ["PC-40"] = 0.6m, ["HT-TWL"] = 0.7m, ["GT-VST"] = 0 };
+
+    /// <summary>Delayed products whose shelves are being run down.</summary>
+    private readonly HashSet<DemoProduct> _runningDown = [];
+
+    /// <summary>When a delayed product's shelf is empty: three weeks back for the one that got nothing, four days for the others.</summary>
+    private DateOnly EmptyBy(decimal cover) => generator.Today.AddDays(cover == 0 ? -21 : -4);
 
     /// <summary>
-    /// The delayed product that got nothing stops being topped up 75 days back: weekly top-ups hold up to five weeks of
-    /// stock, so it's surely out by today, however demand happened to fall.
+    /// The most a delayed product can be topped up by now: what it will probably sell, even 40% slower than it has
+    /// sold so far, before its shelf has to be empty. A top-up is sized from a rough estimate of demand and could last
+    /// it weeks past that; topped up a little each week instead, there's not much left to buy out on the day (see
+    /// <see cref="BuyOut"/>), and it isn't empty long before.
     /// </summary>
-    private bool RunsDry(DemoProduct p, DateOnly day) =>
-        DelayedNow.TryGetValue(p.Spec.Sku, out var cover) && cover == 0 && day > generator.Today.AddDays(-75);
+    private decimal RunDownCap(DemoProduct product, DateOnly day)
+    {
+        if (!DelayedNow.TryGetValue(product.Spec.Sku, out var cover))
+        {
+            return decimal.MaxValue;
+        }
+
+        var room = (decimal)(0.6 * SellingRate(product, day) * Math.Max(0, EmptyBy(cover).DayNumber - day.DayNumber)) - product.Available;
+        return Math.Max(0, FloorTo(room, product.Spec.Step));
+    }
+
+    /// <summary>
+    /// A regular buyer of a delayed product takes what's left of it, invoiced the same day, so its shelf is empty when
+    /// the story needs it to be. These sell in a few big orders, so the last of the stock could otherwise sit for weeks.
+    /// </summary>
+    private void BuyOut(DemoProduct product, DateOnly day, Dictionary<DemoProduct, decimal> orderedToday)
+    {
+        _runningDown.Add(product); // no goods coming back to the shelf from now on either
+        var customer = customers.Where(c => c.IsActiveOn(day) && product.Spec.BoughtBy.Contains(c.Segment))
+            .OrderByDescending(c => c.Favourites.Contains(product.Spec)).ThenByDescending(c => c.Size).FirstOrDefault();
+        if (customer is not null && product.Available >= product.Spec.Step)
+        {
+            CreateOrder(day, customer, [(product, product.Available)], orderedToday, forceInvoice: true);
+        }
+    }
+
+    /// <summary>What a product has really sold a day so far (the smoothed demand estimate drops while it's out of stock).</summary>
+    private double SellingRate(DemoProduct product, DateOnly day) =>
+        product.Sold > 0
+            ? (double)product.Sold / Math.Max(1, day.DayNumber - generator.Start.DayNumber)
+            : Math.Max(product.AverageDailyDemand, 0.1);
+
     private double Surge(DemoProduct p, DateOnly day) =>
         p.Spec.Sku == "GT-TSP" && day > generator.Today.AddDays(-280) && day < generator.Today.AddDays(-250) ? 3.0 : 1.0;
 
@@ -146,11 +185,6 @@ internal sealed class Simulation(
                 ReceiveForBulkOrder(day);
             }
 
-            if (day == generator.Today.AddDays(-3))
-            {
-                PlaceLateOrders(day);
-            }
-
             ProcessReturns(day);
             if (day == Weekday(generator.Today.AddDays(-5)))
             {
@@ -165,6 +199,11 @@ internal sealed class Simulation(
                 PlaceBulkOrder(day, orderedToday);
             }
 
+            foreach (var product in products.Where(p => DelayedNow.TryGetValue(p.Spec.Sku, out var cover) && day == EmptyBy(cover)))
+            {
+                BuyOut(product, day, orderedToday);
+            }
+
             var count = generator.Poisson(generator.ExpectedOrders(day));
             for (var i = 0; i < count; i++)
             {
@@ -173,6 +212,11 @@ internal sealed class Simulation(
 
             // Orders invoiced the same day they were placed.
             InvoiceDueOrders(day);
+
+            if (day == generator.Today)
+            {
+                PlaceLateOrders(day);
+            }
 
             // Smoothed demand (about a 4-week average) drives how much stock the weekly receipts top up.
             foreach (var (product, quantity) in orderedToday)
@@ -186,17 +230,22 @@ internal sealed class Simulation(
 
     // ---- Stock in -------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Each week, anything under three weeks' stock is topped up to five, as the season ahead will sell (the festive
+    /// months a good deal more), so the busy months aren't cut short by empty shelves.
+    /// </summary>
     private void ReceiveWeeklyStock(DateOnly day)
     {
         var bySupplier = new Dictionary<string, List<(DemoProduct Product, decimal Quantity)>>();
+        var season = DemoCatalog.Seasonality[day.AddDays(14).Month - 1];
         foreach (var product in products)
         {
-            if (InStockout(product, day) || RunsDry(product, day))
+            if (NotRestocked(product, day))
             {
                 continue;
             }
 
-            var demand = Math.Max(product.AverageDailyDemand, 0.1);
+            var demand = Math.Max(product.AverageDailyDemand, 0.1) * season;
             if ((double)product.Available >= demand * 21)
             {
                 continue;
@@ -204,6 +253,19 @@ internal sealed class Simulation(
 
             var target = Math.Max((decimal)(demand * 35), product.Entity.ReorderQuantity);
             var quantity = RoundTo(target - product.Available, product.Spec.Step);
+            var cap = RunDownCap(product, day);
+            if (quantity > cap)
+            {
+                // Being run down from now on: no returns, split deliveries or replacements to refill the shelf later.
+                _runningDown.Add(product);
+                quantity = cap;
+            }
+
+            if (quantity <= 0)
+            {
+                continue;
+            }
+
             var supplier = SupplierFor(product);
             (bySupplier.TryGetValue(supplier, out var list) ? list : bySupplier[supplier] = []).Add((product, quantity));
         }
@@ -216,7 +278,7 @@ internal sealed class Simulation(
 
     /// <summary>
     /// The orders behind today's supplier delays: placed three weeks ago, due ten days ago, and either part-delivered
-    /// three days ago or not delivered at all. They're late, which is what the assistant can chase.
+    /// at the end of today or not delivered at all. They're late, which is what the assistant can chase.
     /// </summary>
     private void PlaceLateOrders(DateOnly day)
     {
@@ -229,7 +291,8 @@ internal sealed class Simulation(
 
             if (DelayedNow[product.Spec.Sku] > 0)
             {
-                var quantity = Math.Min(ordered, RoundTo((decimal)(demand * DelayedNow[product.Spec.Sku]), product.Spec.Step));
+                // Sized from its reorder level, so it stays below that however fast the product sells.
+                var quantity = Math.Min(ordered, RoundTo(product.Entity.ReorderLevel * DelayedNow[product.Spec.Sku], product.Spec.Step));
                 Deliver(order, day, new() { [order.Lines[0].Line] = quantity }, "Part delivery; supplier has delayed the balance");
             }
         }
@@ -272,7 +335,8 @@ internal sealed class Simulation(
         var order = PlaceOrder(supplier, day.AddDays(-lead), day.AddDays(_random.Next(-2, 2)), notes,
             [.. lines.Select(l => (l.Product, l.Quantity, CostOn(l.Product, day)))]);
 
-        var split = notes is null && _random.NextDouble() < 0.12;
+        // Not for a product being run down: a balance turning up after it's been bought out would refill the shelf.
+        var split = notes is null && !lines.Any(l => _runningDown.Contains(l.Product)) && _random.NextDouble() < 0.12;
         var first = order.Lines.ToDictionary(
             l => l.Line,
             l => split ? Math.Min(l.Line.Quantity, RoundTo(l.Line.Quantity * 0.6m, l.Product.Spec.Step)) : l.Line.Quantity);
@@ -362,8 +426,9 @@ internal sealed class Simulation(
         {
             var quantity = quantities[line];
 
-            // Now and then part of a delivery is refused at the door: it never enters stock and the mill replaces it.
-            var rejected = notes is null && quantity >= 10 * product.Spec.Step && _random.NextDouble() < 0.03
+            // Now and then part of a delivery is refused at the door: it never enters stock and the mill replaces it
+            // (not a product being run down, as the replacement would refill its shelf).
+            var rejected = notes is null && quantity >= 10 * product.Spec.Step && !_runningDown.Contains(product) && _random.NextDouble() < 0.03
                 ? RoundTo(quantity * (decimal)(0.05 + _random.NextDouble() * 0.1), product.Spec.Step)
                 : 0m;
             var accepted = quantity - rejected;
@@ -512,8 +577,9 @@ internal sealed class Simulation(
         UseSupplierCredit(bill, billDate);
         PaySupplier(bill);
 
-        // A few deliveries turn out faulty once opened and part goes back to the mill.
-        if (_random.NextDouble() < 0.03)
+        // A few deliveries turn out faulty once opened and part goes back to the mill (until one has, each one does, so
+        // there's a return to show: one can fall through when there's no stock to send back).
+        if (_random.NextDouble() < 0.03 || (SupplierReturns.Count == 0 && _supplierReturns.Count == 0))
         {
             var returnDay = Weekday(billDate.AddDays(_random.Next(3, 15)));
             if (returnDay > billDate && returnDay <= generator.Today)
@@ -842,6 +908,7 @@ internal sealed class Simulation(
             {
                 product.Reserved -= line.Quantity;
                 Move(product, StockMovementType.Sale, -line.Quantity, day, demoInvoice, null);
+                product.Sold += line.Quantity;
             }
 
             UseCustomerCredit(invoice, day);
@@ -1108,8 +1175,9 @@ internal sealed class Simulation(
 
         if (total > off)
         {
-            // About a third of customers ask for the money back; the rest have it set against their next invoice.
-            if (_random.NextDouble() < 0.35)
+            // About a third of customers ask for the money back (the first one left with credit always does, so the
+            // demo has a refund to show); the rest have it set against their next invoice.
+            if (_random.NextDouble() < 0.35 || _refundOn.Count == 0)
             {
                 _refundOn[demo] = day.AddDays(_random.Next(5, 15));
             }
