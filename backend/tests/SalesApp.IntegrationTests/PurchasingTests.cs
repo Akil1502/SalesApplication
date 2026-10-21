@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SalesApp.Api.Errors;
@@ -28,17 +27,17 @@ public sealed class PurchasingTests(SalesAppFactory factory)
 
     private Task<decimal> OnHandAsync(int productId) => WithDbAsync(db => db.StockLevels.Where(s => s.ProductId == productId).Select(s => s.QuantityOnHand).SingleAsync(Ct));
 
-    private static async Task<PurchaseOrderDto> GetOrderAsync(HttpClient client, int id) =>
+    internal static async Task<PurchaseOrderDto> GetOrderAsync(HttpClient client, int id) =>
         await (await client.GetAsync($"/api/purchase-orders/{id}", Ct)).ReadAsync<PurchaseOrderDto>();
 
-    private static SupplierBillCreateRequest Bill(PurchaseOrderDto order, decimal? price = null, decimal? quantity = null, string? invoice = null) => new()
+    internal static SupplierBillCreateRequest Bill(PurchaseOrderDto order, decimal? price = null, decimal? quantity = null, string? invoice = null) => new()
     {
         PurchaseOrderId = order.Id,
         SupplierInvoiceNumber = invoice ?? $"INV-{Guid.NewGuid():N}"[..14],
         Lines = [.. order.Lines.Select(l => new SupplierBillLineInput { PurchaseOrderLineId = l.Id, Quantity = quantity ?? l.QuantityReceived, UnitPrice = price ?? l.UnitPrice })],
     };
 
-    private static async Task<SupplierBillDto> EnterBillAsync(HttpClient client, SupplierBillCreateRequest request)
+    internal static async Task<SupplierBillDto> EnterBillAsync(HttpClient client, SupplierBillCreateRequest request)
     {
         var response = await client.PostAsJsonAsync("/api/supplier-bills", request, TestClients.Json, Ct);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -435,28 +434,7 @@ public sealed class PurchasingTests(SalesAppFactory factory)
         return updated;
     }
 
-    // ---- Reports and the audit trail ------------------------------------------------------------
-
-    [Fact]
-    public async Task Payables_ageing_agrees_with_the_bills_summary_and_the_purchase_register_lists_input_GST()
-    {
-        var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
-        var product = await TestData.CreateProductAsync(manager);
-        var (order, _) = await TestData.BuyAsync(manager, (product.Id, 10m, 250m));
-        var bill = await EnterBillAsync(manager, Bill(await GetOrderAsync(manager, order.Id)));
-
-        var summary = await (await manager.GetAsync("/api/supplier-bills/summary", Ct)).ReadAsync<SupplierBillSummaryDto>();
-        var ageing = await (await manager.GetAsync("/api/reports/payables-ageing", Ct)).ReadAsync<ReportResult>();
-        Assert.Equal(summary.Payable, ((JsonElement)ageing.Totals["total"]!).GetDecimal());
-
-        var register = await (await manager.GetAsync("/api/reports/purchase-register", Ct)).ReadAsync<ReportResult>();
-        var row = Assert.Single(register.Rows, r => ((JsonElement)r["number"]!).GetString() == bill.Number);
-        Assert.Equal(125m, ((JsonElement)row["tax"]!).GetDecimal());
-
-        var gst = await (await manager.GetAsync("/api/reports/gst-net", Ct)).ReadAsync<ReportResult>();
-        var totals = gst.Totals;
-        Assert.Equal(((JsonElement)totals["output"]!).GetDecimal() - ((JsonElement)totals["input"]!).GetDecimal(), ((JsonElement)totals["net"]!).GetDecimal());
-    }
+    // ---- The audit trail ------------------------------------------------------------------------
 
     [Fact]
     public async Task Purchasing_is_recorded_in_the_audit_trail()
