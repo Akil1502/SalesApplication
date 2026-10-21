@@ -88,7 +88,8 @@ internal sealed class Simulation(
     private bool InStockout(DemoProduct p, DateOnly day) =>
         (p.Spec.Sku == "CY-60C" && day > generator.Today.AddDays(-130) && day < generator.Today.AddDays(-88)) ||
         (p.Spec.Sku == "FB-DNM" && day > generator.Today.AddDays(-320) && day < generator.Today.AddDays(-275)) ||
-        // Supplier delays still running today, long enough to empty the shelf whatever stock they started from.
+        // Supplier delays still running today. The shelf isn't always empty by then: a weekly top-up is at least the
+        // product's reorder quantity, which can last a slow seller well over 45 days.
         (DelayedNow.ContainsKey(p.Spec.Sku) && day > generator.Today.AddDays(-45)) ||
         // Not reordered for a few weeks, so they've dropped below their reorder level with no order placed:
         // what the reorder suggestions are for.
@@ -98,7 +99,8 @@ internal sealed class Simulation(
 
     /// <summary>
     /// Products whose supplier is late as of today, with the days of demand a part delivery covered three days ago
-    /// (zero: nothing arrived). The demo therefore opens with two products below reorder level and one out of stock.
+    /// (zero: nothing arrived). The one that got nothing is out of stock (see <see cref="RunsDry"/>); how low the other
+    /// two are depends on what was left on the shelf when their supplier stopped delivering.
     /// </summary>
     private static readonly Dictionary<string, double> DelayedNow = new() { ["PC-40"] = 5, ["HT-TWL"] = 6, ["GT-VST"] = 0 };
 
