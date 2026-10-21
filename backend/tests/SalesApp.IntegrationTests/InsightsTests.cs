@@ -67,9 +67,27 @@ public sealed class InsightsTests(DemoDataFactory factory) : IClassFixture<DemoD
             - await db.CreditNotes.Where(c => c.Status == ReturnDocumentStatus.Issued && c.CreditNoteDate >= yearStart && c.CreditNoteDate <= today).SumAsync(c => c.TaxableValue, Ct);
         Assert.Equal(Math.Round(sales, 0, MidpointRounding.AwayFromZero), metrics.Sales.FinancialYearToDate);
 
-        // The satin comes back far more often than anything else, and the insights say so.
-        Assert.True(metrics.Anomalies.Any(a => a.Kind == AnomalyKind.HighReturns && a.Title.StartsWith("FB-SAT", StringComparison.Ordinal)),
-            string.Join(" | ", metrics.Anomalies.Select(a => $"{a.Kind}: {a.Title} ({a.Detail})")));
+        // The satin comes back far more often than anything else (one invoice in four, by chance), and the insights say so
+        // whenever the last twelve months bear it out: at least 5% of what was sold, three times the typical product, on
+        // three or more credit notes. By chance some dates' twelve months don't, and then it mustn't be flagged.
+        var since = today.AddDays(-365);
+        var products = await db.RptSalesLines.Where(l => l.InvoiceDate > since && l.InvoiceDate <= today)
+            .GroupBy(l => l.Sku)
+            .Select(g => new
+            {
+                Sku = g.Key,
+                Sold = g.Sum(l => l.DocumentType == "Invoice" ? l.Quantity : 0m),
+                Returned = g.Sum(l => l.DocumentType == "CreditNote" && l.Quantity < 0 ? -l.Quantity : 0m),
+                Notes = g.Where(l => l.DocumentType == "CreditNote" && l.Quantity < 0).Select(l => l.DocumentNumber).Distinct().Count(),
+            })
+            .ToListAsync(Ct);
+        decimal Rate(decimal returned, decimal sold) => Math.Round(returned / sold * 100m, 1);
+        var rates = products.Where(p => p.Sold > 0).Select(p => (double)Rate(p.Returned, p.Sold)).Order().ToList();
+        var typical = Math.Round((decimal)(rates.Count % 2 == 1 ? rates[rates.Count / 2] : (rates[rates.Count / 2 - 1] + rates[rates.Count / 2]) / 2), 1);
+        var satin = products.Single(p => p.Sku == "FB-SAT");
+        var satinRate = Rate(satin.Returned, satin.Sold);
+        Assert.Equal(satin.Notes >= 3 && satinRate >= 5m && satinRate >= 3m * typical,
+            metrics.Anomalies.Any(a => a.Kind == AnomalyKind.HighReturns && a.Title.StartsWith("FB-SAT", StringComparison.Ordinal)));
 
         // Thirteen full months: too short to backtest, so same month last year is used, for this month and the next two.
         Assert.Equal(ForecastMethod.SeasonalNaive, metrics.Forecast.Method);
