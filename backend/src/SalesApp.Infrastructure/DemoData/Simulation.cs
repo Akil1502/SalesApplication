@@ -1148,7 +1148,8 @@ internal sealed class Simulation(
         var (orderLine, line) = demoBill.Lines[_random.Next(demoBill.Lines.Count)];
         var product = demoBill.Order.Lines.Single(l => l.Line == orderLine).Product;
         var wanted = RoundTo(line.Quantity * (decimal)(0.05 + _random.NextDouble() * 0.1), product.Spec.Step);
-        var quantity = Math.Min(Math.Min(wanted, line.Quantity), FloorTo(product.OnHand, product.Spec.Step));
+        // Only stock nobody has ordered yet: what's reserved for confirmed orders is about to be invoiced.
+        var quantity = Math.Min(Math.Min(wanted, line.Quantity), FloorTo(product.OnHand - product.Reserved, product.Spec.Step));
         if (quantity <= 0 || InStockout(product, day))
         {
             return;
