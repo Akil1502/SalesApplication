@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { authStore } from '@/features/auth/auth-store'
 import { errorMessage } from '@/lib/api/errors'
+import { msg, t } from '@/lib/i18n'
 import { askQuestion, type AskAnswer, type AskStep } from './api'
 
 export interface Exchange {
@@ -15,7 +16,7 @@ export interface Exchange {
 
 const STORAGE_KEY = 'salesapp.ask.history'
 const KEEP = 10
-export const INTERRUPTED = 'The page was reloaded before this answer arrived. Ask again to get it.'
+export const INTERRUPTED = msg('The page was reloaded before this answer arrived. Ask again to get it.')
 
 /**
  * Questions and answers live here rather than in the page, so a question keeps running while the user looks at
@@ -59,9 +60,9 @@ function update(id: string, change: (e: Exchange) => Exchange) {
 function announce(id: string) {
   const exchange = history.find((e) => e.id === id)
   if (pagesOpen > 0 || !exchange || exchange.status === 'stopped') return
-  const view = { label: 'View', onClick: () => void import('@/routes').then(({ router }) => router.navigate('/ask')) }
-  if (exchange.status === 'done') toast.success('Your answer is ready', { description: exchange.question, action: view })
-  else toast.error("Your question couldn't be answered", { description: exchange.question, action: view })
+  const view = { label: t('View'), onClick: () => void import('@/routes').then(({ router }) => router.navigate('/ask')) }
+  if (exchange.status === 'done') toast.success(t('Your answer is ready'), { description: exchange.question, action: view })
+  else toast.error(t("Your question couldn't be answered"), { description: exchange.question, action: view })
 }
 
 export const askStore = {
@@ -93,7 +94,7 @@ export const askStore = {
         controller.signal,
       )
       // A stream that ends without an answer or error (connection dropped) shouldn't spin forever.
-      update(id, (e) => (e.status === 'running' ? { ...e, status: 'error', error: 'The answer was cut off. Try asking again.' } : e))
+      update(id, (e) => (e.status === 'running' ? { ...e, status: 'error', error: msg('The answer was cut off. Try asking again.') } : e))
     } catch (error) {
       update(id, (e) => (controller.signal.aborted ? { ...e, status: 'stopped' } : { ...e, status: 'error', error: errorMessage(error) }))
     } finally {

@@ -32,7 +32,16 @@ public sealed class RoleAdminService(
     IPermissionService permissions,
     IAuditLog audit) : IRoleAdminService
 {
-    public PermissionCatalogDto Catalog() => new(Permissions.Menus, Permissions.SpecialRights, Permissions.NeedsByPermission);
+    public PermissionCatalogDto Catalog() => new(
+        [.. Permissions.Menus.Select(m => m with
+        {
+            Section = L.T(m.Section),
+            Name = L.T(m.Name),
+            ViewDescription = L.T(m.ViewDescription),
+            EditDescription = m.EditDescription is null ? null : L.T(m.EditDescription),
+        })],
+        [.. Permissions.SpecialRights.Select(r => r with { Name = L.T(r.Name), Description = L.T(r.Description) })],
+        Permissions.NeedsByPermission);
 
     public async Task<IReadOnlyList<RoleDto>> ListAsync(CancellationToken cancellationToken)
     {
@@ -117,7 +126,9 @@ public sealed class RoleAdminService(
         var users = await db.UserRoles.CountAsync(ur => ur.RoleId == id, cancellationToken);
         if (users > 0)
         {
-            throw new ConflictException($"{users} {(users == 1 ? "user has" : "users have")} this role. Give them another role first.");
+            throw new ConflictException(users == 1
+                ? "1 user has this role. Give them another role first."
+                : $"{users} users have this role. Give them another role first.");
         }
 
         ThrowIfFailed(await roles.DeleteAsync(role));
@@ -135,17 +146,17 @@ public sealed class RoleAdminService(
         var changes = new List<AuditChange>();
         if (Names(now.Except(old)) is { } gained)
         {
-            changes.Add(new AuditChange("Permissions added", null, gained));
+            changes.Add(new AuditChange(L.Msg("Permissions added"), null, gained));
         }
 
         if (Names(old.Except(now)) is { } lost)
         {
-            changes.Add(new AuditChange("Permissions removed", lost, null));
+            changes.Add(new AuditChange(L.Msg("Permissions removed"), lost, null));
         }
 
         if (changes.Count > 0)
         {
-            await audit.RecordAsync(new AuditEvent(AuditAction.PermissionsChanged, "Role", role.Id.ToString(), role.Name, Changes: changes), cancellationToken);
+            await audit.RecordAsync(new AuditEvent(AuditAction.PermissionsChanged, L.Msg("Role"), role.Id.ToString(), role.Name, Changes: changes), cancellationToken);
         }
     }
 

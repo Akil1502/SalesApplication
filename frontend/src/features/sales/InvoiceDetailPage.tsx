@@ -2,7 +2,9 @@ import { ArrowLeft, Ban, FileCheck2, IndianRupee, Printer, Undo2 } from 'lucide-
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
+import { PaidStamp } from '@/components/fx/Stamp'
 import { PageHeader } from '@/components/PageHeader'
+import { ProductThumb } from '@/components/ProductThumb'
 import { ReasonDialog } from '@/components/ReasonDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -18,6 +20,8 @@ import { creditNoteKindLabels } from '@/features/returns/labels'
 import { SetCreditDialog } from '@/features/returns/SetCreditDialog'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatPercent, formatQuantity } from '@/lib/format'
+import { t } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 import { useCancelInvoice, useInvoice, type Invoice } from './api'
 import { InvoiceStatusBadge } from './badges'
 import { paymentModeLabel } from './labels'
@@ -33,7 +37,7 @@ function Party({ title, name, gstin, lines }: { title: string; name: string; gst
           {line}
         </p>
       ))}
-      <p className="font-mono text-xs">{gstin ? `GSTIN ${gstin}` : 'Unregistered'}</p>
+      <p className="font-mono text-xs">{gstin ? `GSTIN ${gstin}` : t('Unregistered')}</p>
     </div>
   )
 }
@@ -67,15 +71,27 @@ export function InvoiceDetailPage() {
   return (
     <div className="flex max-w-6xl flex-col gap-6">
       <PageHeader
-        title={`Invoice ${inv.number}`}
+        title={t('Invoice {number}', { number: inv.number })}
+        figures={[
+          { label: t('Total'), value: formatINR(inv.grandTotal) },
+          { label: t('Balance due'), value: formatINR(inv.balance), emphasis: inv.balance > 0 && !cancelled },
+        ]}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <InvoiceStatusBadge status={inv.status} daysOverdue={inv.daysOverdue} settledByCredit={inv.amountPaid === 0 && inv.amountCredited > 0} />
             <span>
-              Dated {formatBusinessDate(inv.invoiceDate)} · due {formatBusinessDate(inv.dueDate)} · from order{' '}
-              <Link className="font-mono underline underline-offset-4" to={`/orders/${inv.salesOrderId}`}>
-                {inv.salesOrderNumber}
-              </Link>
+              <T
+                text="Dated {date} · due {due} · from order {order}"
+                values={{
+                  date: formatBusinessDate(inv.invoiceDate),
+                  due: formatBusinessDate(inv.dueDate),
+                  order: (
+                    <Link className="font-mono underline underline-offset-4" to={`/orders/${inv.salesOrderId}`}>
+                      {inv.salesOrderNumber}
+                    </Link>
+                  ),
+                }}
+              />
             </span>
           </span>
         }
@@ -84,39 +100,39 @@ export function InvoiceDetailPage() {
             <Button variant="ghost" asChild>
               <Link to="/invoices">
                 <ArrowLeft />
-                Invoices
+                {t('Invoices')}
               </Link>
             </Button>
             <Button variant="outline" asChild>
               <Link to={`/invoices/${inv.id}/print`} target="_blank">
                 <Printer />
-                Print
+                {t('Print')}
               </Link>
             </Button>
             {canCancel && !cancelled && !inv.cancelBlockedReason && (
               <Button variant="outline" className="text-destructive" onClick={() => setCancelOpen(true)}>
                 <Ban />
-                Cancel invoice
+                {t('Cancel invoice')}
               </Button>
             )}
             {canCredit && !cancelled && (
               <Button variant="outline" asChild>
                 <Link to={`/invoices/${inv.id}/credit-note`}>
                   <Undo2 />
-                  Credit note
+                  {t('Credit note')}
                 </Link>
               </Button>
             )}
             {canCredit && !cancelled && inv.balance > 0 && inv.customerCreditAvailable > 0 && (
               <Button variant="outline" onClick={() => setCreditOpen(true)}>
                 <FileCheck2 />
-                Use credit ({formatINR(inv.customerCreditAvailable)})
+                {t('Use credit ({amount})', { amount: formatINR(inv.customerCreditAvailable) })}
               </Button>
             )}
             {canRecordPayment && !cancelled && inv.balance > 0 && (
               <Button onClick={() => setPaymentOpen(true)}>
                 <IndianRupee />
-                Record payment
+                {t('Record payment')}
               </Button>
             )}
           </>
@@ -127,51 +143,55 @@ export function InvoiceDetailPage() {
         <Alert variant="destructive">
           <Ban />
           <AlertDescription>
-            Cancelled {formatDate(inv.cancelledAtUtc)}: {inv.cancellationReason}. The number stays in the invoice register; the goods went back to stock.
+            {t('Cancelled {date}: {reason}. The number stays in the invoice register; the goods went back to stock.', {
+              date: formatDate(inv.cancelledAtUtc),
+              reason: inv.cancellationReason ?? '',
+            })}
           </AlertDescription>
         </Alert>
       )}
 
-      <Card>
+      <Card className="relative">
+        <PaidStamp key={inv.id} paid={inv.status === 'Paid'} className="absolute top-4 right-6 z-10" />
         <CardContent className="grid gap-6 sm:grid-cols-3">
-          <Party title="Bill to" name={inv.customerName} gstin={inv.customerGstin} lines={address(inv.billingAddress)} />
+          <Party title={t('Bill to')} name={inv.customerName} gstin={inv.customerGstin} lines={address(inv.billingAddress)} />
           {inv.shippingAddress ? (
-            <Party title="Ship to" name={inv.customerName} gstin={inv.customerGstin} lines={address(inv.shippingAddress)} />
+            <Party title={t('Ship to')} name={inv.customerName} gstin={inv.customerGstin} lines={address(inv.shippingAddress)} />
           ) : (
             <div className="space-y-1 text-sm">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Ship to</p>
-              <p className="text-muted-foreground">Same as billing address</p>
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Ship to')}</p>
+              <p className="text-muted-foreground">{t('Same as billing address')}</p>
             </div>
           )}
           <div className="space-y-1 text-sm">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Tax</p>
-            <p>
-              Place of supply: {inv.placeOfSupplyStateName} ({inv.placeOfSupplyStateCode})
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Tax')}</p>
+            <p>{t('Place of supply: {state} ({code})', { state: inv.placeOfSupplyStateName, code: inv.placeOfSupplyStateCode })}</p>
+            <p className="text-muted-foreground">
+              {inv.isInterState ? t('Inter-state supply: IGST') : t('Intra-state supply: CGST + {sgst}', { sgst: sgstLabel })}
             </p>
-            <p className="text-muted-foreground">{inv.isInterState ? 'Inter-state supply: IGST' : `Intra-state supply: CGST + ${sgstLabel}`}</p>
-            {inv.customerReference && <p className="text-muted-foreground">Customer PO: {inv.customerReference}</p>}
+            {inv.customerReference && <p className="text-muted-foreground">{t('Customer PO: {reference}', { reference: inv.customerReference })}</p>}
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
+          <CardTitle>{t('Items')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>#</TableHead>
-                  <TableHead>Product</TableHead>
+                  <TableHead>{t('Product')}</TableHead>
                   <TableHead>HSN</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Taxable</TableHead>
+                  <TableHead className="text-right">{t('Qty')}</TableHead>
+                  <TableHead className="text-right">{t('Rate')}</TableHead>
+                  <TableHead className="text-right">{t('Taxable')}</TableHead>
                   <TableHead className="text-right">GST</TableHead>
-                  <TableHead className="text-right">Tax</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">{t('Tax')}</TableHead>
+                  <TableHead className="text-right">{t('Total')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -179,16 +199,19 @@ export function InvoiceDetailPage() {
                   <TableRow key={l.lineNumber}>
                     <TableCell>{l.lineNumber}</TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span>{l.productName}</span>
-                        <span className="font-mono text-xs text-muted-foreground">{l.sku}</span>
+                      <div className="flex items-center gap-3">
+                        <ProductThumb productId={l.productId} name={l.productName} preview />
+                        <div className="flex flex-col">
+                          <span>{l.productName}</span>
+                          <span className="font-mono text-xs text-muted-foreground">{l.sku}</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{l.hsnCode}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatQuantity(l.quantity, l.unit)}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatINR(l.unitPrice)}
-                      {l.discountPercent > 0 && <span className="block text-xs text-muted-foreground">less {formatPercent(l.discountPercent)}</span>}
+                      {l.discountPercent > 0 && <span className="block text-xs text-muted-foreground">{t('less {percent}', { percent: formatPercent(l.discountPercent) })}</span>}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatINR(l.taxableValue)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatPercent(l.gstRate)}</TableCell>
@@ -200,7 +223,7 @@ export function InvoiceDetailPage() {
               <TableFooter>
                 <TableRow>
                   <TableCell colSpan={5} className="text-right">
-                    Taxable value
+                    {t('Taxable value')}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{formatINR(inv.taxableValue)}</TableCell>
                   <TableCell colSpan={3} />
@@ -212,7 +235,7 @@ export function InvoiceDetailPage() {
           <div className="mt-4 flex flex-wrap items-start justify-between gap-6">
             <p className="max-w-md text-sm text-muted-foreground italic">{inv.amountInWords}</p>
             <dl className="grid min-w-72 grid-cols-[1fr_auto] gap-x-8 gap-y-1.5 text-sm tabular-nums">
-              <dt className="text-muted-foreground">Taxable value</dt>
+              <dt className="text-muted-foreground">{t('Taxable value')}</dt>
               <dd className="text-right">{formatINR(inv.taxableValue)}</dd>
               {inv.isInterState ? (
                 <>
@@ -227,19 +250,19 @@ export function InvoiceDetailPage() {
                   <dd className="text-right">{formatINR(inv.sgstAmount)}</dd>
                 </>
               )}
-              <dt className="text-muted-foreground">Round off</dt>
+              <dt className="text-muted-foreground">{t('Round off')}</dt>
               <dd className="text-right">{formatINR(inv.roundOff)}</dd>
-              <dt className="border-t pt-1.5 font-semibold">Total</dt>
+              <dt className="border-t pt-1.5 font-semibold">{t('Total')}</dt>
               <dd className="border-t pt-1.5 text-right font-semibold">{formatINR(inv.grandTotal)}</dd>
-              <dt className="text-muted-foreground">Paid</dt>
+              <dt className="text-muted-foreground">{t('Paid')}</dt>
               <dd className="text-right">{formatINR(inv.amountPaid)}</dd>
               {inv.amountCredited > 0 && (
                 <>
-                  <dt className="text-muted-foreground">Credited</dt>
+                  <dt className="text-muted-foreground">{t('Credited')}</dt>
                   <dd className="text-right">{formatINR(inv.amountCredited)}</dd>
                 </>
               )}
-              <dt className="font-medium">Balance due</dt>
+              <dt className="font-medium">{t('Balance due')}</dt>
               <dd className="text-right font-medium">{formatINR(inv.balance)}</dd>
             </dl>
           </div>
@@ -248,21 +271,21 @@ export function InvoiceDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Payments</CardTitle>
+          <CardTitle>{t('Payments')}</CardTitle>
         </CardHeader>
         <CardContent>
           {inv.payments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+            <p className="text-sm text-muted-foreground">{t('No payments recorded yet.')}</p>
           ) : (
             <div className="overflow-hidden rounded-lg border">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Mode</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Recorded by</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>{t('Date')}</TableHead>
+                    <TableHead>{t('Mode')}</TableHead>
+                    <TableHead>{t('Reference')}</TableHead>
+                    <TableHead>{t('Recorded by')}</TableHead>
+                    <TableHead className="text-right">{t('Amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -291,13 +314,13 @@ export function InvoiceDetailPage() {
       <ReasonDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title={`Cancel invoice ${inv.number}?`}
-        description="The invoice stays in the register as cancelled (GST requires it), its goods go back to stock, and the order reopens for re-invoicing."
-        confirmLabel="Cancel invoice"
+        title={t('Cancel invoice {number}?', { number: inv.number })}
+        description={t('The invoice stays in the register as cancelled (GST requires it), its goods go back to stock, and the order reopens for re-invoicing.')}
+        confirmLabel={t('Cancel invoice')}
         onConfirm={async (reason) => {
           try {
             await cancel.mutateAsync({ id: inv.id, reason })
-            toast.success(`Invoice ${inv.number} cancelled`)
+            toast.success(t('Invoice {number} cancelled', { number: inv.number }))
             setCancelOpen(false)
           } catch (error) {
             toast.error(errorMessage(error))
@@ -317,7 +340,7 @@ function CreditNotesCard({ invoice }: { invoice: Invoice }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Credit notes</CardTitle>
+        <CardTitle>{t('Credit notes')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {invoice.creditNotes.length > 0 && (
@@ -325,11 +348,11 @@ function CreditNotesCard({ invoice }: { invoice: Invoice }) {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Credit note</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>What</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>{t('Credit note')}</TableHead>
+                  <TableHead>{t('Date')}</TableHead>
+                  <TableHead>{t('What')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
+                  <TableHead className="text-right">{t('Total')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -341,7 +364,7 @@ function CreditNotesCard({ invoice }: { invoice: Invoice }) {
                       </Link>
                     </TableCell>
                     <TableCell>{formatBusinessDate(c.date)}</TableCell>
-                    <TableCell>{creditNoteKindLabels[c.kind as keyof typeof creditNoteKindLabels] ?? c.kind}</TableCell>
+                    <TableCell>{t(creditNoteKindLabels[c.kind as keyof typeof creditNoteKindLabels] ?? c.kind)}</TableCell>
                     <TableCell>
                       <ReturnStatusBadge status={c.status} />
                     </TableCell>
@@ -354,15 +377,22 @@ function CreditNotesCard({ invoice }: { invoice: Invoice }) {
         )}
         {fromOthers.length > 0 && (
           <div className="text-sm">
-            <p className="mb-1 font-medium">Credit from other credit notes set against this invoice</p>
+            <p className="mb-1 font-medium">{t('Credit from other credit notes set against this invoice')}</p>
             <ul className="space-y-1 text-muted-foreground">
               {fromOthers.map((a) => (
                 <li key={a.id} className={a.reversed ? 'line-through' : undefined}>
-                  {formatINR(a.amount)} from{' '}
-                  <Link className="font-mono underline underline-offset-4" to={`/credit-notes/${a.creditId}`}>
-                    {a.creditNumber}
-                  </Link>{' '}
-                  on {formatBusinessDate(a.date)}
+                  <T
+                    text="{amount} from {note} on {date}"
+                    values={{
+                      amount: formatINR(a.amount),
+                      note: (
+                        <Link className="font-mono underline underline-offset-4" to={`/credit-notes/${a.creditId}`}>
+                          {a.creditNumber}
+                        </Link>
+                      ),
+                      date: formatBusinessDate(a.date),
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -382,20 +412,25 @@ function UseCreditDialog({ invoice, open, onOpenChange }: { invoice: Invoice; op
     <SetCreditDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Use the customer's credit"
-      description={`${invoice.customerName} has ${formatINR(invoice.customerCreditAvailable)} of credit. ${formatINR(invoice.balance)} is due on ${invoice.number}.`}
-      chooseLabel="Credit note"
-      emptyText="The customer has no credit left."
+      title={t("Use the customer's credit")}
+      description={t('{customer} has {credit} of credit. {due} is due on {invoice}.', {
+        customer: invoice.customerName,
+        credit: formatINR(invoice.customerCreditAvailable),
+        due: formatINR(invoice.balance),
+        invoice: invoice.number,
+      })}
+      chooseLabel={t('Credit note')}
+      emptyText={t('The customer has no credit left.')}
       options={available.data?.map((c) => ({
         id: c.id,
-        label: `${c.number} · ${formatBusinessDate(c.date)} · ${formatINR(c.available)} left`,
+        label: t('{number} · {date} · {amount} left', { number: c.number, date: formatBusinessDate(c.date), amount: formatINR(c.available) }),
         max: Math.min(c.available, invoice.balance),
       }))}
       minDate={invoice.invoiceDate}
       onApply={async (creditNoteId, amount, date) => {
         const note = available.data!.find((c) => c.id === creditNoteId)!
         await apply.mutateAsync({ id: creditNoteId, documentId: invoice.id, amount, date, rowVersion: note.rowVersion })
-        return `${formatINR(amount)} from ${note.number} set against ${invoice.number}`
+        return t('{amount} from {note} set against {invoice}', { amount: formatINR(amount), note: note.number, invoice: invoice.number })
       }}
     />
   )

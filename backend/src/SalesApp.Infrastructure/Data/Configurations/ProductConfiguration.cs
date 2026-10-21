@@ -55,3 +55,26 @@ internal sealed class ProductRateConfiguration : IEntityTypeConfiguration<Produc
         });
     }
 }
+
+internal sealed class ProductImageConfiguration : IEntityTypeConfiguration<ProductImage>
+{
+    public void Configure(EntityTypeBuilder<ProductImage> builder)
+    {
+        builder.HasKey(i => i.ProductId);
+        builder.Property(i => i.ContentType).HasMaxLength(20).IsUnicode(false);
+        builder.Property(i => i.ThumbnailContentType).HasMaxLength(20).IsUnicode(false);
+
+        builder.HasOne(i => i.Product).WithOne().HasForeignKey<ProductImage>(i => i.ProductId).OnDelete(DeleteBehavior.Cascade);
+
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_ProductImages_Version", "[Version] >= 1");
+            t.HasCheckConstraint("CK_ProductImages_Size", "DATALENGTH([ImageData]) <= 2097152 AND DATALENGTH([ThumbnailData]) <= 262144");
+
+            // A removed photo clears both sizes together, so "has a picture" can be read from ImageData alone.
+            t.HasCheckConstraint("CK_ProductImages_Picture",
+                "([ImageData] IS NULL AND [ContentType] IS NULL AND [ThumbnailData] IS NULL AND [ThumbnailContentType] IS NULL)"
+                + " OR ([ImageData] IS NOT NULL AND [ContentType] IS NOT NULL AND [ThumbnailData] IS NOT NULL AND [ThumbnailContentType] IS NOT NULL)");
+        });
+    }
+}

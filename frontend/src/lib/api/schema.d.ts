@@ -835,6 +835,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BrandingDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/branding/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The logo. Each address names one version of it, so browsers may keep it for a year. */
+        get: {
+            parameters: {
+                query?: {
+                    v?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                        "image/png": unknown;
+                        "image/jpeg": unknown;
+                        "image/webp": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": components["schemas"]["ProblemDetails"];
+                        "image/jpeg": components["schemas"]["ProblemDetails"];
+                        "image/webp": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -1519,6 +1607,355 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All of my settings, by name. The values are JSON the web app owns. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/settings/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Saves one setting (at most 32 KB of JSON), replacing any earlier value. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JsonElement"];
+                    "text/json": components["schemas"]["JsonElement"];
+                    "application/*+json": components["schemas"]["JsonElement"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    /** @description How many, newest first (at most 100). */
+                    take?: number;
+                    /** @description Only the unread ones. */
+                    unreadOnly?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationListDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/read-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationMarkRequest"];
+                    "text/json": components["schemas"]["NotificationMarkRequest"];
+                    "application/*+json": components["schemas"]["NotificationMarkRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The bell was opened; what's there now is no longer "since your last visit". */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationMarkRequest"];
+                    "text/json": components["schemas"]["NotificationMarkRequest"];
+                    "application/*+json": components["schemas"]["NotificationMarkRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The kinds this person may receive, and which they've switched off. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationKindDto"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NotificationPreferencesRequest"];
+                    "text/json": components["schemas"]["NotificationPreferencesRequest"];
+                    "application/*+json": components["schemas"]["NotificationPreferencesRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NotificationKindDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/products": {
         parameters: {
             query?: never;
@@ -1711,6 +2148,220 @@ export interface paths {
                 };
             };
         };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every product photo, so any screen can show a picture next to a product. Open to everyone signed in: photos
+         *     show on orders, invoices and stock screens as well as the product list.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductImageDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets the product's photo. The browser sends it in two sizes it has already shrunk: the picture (at most
+         *     1.5 MB) and a thumbnail (at most 192 KB).
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        Image?: components["schemas"]["IFormFile"];
+                        Thumbnail?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProductImageDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/products/{id}/image/{size}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The picture itself. Anonymous because an &lt;img&gt; tag can't send the sign-in token: the signed address
+         *     (from Task&lt;IReadOnlyList&lt;ProductImageDto&gt;&gt; ProductsController.Images(CancellationToken cancellationToken) or a product) is the permission. Each address names one version of the photo, so
+         *     browsers may keep it for a year.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    v?: number;
+                    s?: string;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                    size: components["schemas"]["ProductImageSize"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                        "image/jpeg": unknown;
+                        "image/png": unknown;
+                        "image/webp": unknown;
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/jpeg": components["schemas"]["ProblemDetails"];
+                        "image/png": components["schemas"]["ProblemDetails"];
+                        "image/webp": components["schemas"]["ProblemDetails"];
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -3339,7 +3990,10 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The span the sales figures and rankings cover (this financial year unless chosen). */
+                    period?: components["schemas"]["DashboardPeriod"];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -5308,6 +5962,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/company/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets the company logo (menu, sign-in page, browser tab, printed documents). The browser has already shrunk it
+         *     to at most 512 px; PNG keeps a transparent background. SVG isn't accepted, as it can carry script.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        Logo?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BrandingDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BrandingDto"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/summary": {
         parameters: {
             query?: never;
@@ -6033,11 +6787,12 @@ export interface components {
         /**
          * @description The one error shape every endpoint returns. string ApiError.TraceId matches the server log
          *     entry, so a user can quote it when reporting a problem. IReadOnlyDictionary&lt;string, string[]&gt;? ApiError.Errors is only present
-         *     for validation failures and is keyed by camelCase field name.
+         *     for validation failures and is keyed by camelCase field name. Messages are written in English and
+         *     translated here into the request's language (Tamil when the app is in Tamil).
          */
         ApiError: {
-            message: string;
             traceId: string;
+            message: string;
             errors?: null | {
                 [key: string]: string[];
             };
@@ -6145,6 +6900,7 @@ export interface components {
             summary: null | string;
             changes: components["schemas"]["AuditChange"][];
             ipAddress: null | string;
+            entityTypeLabel: null | string;
         };
         /** @description Credit still available on one credit note or supplier return, for choosing which to use. */
         AvailableCreditDto: {
@@ -6231,6 +6987,18 @@ export interface components {
          * @enum {unknown}
          */
         BillSource: "Manual" | "AiPdf" | "AiImage";
+        /**
+         * @description What the app shows before anyone signs in (the sign-in page and the browser tab): only the company's name, colour
+         *     and logo, nothing else from the settings.
+         */
+        BrandingDto: {
+            /** @description The trade name, or the legal name when there isn't one. */
+            companyName: string;
+            /** @description #rrggbb, or null for the standard indigo. */
+            brandColour: null | string;
+            /** @description Changes with every new logo, so browsers can cache each one for good; null when there's no logo. */
+            logoUrl: null | string;
+        };
         CategoryDto: {
             /** Format: int32 */
             id: number;
@@ -6271,6 +7039,9 @@ export interface components {
             overReceiptTolerancePercent: number;
             /** Format: double */
             billPriceTolerancePercent: number;
+            brandColour: null | string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
+            logoUrl: null | string;
             rowVersion: string;
         };
         CompanySettingsSaveRequest: {
@@ -6302,6 +7073,10 @@ export interface components {
             overReceiptTolerancePercent?: number;
             /** Format: double */
             billPriceTolerancePercent?: number;
+            /** @description The app's colour as #rrggbb; empty keeps the standard indigo. */
+            brandColour?: null | string;
+            /** @description Printed documents for customers and suppliers who haven't chosen their own language. */
+            documentLanguage?: components["schemas"]["DocumentLanguage"];
             rowVersion: string;
         };
         /** @description Credit set against another invoice or bill of the same customer or supplier. */
@@ -6388,6 +7163,8 @@ export interface components {
             /** Format: double */
             creditAvailable: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             adjustments: components["schemas"]["CreditUseDto"][];
             refunds: components["schemas"]["RefundDto"][];
             /** Format: date-time */
@@ -6583,6 +7360,7 @@ export interface components {
             assignedRepName: null | string;
             notes: null | string;
             isActive: boolean;
+            documentLanguage: null | components["schemas"]["DocumentLanguage"];
             /** Format: date-time */
             createdAtUtc: string;
             /** Format: date-time */
@@ -6636,6 +7414,7 @@ export interface components {
             assignedRepId?: null | string;
             notes?: null | string;
             isActive?: boolean;
+            documentLanguage?: null | components["schemas"]["DocumentLanguage"];
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
         };
@@ -6670,38 +7449,103 @@ export interface components {
         };
         /** @description Everything the home dashboard shows. Sales values are taxable value (excluding GST). */
         DashboardDto: {
+            /** @description The financial year the period falls in, e.g. "26-27". */
             financialYear: string;
+            /** @description The days shown and the days they're compared with. */
+            period: components["schemas"]["DashboardPeriodDto"];
+            /** @description The headline figures. */
             kpis: components["schemas"]["DashboardKpisDto"];
+            /** @description The last 24 months, whatever the period. */
             monthlySales: components["schemas"]["MonthlySalesDto"][];
+            /** @description The period's top five customers. */
             topCustomers: components["schemas"]["RankedItemDto"][];
+            /** @description The period's top five products. */
             topProducts: components["schemas"]["RankedItemDto"][];
+            /** @description The period's sales by place of supply. */
             salesByState: components["schemas"]["RankedItemDto"][];
+            /** @description Today's receivables by how late they are. */
             ageing: components["schemas"]["ReceivablesAgeingDto"];
         };
         DashboardKpisDto: {
-            /** Format: double */
-            salesMonthToDate: number;
-            /** Format: double */
-            salesLastMonthSamePeriod: number;
-            /** Format: int32 */
-            invoicesMonthToDate: number;
-            /** Format: double */
-            salesFinancialYearToDate: number;
-            /** Format: double */
-            salesPreviousYearSamePeriod: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Taxable value invoiced in the period, less credit notes.
+             */
+            sales: number;
+            /**
+             * Format: double
+             * @description The same for the comparison days.
+             */
+            salesComparison: number;
+            /**
+             * Format: int32
+             * @description Invoices issued in the period.
+             */
+            invoices: number;
+            /**
+             * Format: double
+             * @description Payments received in the period.
+             */
+            collected: number;
+            /**
+             * Format: int32
+             * @description How many payments that was.
+             */
+            payments: number;
+            /**
+             * Format: double
+             * @description Owed by customers today.
+             */
             outstanding: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description The part of it past its due date.
+             */
             overdue: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description How many invoices that is.
+             */
             overdueInvoices: number;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Confirmed orders waiting to be invoiced, with GST.
+             */
             openOrdersValue: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description How many orders that is.
+             */
             openOrders: number;
-            /** Format: int32 */
+            /**
+             * Format: int32
+             * @description Active products at or below their reorder level.
+             */
             lowStockProducts: number;
         };
+        /**
+         * @description The span the dashboard shows. Point-in-time figures (receivables, orders to invoice, stock) ignore it.
+         * @enum {unknown}
+         */
+        DashboardPeriod: "Month" | "Quarter" | "Year" | "LastYear";
+        /** @description The days a dashboard covers and the earlier days its sales are compared with. */
+        DashboardPeriodDto: {
+            period: components["schemas"]["DashboardPeriod"];
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            /** Format: date */
+            comparisonFrom: string;
+            /** Format: date */
+            comparisonTo: string;
+        };
+        /**
+         * @description The language a customer's or supplier's documents are printed in (invoices, quotations, credit and debit notes,
+         *     purchase orders) and their payment reminders written in. Both prints each label in English with the Tamil under it.
+         * @enum {unknown}
+         */
+        DocumentLanguage: "English" | "Tamil" | "Both";
         EntityTagHeaderValue: {
             tag?: components["schemas"]["StringSegment"];
             isWeak?: boolean;
@@ -6963,6 +7807,8 @@ export interface components {
             /** Format: int32 */
             daysOverdue: null | number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             payments: components["schemas"]["PaymentDto"][];
             creditsApplied: components["schemas"]["CreditUseDto"][];
             creditNotes: components["schemas"]["ReturnSummaryDto"][];
@@ -7050,6 +7896,7 @@ export interface components {
             status: components["schemas"]["InvoiceStatus"];
             /** Format: int32 */
             daysOverdue: null | number;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
         };
         /** @enum {unknown} */
         InvoiceStatus: "Unpaid" | "PartiallyPaid" | "Paid" | "Cancelled";
@@ -7067,6 +7914,7 @@ export interface components {
             /** Format: double */
             collectedThisMonth: number;
         };
+        JsonElement: unknown;
         LoginRequest: {
             email: string;
             password: string;
@@ -7096,6 +7944,50 @@ export interface components {
          * @enum {unknown}
          */
         NarrativeStatus: "AiOff" | "Verified" | "Trimmed" | "Failed";
+        /** @description One notification for the signed-in person. Important ones (payments received, things waiting for approval) pop up when they arrive. */
+        NotificationDto: {
+            /** Format: int64 */
+            id: number;
+            kind: components["schemas"]["NotificationKind"];
+            title: string;
+            body: null | string;
+            link: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            read: boolean;
+            important: boolean;
+        };
+        /** @enum {unknown} */
+        NotificationKind: "PaymentReceived" | "OrderCreated" | "OrderConfirmed" | "OverdueSummary" | "LowStock" | "PurchaseOrderApproval" | "BillApproval" | "InsightsReady";
+        /** @description A kind this person may receive, and whether they've switched it off. */
+        NotificationKindDto: {
+            kind: components["schemas"]["NotificationKind"];
+            label: string;
+            description: string;
+            muted: boolean;
+        };
+        NotificationListDto: {
+            /** @description The newest first. */
+            items: components["schemas"]["NotificationDto"][];
+            /**
+             * Format: int32
+             * @description All unread ones this person may see, not only those listed.
+             */
+            unreadCount: number;
+            /**
+             * Format: int64
+             * @description Items newer than this arrived since the bell was last opened.
+             */
+            lastOpenedUpToId: number;
+        };
+        /** @description Up to which notification (the newest one on screen), so one arriving meanwhile isn't marked unseen. */
+        NotificationMarkRequest: {
+            /** Format: int64 */
+            upToId?: number;
+        };
+        NotificationPreferencesRequest: {
+            muted: components["schemas"]["NotificationKind"][];
+        };
         /** @description Status changes carry the row version the user was looking at, so nobody acts on a stale screen. */
         OrderActionRequest: {
             rowVersion: string;
@@ -7156,6 +8048,8 @@ export interface components {
             /** Format: double */
             grandTotal: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             createdByName: string;
             /** Format: date-time */
             createdAtUtc: string;
@@ -7529,7 +8423,18 @@ export interface components {
             name: string;
             description: string;
         };
-        /** @description A product with full details. CostPrice is null for sales reps: cost and margin are manager-only. */
+        ProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
+        };
+        /**
+         * @description A product with full details. CostPrice is null for sales reps: cost and margin are manager-only. Image is null
+         *     when the product has no photo.
+         */
         ProductDto: {
             /** Format: int32 */
             id: number;
@@ -7566,7 +8471,22 @@ export interface components {
             /** Format: date-time */
             updatedAtUtc: string;
             rowVersion: string;
+            image: null | components["schemas"]["ProductImageDto"];
         };
+        /**
+         * @description Where to load a product's photo from. The addresses are signed, so a plain &lt;img&gt; tag can load them without
+         *     the sign-in token, and they change with every new photo (Version), so browsers cache each one for good.
+         */
+        ProductImageDto: {
+            /** Format: int32 */
+            productId: number;
+            /** Format: int32 */
+            version: number;
+            imageUrl: string;
+            thumbnailUrl: string;
+        };
+        /** @enum {unknown} */
+        ProductImageSize: "Full" | "Thumb";
         /**
          * @description A product in a list. Price is its price on the requested day: the rate for that period (HasRate) or else the list
          *     price. New order lines start at Price.
@@ -7702,6 +8622,8 @@ export interface components {
             /** Format: double */
             grandTotal: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             needsApproval: boolean;
             /** Format: double */
             approvalLimit: null | number;
@@ -8509,6 +9431,7 @@ export interface components {
             bankIfsc: null | string;
             notes: null | string;
             isActive: boolean;
+            documentLanguage: null | components["schemas"]["DocumentLanguage"];
             isInterState: boolean;
             /** Format: double */
             payable: number;
@@ -8644,6 +9567,8 @@ export interface components {
             /** Format: double */
             creditAvailable: number;
             amountInWords: string;
+            amountInWordsTamil: string;
+            documentLanguage: components["schemas"]["DocumentLanguage"];
             adjustments: components["schemas"]["CreditUseDto"][];
             refunds: components["schemas"]["RefundDto"][];
             /** Format: date-time */
@@ -8779,6 +9704,7 @@ export interface components {
             bankIfsc?: null | string;
             notes?: null | string;
             isActive?: boolean;
+            documentLanguage?: null | components["schemas"]["DocumentLanguage"];
             /** @description Required when updating; the value from the last GET, for optimistic concurrency. */
             rowVersion?: null | string;
         };

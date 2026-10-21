@@ -12,7 +12,7 @@ namespace SalesApp.AI.Insights;
 /// </summary>
 public static partial class NarrativeNumberCheck
 {
-    [GeneratedRegex(@"(?<cur>₹\s?|\bRs\.?\s?|\bINR\s?)?(?<num>\d{1,3}(?:,\d{2,3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?<suf>\s?(?:%|per\s?cent\b|lakhs?\b|lacs?\b|crores?\b|cr\b|L\b))?", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?<cur>₹\s?|\bRs\.?\s?|\bINR\s?)?(?<num>\d{1,3}(?:,\d{2,3})+(?:\.\d+)?|\d+(?:\.\d+)?)(?<suf>\s?(?:%|per\s?cent\b|lakhs?\b|lacs?\b|crores?\b|cr\b|L\b|லட்ச\S*|கோடி\S*|சதவீத\S*))?", RegexOptions.IgnoreCase)]
     private static partial Regex Figure();
 
     // Removed before looking for figures: dates ("14 Oct 2026", "Oct 2026", "2026-10-14"), financial years
@@ -24,18 +24,22 @@ public static partial class NarrativeNumberCheck
         @"|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s\d{4}\b" +
         @"|\b\d{1,2}(?:st|nd|rd|th)?\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b" +
         @"|\b\d{4}-\d{2}(?:-\d{2})?\b|\b\d{2}-\d{2}\b" +
-        @"|\b[A-Z]{1,5}-[A-Z0-9]+(?:-[A-Z0-9]+)*\b|\b[A-Z]\d{3,}\b",
+        @"|\b[A-Z]{1,5}-[A-Z0-9]+(?:-[A-Z0-9]+)*\b|\b[A-Z]\d{3,}\b" +
+        // The same dates in Tamil ("14 அக்டோபர் 2026", "அக். 2026").
+        @"|\d{1,2}\s(?:" + TamilMonths + @")\S*\s\d{4}|(?:" + TamilMonths + @")\S*\s\d{4}|\d{1,2}\s(?:" + TamilMonths + @")\S*",
         RegexOptions.IgnoreCase)]
     private static partial Regex NotFigures();
 
-    [GeneratedRegex(@"^\s*(?:days?|weeks?|months?|years?|quarters?)\b", RegexOptions.IgnoreCase)]
+    private const string TamilMonths = "ஜனவரி|பிப்ரவரி|மார்ச்|ஏப்ரல்|மே|ஜூன்|ஜூலை|ஆகஸ்ட்|செப்டம்பர்|அக்டோபர்|நவம்பர்|டிசம்பர்|ஜன|பிப்|மார்|ஏப்|ஆக|செப்|அக்|நவ|டிச";
+
+    [GeneratedRegex(@"^\s*(?:days?\b|weeks?\b|months?\b|years?\b|quarters?\b|நாள்|நாட்கள்|வார|மாத|ஆண்டு|வருட|காலாண்டு)", RegexOptions.IgnoreCase)]
     private static partial Regex TimeAfter();
 
     // "₹2.1–2.6 crore": the unit written once at the end applies to both ends of the range.
-    [GeneratedRegex(@"\G\s?(?:–|-|to)\s?(?:₹\s?)?\d[\d,]*(?:\.\d+)?\s?(?<suf>lakhs?\b|lacs?\b|crores?\b|cr\b|L\b)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"\G\s?(?:–|-|to)\s?(?:₹\s?)?\d[\d,]*(?:\.\d+)?\s?(?<suf>lakhs?\b|lacs?\b|crores?\b|cr\b|L\b|லட்ச\S*|கோடி\S*)", RegexOptions.IgnoreCase)]
     private static partial Regex RangeUnitAfter();
 
-    [GeneratedRegex(@"\b(?:top|last|next|past|first|over|within|every)\s*$", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:\b(?:top|last|next|past|first|over|within|every)|கடந்த|அடுத்த|முதல்|ஒவ்வொரு)\s*$", RegexOptions.IgnoreCase)]
     private static partial Regex CountWordBefore();
 
     /// <summary>Every number in the metrics JSON, including figures written in its text fields.</summary>
@@ -97,6 +101,8 @@ public static partial class NarrativeNumberCheck
             {
                 "lakh" or "lakhs" or "lac" or "lacs" or "l" => 100_000m,
                 "crore" or "crores" or "cr" => 10_000_000m,
+                _ when suffix.StartsWith("லட்ச", StringComparison.Ordinal) => 100_000m,
+                _ when suffix.StartsWith("கோடி", StringComparison.Ordinal) => 10_000_000m,
                 _ => 1m,
             };
             yield return new FigureText(match.Value.Trim(), value * scale, 0.5m * Pow10(-decimals) * scale);

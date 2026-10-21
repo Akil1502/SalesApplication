@@ -36,6 +36,11 @@ public sealed class InvoiceService(
 {
     private static readonly InvoiceStatus[] Open = [InvoiceStatus.Unpaid, InvoiceStatus.PartiallyPaid];
 
+    private static readonly SortMap<Invoice> Sorts = new SortMap<Invoice>()
+        .Add("invoiceDate", i => i.InvoiceDate)
+        .Add("dueDate", i => i.DueDate)
+        .Add("number", i => i.Number);
+
     public async Task<PagedResult<InvoiceListItemDto>> ListAsync(InvoiceListRequest request, CancellationToken cancellationToken)
     {
         var today = clock.Today;
@@ -72,16 +77,17 @@ public sealed class InvoiceService(
                                      (i.CustomerGstin != null && i.CustomerGstin.Contains(q)));
         }
 
-        var page = await query
-            .OrderByDescending(i => i.InvoiceDate)
+        // Newest first unless asked; "dueDate" with OverdueOnly lists the invoices to chase first.
+        var page = await Sorts.Apply(query, request.Sort, "-invoiceDate")
             .ThenByDescending(i => i.Id)
             .Select(i => new { i.Id, i.Number, i.InvoiceDate, i.DueDate, i.CustomerId, i.CustomerName, i.GrandTotal, i.AmountPaid, i.AmountCredited, i.Status })
             .ToPagedResultAsync(request, cancellationToken);
 
+        var languages = await DocumentLanguages.ForCustomersAsync(db, [.. page.Items.Select(i => i.CustomerId)], cancellationToken);
         var items = page.Items
             .Select(i => new InvoiceListItemDto(i.Id, i.Number, i.InvoiceDate, i.DueDate, i.CustomerId, i.CustomerName,
                 i.GrandTotal, i.AmountPaid, i.AmountCredited, i.Status == InvoiceStatus.Cancelled ? 0m : i.GrandTotal - i.AmountPaid - i.AmountCredited, i.Status,
-                DaysOverdue(i.Status, i.DueDate, today)))
+                DaysOverdue(i.Status, i.DueDate, today), languages[i.CustomerId]))
             .ToList();
         return new PagedResult<InvoiceListItemDto>(items, page.Page, page.PageSize, page.TotalCount);
     }
@@ -170,8 +176,10 @@ public sealed class InvoiceService(
             invoice.Status == InvoiceStatus.Cancelled ? 0m : invoice.GrandTotal - invoice.AmountPaid - invoice.AmountCredited,
             DaysOverdue(invoice.Status, invoice.DueDate, clock.Today),
             AmountInWords.Rupees(invoice.GrandTotal),
+            AmountInWords.TamilRupees(invoice.GrandTotal),
+            await DocumentLanguages.ForCustomerAsync(db, invoice.CustomerId, cancellationToken),
             payments, creditsApplied, creditNotes, customerCredit, ReturnRules.GstDeadline(invoice.InvoiceDate),
-            invoice.Status == InvoiceStatus.Cancelled ? null : Credits.InvoiceCancelBlockedReason(invoice, hasCreditNotes, clock.Today),
+            invoice.Status == InvoiceStatus.Cancelled ? null : L.T(Credits.InvoiceCancelBlockedReason(invoice, hasCreditNotes, clock.Today)),
             invoice.CancelledAtUtc, invoice.CancellationReason,
             settings.BankName, settings.BankAccountNumber, settings.BankIfsc, settings.BankBranch, settings.InvoiceTerms,
             invoice.CreatedBy!.FullName, invoice.CreatedAtUtc);
@@ -185,7 +193,7 @@ public sealed class InvoiceService(
             ?? throw new ValidationException("salesOrderId", "Choose a valid order.");
         if (order.Status != SalesOrderStatus.Confirmed)
         {
-            throw new ConflictException($"Only confirmed orders can be invoiced; {order.Number} is {order.Status.ToString().ToLowerInvariant()}.");
+            throw new ConflictException($"Only confirmed orders can be invoiced; {order.Number} is {OrderService.Describe(order.Status)}.");
         }
 
         var today = clock.Today;
@@ -329,7 +337,7 @@ public sealed class InvoiceService(
             await ledger.PostAsync(new StockPosting(
                 line.ProductId, StockMovementType.SaleReversal, line.Quantity, clock.Today,
                 ReferenceType: StockReferenceTypes.Invoice, ReferenceId: invoice.Id, ReferenceNumber: invoice.Number,
-                Notes: $"Invoice cancelled: {invoice.CancellationReason}"), cancellationToken);
+                Notes: L.Msg($"Invoice cancelled: {invoice.CancellationReason}")), cancellationToken);
         }
 
         // The order goes back to Confirmed so it can be invoiced again or cancelled.

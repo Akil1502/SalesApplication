@@ -31,6 +31,7 @@ public sealed class DemoDataFactory : WebApplicationFactory<Program>, IAsyncLife
         builder.UseSetting("ConnectionStrings:Default", ConnectionString);
         builder.UseSetting("Database:MigrateOnStartup", "false");
         builder.UseSetting("Ai:Insights:NightlyEnabled", "false");
+        builder.UseSetting("Notifications:DailyEnabled", "false");
         builder.UseSetting("Security:LoginAttemptsPerMinute", "100000"); // tests sign in hundreds of times a minute
         builder.UseSetting("Jwt:SigningKey", "integration-test-signing-key-not-a-secret-0123456789");
         builder.UseSetting("Seed:AdminEmail", "admin@salesapp.test");
@@ -179,8 +180,9 @@ public sealed class DemoDataTests(DemoDataFactory factory) : IClassFixture<DemoD
         var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
         var dashboard = await (await manager.GetAsync("/api/dashboard", Ct)).ReadAsync<DashboardDto>();
 
-        // Reports default to the financial year to date, the same window as the dashboard's FY figure.
-        var expected = dashboard.Kpis.SalesFinancialYearToDate;
+        // Reports default to the financial year to date, the same window as the dashboard's default period.
+        Assert.Equal(DashboardPeriod.Year, dashboard.Period.Period);
+        var expected = dashboard.Kpis.Sales;
         Assert.True(expected > 0);
         foreach (var report in new[] { "sales-by-period", "sales-by-customer", "sales-by-product", "gst-summary", "hsn-summary" })
         {
@@ -197,6 +199,46 @@ public sealed class DemoDataTests(DemoDataFactory factory) : IClassFixture<DemoD
             .SumAsync(c => c.TaxableValue, Ct));
         Assert.True(fromCreditNotes > 0);
         Assert.Equal(expected, fromInvoices - fromCreditNotes);
+    }
+
+    [Theory]
+    [InlineData(DashboardPeriod.Month)]
+    [InlineData(DashboardPeriod.Quarter)]
+    [InlineData(DashboardPeriod.Year)]
+    [InlineData(DashboardPeriod.LastYear)]
+    public async Task Each_dashboard_period_agrees_with_the_reports_for_the_same_days(DashboardPeriod period)
+    {
+        var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
+        var dashboard = await (await manager.GetAsync($"/api/dashboard?period={period}", Ct)).ReadAsync<DashboardDto>();
+        Assert.Equal(period, dashboard.Period.Period);
+
+        string Range(DateOnly from, DateOnly to) => $"from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
+        decimal Taxable(ReportResult report) => ((System.Text.Json.JsonElement)report.Totals["taxable"]!).GetDecimal();
+        var sales = await (await manager.GetAsync($"/api/reports/sales-by-period?{Range(dashboard.Period.From, dashboard.Period.To)}", Ct)).ReadAsync<ReportResult>();
+        var earlier = await (await manager.GetAsync($"/api/reports/sales-by-period?{Range(dashboard.Period.ComparisonFrom, dashboard.Period.ComparisonTo)}", Ct)).ReadAsync<ReportResult>();
+        Assert.Equal(Taxable(sales), dashboard.Kpis.Sales);
+        Assert.Equal(Taxable(earlier), dashboard.Kpis.SalesComparison);
+
+        // The rankings cover the same days: their shares are of the period's sales.
+        Assert.Equal(dashboard.Kpis.Sales, dashboard.SalesByState.Sum(s => s.Value));
+
+        var collected = await WithDbAsync(db => db.Payments
+            .Where(p => p.PaymentDate >= dashboard.Period.From && p.PaymentDate <= dashboard.Period.To)
+            .SumAsync(p => (decimal?)p.Amount, Ct));
+        Assert.Equal(collected ?? 0m, dashboard.Kpis.Collected);
+    }
+
+    [Fact]
+    public async Task Overdue_invoices_can_be_listed_most_overdue_first()
+    {
+        var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
+        var page = await (await manager.GetAsync("/api/invoices?overdueOnly=true&sort=dueDate&pageSize=10", Ct))
+            .ReadAsync<SalesApp.Core.Contracts.Common.PagedResult<SalesApp.Core.Contracts.Sales.InvoiceListItemDto>>();
+
+        Assert.NotEmpty(page.Items);
+        Assert.All(page.Items, i => Assert.True(i.DaysOverdue > 0));
+        Assert.Equal(page.Items.OrderBy(i => i.DueDate).Select(i => i.Id), page.Items.Select(i => i.Id));
+        Assert.Equal(page.Items.Max(i => i.DaysOverdue), page.Items[0].DaysOverdue);
     }
 
     [Fact]

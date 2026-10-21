@@ -1,5 +1,6 @@
 import createClient, { type Middleware } from 'openapi-fetch'
 import { authStore } from '@/features/auth/auth-store'
+import { acceptLanguage } from '@/lib/i18n'
 import type { components, paths } from './schema'
 
 /** Request/response shapes generated from the API's OpenAPI document (`npm run gen:api`). */
@@ -21,6 +22,8 @@ const authMiddleware: Middleware = {
     if (token) {
       request.headers.set('Authorization', `Bearer ${token}`)
     }
+    // The server writes its messages (and Claude its answers) in the language on screen.
+    request.headers.set('Accept-Language', acceptLanguage())
     return request
   },
   onResponse({ request, response }) {

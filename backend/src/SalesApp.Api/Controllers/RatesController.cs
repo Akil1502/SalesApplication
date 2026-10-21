@@ -63,7 +63,7 @@ public sealed class RatesController(IRateService rates, IBusinessClock clock, IA
         var day = on ?? clock.Today;
         var bytes = await rates.ExportAsync(day, categoryId, q, cancellationToken);
         await audit.RecordAsync(new AuditEvent(AuditAction.Exported,
-            Summary: $"Downloaded the rate sheet with prices on {day.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}."), cancellationToken);
+            Summary: L.Msg($"Downloaded the rate sheet with prices on {day.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}.")), cancellationToken);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"rates-{day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.xlsx");
     }

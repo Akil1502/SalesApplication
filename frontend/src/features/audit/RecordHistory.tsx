@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { formatDateTime } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { useAudit } from './api'
 import { ActionBadge } from './ActionBadge'
 import { ChangeList } from './ChangeList'
@@ -28,13 +29,15 @@ export function RecordHistory({ entityType, entityId }: { entityType: string; en
         <div className="flex flex-col gap-1.5">
           <CardTitle className="flex items-center gap-2">
             <History className="size-4" />
-            History
+            {t('History')}
           </CardTitle>
-          <CardDescription>Who changed this {entityType.toLowerCase()} and when, with the old and new values.</CardDescription>
+          <CardDescription>
+            {t('Who changed this {record} and when, with the old and new values.', { record: t(entityType).toLowerCase() })}
+          </CardDescription>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           {open ? <ChevronDown /> : <ChevronRight />}
-          {open ? 'Hide' : 'Show'}
+          {open ? t('Hide') : t('Show')}
         </Button>
       </CardHeader>
       {open && (
@@ -42,7 +45,7 @@ export function RecordHistory({ entityType, entityId }: { entityType: string; en
           {history.isPending ? (
             <Skeleton className="h-24 w-full" />
           ) : items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
+            <p className="text-sm text-muted-foreground">{t('No changes recorded yet.')}</p>
           ) : (
             <ol className="flex flex-col gap-4">
               {items.map((entry) => (
@@ -59,7 +62,7 @@ export function RecordHistory({ entityType, entityId }: { entityType: string; en
           )}
           {history.data && history.data.totalCount > items.length && (
             <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setPageSize((n) => n + 20)}>
-              Show older changes
+              {t('Show older changes')}
             </Button>
           )}
         </CardContent>

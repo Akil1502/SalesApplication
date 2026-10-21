@@ -26,7 +26,8 @@ public static class OrderExtractionPrompt
           கோன் = cone, பண்டல் = bundle, ரோல் = roll. நூல் is yarn, துணி is fabric, காட்டன் is cotton.
         - Keep sourceText and unmatched exactly as the customer wrote them, in their own script.
         - Write notes and every note in English, so anyone on the sales team can read them; when the customer wrote
-          in Tamil, include a short English translation of anything important.
+          in Tamil, include a short English translation of anything important. If the request says the user has
+          chosen Tamil, write them in simple written Tamil instead.
 
         Reading the order
         - Customers write informally and use trade shorthand: "30s" or "30 count" for yarn count, "CC" for combed
@@ -86,6 +87,11 @@ public static class OrderExtractionPrompt
     {
         var builder = new StringBuilder();
         builder.Append(CultureInfo.InvariantCulture, $"Today's date (India): {today:yyyy-MM-dd} ({today.DayOfWeek}).\n");
+        if (L.InTamil)
+        {
+            builder.Append("The user has chosen Tamil for the app: write notes in simple written Tamil.\n");
+        }
+
         if (hasFile)
         {
             builder.Append("The attached file is the customer's order.\n");

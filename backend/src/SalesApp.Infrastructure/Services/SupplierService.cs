@@ -97,7 +97,7 @@ public sealed class SupplierService(AppDbContext db, ILookupService lookups, IBu
             supplier.ContactPerson, supplier.Phone, supplier.Email,
             new AddressDto(a.Line1, a.Line2, a.City, a.StateCode, states.GetValueOrDefault(a.StateCode)?.Name ?? a.StateCode, a.Pincode),
             supplier.PaymentTermsDays, supplier.BankName, supplier.BankAccountNumber, supplier.BankIfsc, supplier.Notes, supplier.IsActive,
-            a.StateCode != companyState, payable, overdue, orders,
+            supplier.DocumentLanguage, a.StateCode != companyState, payable, overdue, orders,
             supplier.CreatedAtUtc, supplier.UpdatedAtUtc, RowVersions.ToToken(supplier.RowVersion));
     }
 
@@ -145,6 +145,7 @@ public sealed class SupplierService(AppDbContext db, ILookupService lookups, IBu
         supplier.BankIfsc = Text.NullIfBlank(request.BankIfsc);
         supplier.Notes = Text.NullIfBlank(request.Notes);
         supplier.IsActive = request.IsActive;
+        supplier.DocumentLanguage = request.DocumentLanguage;
     }
 
     /// <summary>A real state, and a GSTIN registered in the same state as the address.</summary>

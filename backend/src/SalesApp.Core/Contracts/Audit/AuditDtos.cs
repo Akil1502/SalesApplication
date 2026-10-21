@@ -17,7 +17,9 @@ public sealed record AuditEntryDto(
     string? EntityLabel,
     string? Summary,
     IReadOnlyList<AuditChange> Changes,
-    string? IpAddress);
+    string? IpAddress,
+    // EntityType stays English: it's the filter key. This is what to show.
+    string? EntityTypeLabel);
 
 public sealed record AuditListRequest : PageRequest
 {

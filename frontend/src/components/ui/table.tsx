@@ -1,14 +1,47 @@
 import * as React from "react"
 import { cn } from "cn"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+/**
+ * stack: line-item tables that turn into a card per row when the page (or the side panel) is narrow. Each cell is
+ * labelled with its column heading for that view, kept up to date as rows come and go (see index.css).
+ */
+function Table({ className, stack = false, ...props }: React.ComponentProps<"table"> & { stack?: boolean }) {
+  const ref = React.useRef<HTMLTableElement>(null)
+
+  React.useLayoutEffect(() => {
+    const table = ref.current
+    if (!stack || !table) return
+    const label = () => {
+      const headings = Array.from(table.tHead?.rows[0]?.cells ?? []).flatMap((cell) =>
+        Array<string>(cell.colSpan || 1).fill(cell.textContent?.trim() ?? "")
+      )
+      for (const body of Array.from(table.tBodies)) {
+        for (const row of Array.from(body.rows)) {
+          let column = 0
+          for (const cell of Array.from(row.cells)) {
+            const heading = cell.colSpan > 1 ? "" : headings[column]
+            if (heading) cell.dataset.label = heading
+            else delete cell.dataset.label
+            column += cell.colSpan || 1
+          }
+        }
+      }
+    }
+    label()
+    const observer = new MutationObserver(label)
+    observer.observe(table, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [stack])
+
   return (
     <div
       data-slot="table-container"
       className="relative w-full overflow-x-auto"
     >
       <table
+        ref={ref}
         data-slot="table"
+        data-stack={stack ? "" : undefined}
         className={cn("w-full caption-bottom text-sm", className)}
         {...props}
       />

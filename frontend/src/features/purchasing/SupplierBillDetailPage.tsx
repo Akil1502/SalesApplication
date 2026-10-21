@@ -2,6 +2,7 @@ import { ArrowLeft, Ban, CheckCircle2, FileCheck2, IndianRupee, Sparkles, Triang
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
+import { PaidStamp } from '@/components/fx/Stamp'
 import { PageHeader } from '@/components/PageHeader'
 import { ReasonDialog } from '@/components/ReasonDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -23,6 +24,8 @@ import { cn } from '@/lib/utils'
 import { useApproveSupplierBill, useCancelSupplierBill, useSupplierBill, type SupplierBill } from './api'
 import { BillStatusBadge, MatchBadge } from './badges'
 import { RecordSupplierPaymentDialog } from './RecordSupplierPaymentDialog'
+import { t } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 
 export function SupplierBillDetailPage() {
   const id = Number(useParams().id)
@@ -55,21 +58,34 @@ export function SupplierBillDetailPage() {
   return (
     <div className="flex max-w-6xl flex-col gap-6">
       <PageHeader
-        title={`Bill ${b.number}`}
+        title={t('Bill {number}', { number: b.number })}
+        figures={[
+          { label: t('Total'), value: formatINR(b.grandTotal) },
+          { label: t('Balance'), value: formatINR(b.balance), emphasis: b.balance > 0 && !cancelled },
+        ]}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
             <MatchBadge status={b.matchStatus} />
             <BillStatusBadge status={b.status} daysOverdue={b.daysOverdue} />
             <span>
-              {b.supplierName}'s invoice <span className="font-mono">{b.supplierInvoiceNumber}</span> dated {formatBusinessDate(b.billDate)} · due{' '}
-              {formatBusinessDate(b.dueDate)} · for order{' '}
-              <Link className="font-mono underline underline-offset-4" to={`/purchase-orders/${b.purchaseOrderId}`}>
-                {b.purchaseOrderNumber}
-              </Link>
+              <T
+                text="{supplier}'s invoice {invoice} dated {date} · due {due} · for order {order}"
+                values={{
+                  supplier: b.supplierName,
+                  invoice: <span className="font-mono">{b.supplierInvoiceNumber}</span>,
+                  date: formatBusinessDate(b.billDate),
+                  due: formatBusinessDate(b.dueDate),
+                  order: (
+                    <Link className="font-mono underline underline-offset-4" to={`/purchase-orders/${b.purchaseOrderId}`}>
+                      {b.purchaseOrderNumber}
+                    </Link>
+                  ),
+                }}
+              />
             </span>
             {b.source !== 'Manual' && (
               <span className="inline-flex items-center gap-1 text-xs text-violet-700 dark:text-violet-300">
-                <Sparkles className="size-3.5" /> Read by AI
+                <Sparkles className="size-3.5" /> {t('Read by AI')}
               </span>
             )}
           </span>
@@ -79,39 +95,39 @@ export function SupplierBillDetailPage() {
             <Button variant="ghost" asChild>
               <Link to="/supplier-bills">
                 <ArrowLeft />
-                Bills
+                {t('Bills')}
               </Link>
             </Button>
             {can(Permissions.SupplierBillsEdit) && !cancelled && !b.cancelBlockedReason && (
               <Button variant="outline" className="text-destructive" onClick={() => setCancelOpen(true)}>
                 <Ban />
-                Cancel bill
+                {t('Cancel bill')}
               </Button>
             )}
             {canReturn && b.lines.some((l) => l.quantity > l.quantityReturned) && (
               <Button variant="outline" asChild>
                 <Link to={`/supplier-bills/${b.id}/return`}>
                   <Undo2 />
-                  Return goods
+                  {t('Return goods')}
                 </Link>
               </Button>
             )}
             {canUseCredit && (
               <Button variant="outline" onClick={() => setCreditOpen(true)}>
                 <FileCheck2 />
-                Use credit ({formatINR(b.supplierCreditAvailable)})
+                {t('Use credit ({amount})', { amount: formatINR(b.supplierCreditAvailable) })}
               </Button>
             )}
             {needsApproval && can(Permissions.SupplierBillsApprove) && (
               <Button variant="outline" onClick={() => setApproveOpen(true)}>
                 <CheckCircle2 />
-                Approve differences
+                {t('Approve differences')}
               </Button>
             )}
             {canPay && (
               <Button onClick={() => setPaymentOpen(true)}>
                 <IndianRupee />
-                Record payment
+                {t('Record payment')}
               </Button>
             )}
           </>
@@ -122,7 +138,10 @@ export function SupplierBillDetailPage() {
         <Alert variant="destructive">
           <Ban />
           <AlertDescription>
-            Cancelled {formatDate(b.cancelledAtUtc)}: {b.cancellationReason}. Its quantities count as unbilled again on the order.
+            {t('Cancelled {date}: {reason}. Its quantities count as unbilled again on the order.', {
+              date: formatDate(b.cancelledAtUtc),
+              reason: b.cancellationReason ?? '',
+            })}
           </AlertDescription>
         </Alert>
       )}
@@ -131,7 +150,9 @@ export function SupplierBillDetailPage() {
         <Alert className="border-amber-600/30 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
           <TriangleAlert />
           <AlertDescription className="text-inherit">
-            <p className="font-medium">This bill doesn't match its order, so it can't be paid until someone who can approve bill differences accepts it.</p>
+            <p className="font-medium">
+              {t("This bill doesn't match its order, so it can't be paid until someone who can approve bill differences accepts it.")}
+            </p>
             <ul className="mt-1 ml-4 list-disc">
               {lineIssues.map((l) => (
                 <li key={l.lineNumber}>
@@ -150,28 +171,33 @@ export function SupplierBillDetailPage() {
         <Alert>
           <CheckCircle2 />
           <AlertDescription>
-            Differences approved by {b.approvedByName} on {formatDate(b.approvedAtUtc)}: {b.approvalNote}
+            {t('Differences approved by {name} on {date}: {note}', {
+              name: b.approvedByName ?? '',
+              date: formatDate(b.approvedAtUtc),
+              note: b.approvalNote ?? '',
+            })}
           </AlertDescription>
         </Alert>
       )}
 
-      <Card>
+      <Card className="relative">
+        <PaidStamp key={b.id} paid={b.status === 'Paid'} className="absolute top-4 right-6 z-10" />
         <CardContent className="grid gap-6 sm:grid-cols-3">
           <div className="space-y-1 text-sm">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Supplier</p>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Supplier')}</p>
             <Link to={`/suppliers/${b.supplierId}`} className="font-medium hover:underline">
               {b.supplierName}
             </Link>
-            <p className="font-mono text-xs">{b.supplierGstin ? `GSTIN ${b.supplierGstin}` : 'Unregistered: no input credit'}</p>
+            <p className="font-mono text-xs">{b.supplierGstin ? `GSTIN ${b.supplierGstin}` : t('Unregistered: no input credit')}</p>
             <p className="text-muted-foreground">{b.supplierStateName}</p>
           </div>
           <div className="space-y-1 text-sm">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Tax</p>
-            <p>{b.isInterState ? 'Inter-state supply: IGST' : 'Intra-state supply: CGST + SGST'}</p>
-            <p className="text-muted-foreground">Input tax credit: {formatINR(b.cgstAmount + b.sgstAmount + b.igstAmount)}</p>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Tax')}</p>
+            <p>{b.isInterState ? t('Inter-state supply: IGST') : t('Intra-state supply: CGST + SGST')}</p>
+            <p className="text-muted-foreground">{t('Input tax credit: {amount}', { amount: formatINR(b.cgstAmount + b.sgstAmount + b.igstAmount) })}</p>
           </div>
           <div className="space-y-1 text-sm">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Entered</p>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Entered')}</p>
             <p>
               {b.createdByName}, {formatDate(b.createdAtUtc)}
             </p>
@@ -182,21 +208,21 @@ export function SupplierBillDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
+          <CardTitle>{t('Items')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>#</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Order rate</TableHead>
-                  <TableHead className="text-right">Taxable</TableHead>
+                  <TableHead>{t('Product')}</TableHead>
+                  <TableHead className="text-right">{t('Qty')}</TableHead>
+                  <TableHead className="text-right">{t('Rate')}</TableHead>
+                  <TableHead className="text-right">{t('Order rate')}</TableHead>
+                  <TableHead className="text-right">{t('Taxable')}</TableHead>
                   <TableHead className="text-right">GST</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">{t('Total')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -214,7 +240,9 @@ export function SupplierBillDetailPage() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatQuantity(l.quantity, l.unit)}
-                      {l.quantityReturned > 0 && <span className="block text-xs text-muted-foreground">{formatQuantity(l.quantityReturned)} returned</span>}
+                      {l.quantityReturned > 0 && (
+                        <span className="block text-xs text-muted-foreground">{t('{quantity} returned', { quantity: formatQuantity(l.quantityReturned) })}</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatINR(l.unitPrice)}</TableCell>
                     <TableCell className="text-right text-muted-foreground tabular-nums">{formatINR(l.orderedPrice)}</TableCell>
@@ -229,7 +257,7 @@ export function SupplierBillDetailPage() {
 
           <div className="mt-4 flex justify-end">
             <dl className="grid min-w-72 grid-cols-[1fr_auto] gap-x-8 gap-y-1.5 text-sm tabular-nums">
-              <dt className="text-muted-foreground">Goods</dt>
+              <dt className="text-muted-foreground">{t('Goods')}</dt>
               <dd className="text-right">{formatINR(b.taxableValue)}</dd>
               {b.chargesAmount > 0 && (
                 <>
@@ -252,25 +280,25 @@ export function SupplierBillDetailPage() {
                   <dd className="text-right">{formatINR(b.sgstAmount)}</dd>
                 </>
               )}
-              <dt className="text-muted-foreground">Round off</dt>
+              <dt className="text-muted-foreground">{t('Round off')}</dt>
               <dd className="text-right">{formatINR(b.roundOff)}</dd>
-              <dt className="border-t pt-1.5 font-semibold">Total</dt>
+              <dt className="border-t pt-1.5 font-semibold">{t('Total')}</dt>
               <dd className="border-t pt-1.5 text-right font-semibold">{formatINR(b.grandTotal)}</dd>
               {b.supplierTotal != null && b.supplierTotal !== b.grandTotal && (
                 <>
-                  <dt className="text-muted-foreground">On their invoice</dt>
+                  <dt className="text-muted-foreground">{t('On their invoice')}</dt>
                   <dd className="text-right">{formatINR(b.supplierTotal)}</dd>
                 </>
               )}
-              <dt className="text-muted-foreground">Paid</dt>
+              <dt className="text-muted-foreground">{t('Paid')}</dt>
               <dd className="text-right">{formatINR(b.amountPaid)}</dd>
               {b.amountCredited > 0 && (
                 <>
-                  <dt className="text-muted-foreground">Goods returned</dt>
+                  <dt className="text-muted-foreground">{t('Goods returned')}</dt>
                   <dd className="text-right">{formatINR(b.amountCredited)}</dd>
                 </>
               )}
-              <dt className="font-medium">To pay</dt>
+              <dt className="font-medium">{t('To pay')}</dt>
               <dd className="text-right font-medium">{formatINR(b.balance)}</dd>
             </dl>
           </div>
@@ -279,28 +307,28 @@ export function SupplierBillDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Payments</CardTitle>
+          <CardTitle>{t('Payments')}</CardTitle>
         </CardHeader>
         <CardContent>
           {b.payments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{needsApproval ? 'It can be paid once the differences are approved.' : 'No payments made yet.'}</p>
+            <p className="text-sm text-muted-foreground">{needsApproval ? t('It can be paid once the differences are approved.') : t('No payments made yet.')}</p>
           ) : (
             <div className="overflow-hidden rounded-lg border">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Mode</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead>Recorded by</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>{t('Date')}</TableHead>
+                    <TableHead>{t('Mode')}</TableHead>
+                    <TableHead>{t('Reference')}</TableHead>
+                    <TableHead>{t('Recorded by')}</TableHead>
+                    <TableHead className="text-right">{t('Amount')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {b.payments.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{formatBusinessDate(p.paymentDate)}</TableCell>
-                      <TableCell>{paymentModeLabel(p.mode)}</TableCell>
+                      <TableCell>{t(paymentModeLabel(p.mode))}</TableCell>
                       <TableCell className="font-mono text-xs">{p.reference ?? '—'}</TableCell>
                       <TableCell>{p.createdByName}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatINR(p.amount)}</TableCell>
@@ -320,17 +348,17 @@ export function SupplierBillDetailPage() {
       <ReasonDialog
         open={approveOpen}
         onOpenChange={setApproveOpen}
-        title={`Approve ${b.number}?`}
-        description="Accept the differences from the order, so the bill can be paid. Your note is kept with the bill and in the audit log."
-        label="Why the differences are acceptable"
-        requiredMessage="Say why the differences are acceptable."
-        cancelLabel="Not now"
-        confirmLabel="Approve"
+        title={t('Approve {number}?', { number: b.number })}
+        description={t('Accept the differences from the order, so the bill can be paid. Your note is kept with the bill and in the audit log.')}
+        label={t('Why the differences are acceptable')}
+        requiredMessage={t('Say why the differences are acceptable.')}
+        cancelLabel={t('Not now')}
+        confirmLabel={t('Approve')}
         destructive={false}
         onConfirm={async (note) => {
           try {
             await approve.mutateAsync({ id: b.id, rowVersion: b.rowVersion, note })
-            toast.success(`${b.number} approved; it can be paid now`)
+            toast.success(t('{number} approved; it can be paid now', { number: b.number }))
             setApproveOpen(false)
           } catch (error) {
             toast.error(errorMessage(error))
@@ -340,13 +368,13 @@ export function SupplierBillDetailPage() {
       <ReasonDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title={`Cancel bill ${b.number}?`}
-        description="It stays on record as cancelled, its quantities count as unbilled on the order, and its price differences and charges come back out of the products' cost."
-        confirmLabel="Cancel bill"
+        title={t('Cancel bill {number}?', { number: b.number })}
+        description={t("It stays on record as cancelled, its quantities count as unbilled on the order, and its price differences and charges come back out of the products' cost.")}
+        confirmLabel={t('Cancel bill')}
         onConfirm={async (reason) => {
           try {
             await cancel.mutateAsync({ id: b.id, reason })
-            toast.success(`Bill ${b.number} cancelled`)
+            toast.success(t('Bill {number} cancelled', { number: b.number }))
             setCancelOpen(false)
           } catch (error) {
             toast.error(errorMessage(error))
@@ -366,7 +394,7 @@ function ReturnsCard({ bill }: { bill: SupplierBill }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Goods returned</CardTitle>
+        <CardTitle>{t('Goods returned')}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {bill.returns.length > 0 && (
@@ -374,11 +402,11 @@ function ReturnsCard({ bill }: { bill: SupplierBill }) {
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Debit note</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>{t('Debit note')}</TableHead>
+                  <TableHead>{t('Date')}</TableHead>
+                  <TableHead>{t('Reason')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
+                  <TableHead className="text-right">{t('Total')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -390,7 +418,7 @@ function ReturnsCard({ bill }: { bill: SupplierBill }) {
                       </Link>
                     </TableCell>
                     <TableCell>{formatBusinessDate(r.date)}</TableCell>
-                    <TableCell>{returnReasonLabels[r.reason]}</TableCell>
+                    <TableCell>{t(returnReasonLabels[r.reason])}</TableCell>
                     <TableCell>
                       <ReturnStatusBadge status={r.status} />
                     </TableCell>
@@ -403,15 +431,22 @@ function ReturnsCard({ bill }: { bill: SupplierBill }) {
         )}
         {fromOthers.length > 0 && (
           <div className="text-sm">
-            <p className="mb-1 font-medium">Credit from other returns set against this bill</p>
+            <p className="mb-1 font-medium">{t('Credit from other returns set against this bill')}</p>
             <ul className="space-y-1 text-muted-foreground">
               {fromOthers.map((a) => (
                 <li key={a.id} className={a.reversed ? 'line-through' : undefined}>
-                  {formatINR(a.amount)} from{' '}
-                  <Link className="font-mono underline underline-offset-4" to={`/supplier-returns/${a.creditId}`}>
-                    {a.creditNumber}
-                  </Link>{' '}
-                  on {formatBusinessDate(a.date)}
+                  <T
+                    text="{amount} from {credit} on {date}"
+                    values={{
+                      amount: formatINR(a.amount),
+                      credit: (
+                        <Link className="font-mono underline underline-offset-4" to={`/supplier-returns/${a.creditId}`}>
+                          {a.creditNumber}
+                        </Link>
+                      ),
+                      date: formatBusinessDate(a.date),
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -430,20 +465,25 @@ function UseSupplierCreditDialog({ bill, open, onOpenChange }: { bill: SupplierB
     <SetCreditDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Use credit with the supplier"
-      description={`We have ${formatINR(bill.supplierCreditAvailable)} of credit with ${bill.supplierName}. ${formatINR(bill.balance)} is owed on ${bill.number}.`}
-      chooseLabel="Supplier return"
-      emptyText="No credit is left with this supplier."
+      title={t('Use credit with the supplier')}
+      description={t('We have {credit} of credit with {supplier}. {owed} is owed on {bill}.', {
+        credit: formatINR(bill.supplierCreditAvailable),
+        supplier: bill.supplierName,
+        owed: formatINR(bill.balance),
+        bill: bill.number,
+      })}
+      chooseLabel={t('Supplier return')}
+      emptyText={t('No credit is left with this supplier.')}
       options={available.data?.map((r) => ({
         id: r.id,
-        label: `${r.number} · ${formatBusinessDate(r.date)} · ${formatINR(r.available)} left`,
+        label: t('{number} · {date} · {amount} left', { number: r.number, date: formatBusinessDate(r.date), amount: formatINR(r.available) }),
         max: Math.min(r.available, bill.balance),
       }))}
       minDate={bill.billDate}
       onApply={async (returnId, amount, date) => {
         const ret = available.data!.find((r) => r.id === returnId)!
         await apply.mutateAsync({ id: returnId, documentId: bill.id, amount, date, rowVersion: ret.rowVersion })
-        return `${formatINR(amount)} from ${ret.number} set against ${bill.number}`
+        return t('{amount} from {credit} set against {bill}', { amount: formatINR(amount), credit: ret.number, bill: bill.number })
       }}
     />
   )

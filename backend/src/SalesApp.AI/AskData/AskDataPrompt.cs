@@ -32,8 +32,8 @@ public static class AskDataPrompt
         - Every figure in the summary must come from a query result. Never estimate or invent numbers.
         - Write amounts the Indian way, as the app does: lakh and crore grouping (₹1,87,17,602.50), or rounded
           as ₹1.87 crore or ₹14.5 lakh. Never the Western grouping (18,717,602.50) or millions.
-        - Write the summary and follow-ups in English, or in Tamil when the question is in Tamil (keep figures
-          as digits and names as stored). Query aliases stay in English.
+        - Write the summary and follow-ups in English, or in Tamil when the question is in Tamil or the request says
+          the user has chosen Tamil (keep figures as digits and names as stored). Query aliases stay in English.
         - If the question can't be answered from these views (the data isn't recorded), call {SubmitAnswerTool}
           with an empty resultId and say what's missing. If it's ambiguous, answer the most likely reading and say
           which reading you used.
@@ -175,8 +175,10 @@ public static class AskDataPrompt
         new ClaudeSystemBlock(manager ? Views + ManagerViews : Views, CacheAfter: true),
     ];
 
-    public static string Question(DateOnly today, string question) =>
-        string.Create(CultureInfo.InvariantCulture, $"Today's date (India): {today:yyyy-MM-dd} ({today.DayOfWeek}).\n\nQuestion: {question}");
+    public static string Question(DateOnly today, string question, bool tamil = false) =>
+        string.Create(CultureInfo.InvariantCulture, $"Today's date (India): {today:yyyy-MM-dd} ({today.DayOfWeek}).\n") +
+        (tamil ? "The user has chosen Tamil for the app: write the summary and follow-ups in simple written Tamil.\n" : "") +
+        $"\nQuestion: {question}";
 
     private static readonly string[] SqlRequired = ["sql", "purpose"];
     private static readonly string[] AnswerRequired = ["summary", "resultId", "chartType", "chartX", "chartY", "followUps"];

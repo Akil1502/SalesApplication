@@ -659,6 +659,33 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.CompanyLogo", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CompanyLogo", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CompanyLogo_SingleRow", "[Id] = 1");
+                        });
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.CompanySettings", b =>
                 {
                     b.Property<int>("Id")
@@ -695,10 +722,21 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<string>("BrandColour")
+                        .HasMaxLength(7)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(7)");
+
                     b.Property<string>("City")
                         .IsRequired()
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("DocumentLanguage")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -787,6 +825,7 @@ namespace SalesApp.Infrastructure.Data.Migrations
                             AddressLine1 = "12 Mill Road",
                             BillPriceTolerancePercent = 2m,
                             City = "Coimbatore",
+                            DocumentLanguage = "English",
                             Email = "accounts@demotextiles.example",
                             Gstin = "33ABCDE1234F1Z7",
                             InvoicePrefix = "INV",
@@ -1188,6 +1227,11 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("DocumentLanguage")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -1405,6 +1449,9 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .HasMaxLength(20)
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<string>("NarrativeTamilJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("RequestedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1695,6 +1742,80 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.ToTable("InvoiceLines");
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.Notification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DedupKey")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<Guid?>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("DedupKey")
+                        .IsUnique()
+                        .HasFilter("[DedupKey] IS NOT NULL");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.NotificationRead", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("NotificationId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("UserId", "NotificationId");
+
+                    b.HasIndex("NotificationId");
+
+                    b.ToTable("NotificationReads");
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -1876,6 +1997,48 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("ProductAliases");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.ProductImage", b =>
+                {
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<byte[]>("ImageData")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ThumbnailContentType")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<byte[]>("ThumbnailData")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductId");
+
+                    b.ToTable("ProductImages", t =>
+                        {
+                            t.HasCheckConstraint("CK_ProductImages_Picture", "([ImageData] IS NULL AND [ContentType] IS NULL AND [ThumbnailData] IS NULL AND [ThumbnailContentType] IS NULL) OR ([ImageData] IS NOT NULL AND [ContentType] IS NOT NULL AND [ThumbnailData] IS NOT NULL AND [ThumbnailContentType] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_ProductImages_Size", "DATALENGTH([ImageData]) <= 2097152 AND DATALENGTH([ThumbnailData]) <= 262144");
+
+                            t.HasCheckConstraint("CK_ProductImages_Version", "[Version] >= 1");
+                        });
                 });
 
             modelBuilder.Entity("SalesApp.Core.Entities.ProductRate", b =>
@@ -2751,6 +2914,11 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2(0)");
 
+                    b.Property<string>("DocumentLanguage")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
@@ -3485,6 +3653,27 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.UserNotificationState", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("LastOpenedUpToId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("MutedKinds")
+                        .HasMaxLength(400)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(400)");
+
+                    b.Property<long>("ReadUpToId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserNotificationStates");
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -3501,6 +3690,31 @@ namespace SalesApp.Infrastructure.Data.Migrations
                     b.HasKey("UserId", "Permission");
 
                     b.ToTable("UserPermissions", (string)null);
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.UserSetting", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("ValueJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("UserId", "Key");
+
+                    b.ToTable("UserSettings", t =>
+                        {
+                            t.HasCheckConstraint("CK_UserSettings_Size", "LEN([ValueJson]) <= 32768");
+                        });
                 });
 
             modelBuilder.Entity("SalesApp.Infrastructure.Reporting.RptInvoice", b =>
@@ -4362,6 +4576,21 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.NotificationRead", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.Notification", null)
+                        .WithMany()
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SalesApp.Core.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.Payment", b =>
                 {
                     b.HasOne("SalesApp.Core.Entities.AppUser", "CreatedBy")
@@ -4422,6 +4651,17 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.ProductImage", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.Product", "Product")
+                        .WithOne()
+                        .HasForeignKey("SalesApp.Core.Entities.ProductImage", "ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Product");
                 });
@@ -4859,7 +5099,25 @@ namespace SalesApp.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SalesApp.Core.Entities.UserNotificationState", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SalesApp.Core.Entities.UserPermissionChange", b =>
+                {
+                    b.HasOne("SalesApp.Core.Entities.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SalesApp.Core.Entities.UserSetting", b =>
                 {
                     b.HasOne("SalesApp.Core.Entities.AppUser", null)
                         .WithMany()

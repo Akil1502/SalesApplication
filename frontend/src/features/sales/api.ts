@@ -17,6 +17,8 @@ interface Paged {
   q?: string
   page: number
   pageSize: number
+  /** A column to sort by, "-" first for descending (lists that support it). */
+  sort?: string
 }
 
 // ---- Orders ----------------------------------------------------------------------

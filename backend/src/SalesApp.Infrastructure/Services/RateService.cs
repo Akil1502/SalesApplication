@@ -57,7 +57,7 @@ public interface IRateService
 public sealed class RateService(AppDbContext db, ICurrentUser currentUser, IBusinessClock clock) : IRateService
 {
     internal const string SkuHeader = "SKU";
-    internal const string NewRateHeader = "New rate";
+    internal static readonly string NewRateHeader = L.Msg("New rate");
     private const int MaxImportRows = 5000;
 
     public async Task<PagedResult<ProductRateDto>> ListAsync(RateListRequest request, CancellationToken cancellationToken)
@@ -216,14 +216,14 @@ public sealed class RateService(AppDbContext db, ICurrentUser currentUser, IBusi
             .ToListAsync(cancellationToken);
 
         using var workbook = new XLWorkbook();
-        var sheet = workbook.Worksheets.Add("Rates");
-        sheet.Cell(1, 1).Value = $"Rate sheet: prices on {day.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}";
+        var sheet = workbook.Worksheets.Add(L.T(L.Msg("Rates")));
+        sheet.Cell(1, 1).Value = L.T(L.Msg($"Rate sheet: prices on {day.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}"));
         sheet.Cell(1, 1).Style.Font.SetBold().Font.SetFontSize(14);
-        sheet.Cell(2, 1).Value = $"Fill in \"{NewRateHeader}\" (per unit, excluding GST) for the products to change, then upload this file on the Rate updates page. Leave a row blank to keep its rate.";
+        sheet.Cell(2, 1).Value = L.T(L.Msg($"Fill in \"{NewRateHeader}\" (per unit, excluding GST) for the products to change, then upload this file on the Rate updates page. Leave a row blank to keep its rate."));
         sheet.Cell(2, 1).Style.Font.SetItalic();
 
         const int headerRow = 4;
-        string[] headers = [SkuHeader, "Product", "Category", "Unit", "Current rate", NewRateHeader];
+        string[] headers = [SkuHeader, L.T(L.Msg("Product")), L.T(L.Msg("Category")), L.T(L.Msg("Unit")), L.T(L.Msg("Current rate")), L.T(NewRateHeader)];
         for (var c = 0; c < headers.Length; c++)
         {
             var cell = sheet.Cell(headerRow, c + 1);
@@ -342,8 +342,8 @@ public sealed class RateService(AppDbContext db, ICurrentUser currentUser, IBusi
 
     private static string Describe(DateOnly from, DateOnly? to) =>
         to is { } end
-            ? $"{from.ToString("d MMM yyyy", CultureInfo.InvariantCulture)} to {end.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}"
-            : $"from {from.ToString("d MMM yyyy", CultureInfo.InvariantCulture)} on";
+            ? L.Msg($"{from.ToString("d MMM yyyy", CultureInfo.InvariantCulture)} to {end.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}")
+            : L.Msg($"from {from.ToString("d MMM yyyy", CultureInfo.InvariantCulture)} on");
 
     private void EnsureValidPeriod(DateOnly from, DateOnly? to)
     {
@@ -375,7 +375,8 @@ public sealed class RateService(AppDbContext db, ICurrentUser currentUser, IBusi
                 {
                     sku = cell.Address.ColumnNumber;
                 }
-                else if (text.Equals(NewRateHeader, StringComparison.OrdinalIgnoreCase))
+                // A sheet downloaded in Tamil has the heading in Tamil.
+                else if (text.Equals(NewRateHeader, StringComparison.OrdinalIgnoreCase) || text == L.ToTamil(NewRateHeader))
                 {
                     rate = cell.Address.ColumnNumber;
                 }

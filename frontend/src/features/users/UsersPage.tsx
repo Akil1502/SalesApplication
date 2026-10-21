@@ -16,9 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { formatDate } from '@/lib/format'
-import { useUsers, type User } from './api'
+import { roleLabel, useUsers, type User } from './api'
 import { RolesTab } from './RolesTab'
 import { CreateUserDialog, EditUserDialog, ResetPasswordDialog } from './UserDialogs'
+import { msg, t } from '@/lib/i18n'
 
 type DialogState = { kind: 'create' } | { kind: 'edit'; user: User } | { kind: 'reset'; user: User } | null
 
@@ -37,28 +38,28 @@ function UsersTab({ canEdit, dialog, setDialog }: { canEdit: boolean; dialog: Di
   const columns: Column<User>[] = [
     {
       key: 'name',
-      header: 'Name',
+      header: msg('Name'),
       sortKey: 'fullName',
       cell: (u) => (
         <div className="flex items-center gap-2">
           <span className="font-medium">{u.fullName}</span>
-          {u.id === me?.id && <Badge variant="secondary">You</Badge>}
+          {u.id === me?.id && <Badge variant="secondary">{t('You')}</Badge>}
         </div>
       ),
     },
-    { key: 'email', header: 'Email', sortKey: 'email', cell: (u) => u.email },
+    { key: 'email', header: msg('Email'), sortKey: 'email', cell: (u) => u.email },
     {
       key: 'role',
-      header: 'Role',
+      header: msg('Role'),
       sortKey: 'role',
       cell: (u) => {
         const added = u.addedPermissions.length
         const removed = u.removedPermissions.length
         return (
           <div className="flex items-center gap-1.5">
-            <span>{u.role}</span>
+            <span>{roleLabel(u.role)}</span>
             {added + removed > 0 && (
-              <Badge variant="outline" title={`Their own permissions: ${added} added to and ${removed} taken from the role.`}>
+              <Badge variant="outline" title={t('Their own permissions: {added} added to and {removed} taken from the role.', { added, removed })}>
                 {[added > 0 && `+${added}`, removed > 0 && `−${removed}`].filter(Boolean).join(' ')}
               </Badge>
             )}
@@ -68,20 +69,20 @@ function UsersTab({ canEdit, dialog, setDialog }: { canEdit: boolean; dialog: Di
     },
     {
       key: 'status',
-      header: 'Status',
+      header: msg('Status'),
       cell: (u) => (
         <div className="flex items-center gap-1.5">
           <ActiveBadge active={u.isActive} />
           {u.isLockedOut && (
             <Badge variant="outline" className="border-amber-600/30 text-amber-700 dark:text-amber-400">
               <Lock />
-              Locked
+              {t('Locked')}
             </Badge>
           )}
         </div>
       ),
     },
-    { key: 'created', header: 'Added', sortKey: 'createdAt', cell: (u) => formatDate(u.createdAtUtc) },
+    { key: 'created', header: msg('Added'), sortKey: 'createdAt', cell: (u) => formatDate(u.createdAtUtc) },
   ]
   if (canEdit)
     columns.push({
@@ -91,18 +92,18 @@ function UsersTab({ canEdit, dialog, setDialog }: { canEdit: boolean; dialog: Di
       cell: (u) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${u.fullName}`}>
+            <Button variant="ghost" size="icon-sm" aria-label={t('Actions for {name}', { name: u.fullName })}>
               <MoreHorizontal />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => setDialog({ kind: 'edit', user: u })}>
               <Pencil />
-              Edit
+              {t('Edit')}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => setDialog({ kind: 'reset', user: u })}>
               <KeyRound />
-              Reset password
+              {t('Reset password')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -114,10 +115,10 @@ function UsersTab({ canEdit, dialog, setDialog }: { canEdit: boolean; dialog: Di
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search name or email" />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search name or email')} />
         <div className="flex items-center gap-2">
           <Switch id="show-inactive" checked={params.includeInactive} onCheckedChange={(includeInactive) => update({ includeInactive })} />
-          <Label htmlFor="show-inactive">Show inactive</Label>
+          <Label htmlFor="show-inactive">{t('Show inactive')}</Label>
         </div>
       </div>
 
@@ -129,7 +130,7 @@ function UsersTab({ canEdit, dialog, setDialog }: { canEdit: boolean; dialog: Di
         error={users.error}
         sort={params.sort}
         onSortChange={(sort) => update({ sort })}
-        emptyTitle="No users match"
+        emptyTitle={t('No users match')}
       />
 
       {users.data && (
@@ -165,19 +166,19 @@ export function UsersPage() {
   return (
     <>
       <PageHeader
-        title="Users & roles"
-        description="Who can sign in, and what they can do. A role is a set of permissions; each user can also have permissions added or taken away."
+        title={t('Users & roles')}
+        description={t('Who can sign in, and what they can do. A role is a set of permissions; each user can also have permissions added or taken away.')}
         actions={
           canEdit &&
           (tab === 'users' ? (
             <Button onClick={() => setDialog({ kind: 'create' })}>
               <Plus />
-              Add user
+              {t('Add user')}
             </Button>
           ) : (
             <Button onClick={() => setCreatingRole(true)}>
               <Plus />
-              New role
+              {t('New role')}
             </Button>
           ))
         }
@@ -185,8 +186,8 @@ export function UsersPage() {
 
       <Tabs value={tab} onValueChange={(next) => setSearchParams(next === 'roles' ? { tab: next } : {})}>
         <TabsList>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="roles">Roles</TabsTrigger>
+          <TabsTrigger value="users">{t('Users')}</TabsTrigger>
+          <TabsTrigger value="roles">{t('Roles')}</TabsTrigger>
         </TabsList>
         <TabsContent value="users" className="flex flex-col gap-4 pt-2">
           {tab === 'users' && <UsersTab canEdit={canEdit} dialog={dialog} setDialog={setDialog} />}

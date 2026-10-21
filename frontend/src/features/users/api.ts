@@ -3,6 +3,7 @@ import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
 import { currentUserQueryKey } from '@/features/auth/auth-context'
 import { lookupKeys } from '@/lib/lookups'
+import { msg, t } from '@/lib/i18n'
 
 export type User = Schemas['UserDto']
 export type UserCreateRequest = Schemas['UserCreateRequest']
@@ -11,6 +12,13 @@ export type UserUpdateRequest = Schemas['UserUpdateRequest']
 export type Role = Schemas['RoleDto']
 export type RoleSaveRequest = Schemas['RoleSaveRequest']
 export type PermissionCatalog = Schemas['PermissionCatalogDto']
+
+/** The built-in roles can't be renamed, so their names are shown in the language on screen; others as typed. */
+const BUILT_IN_ROLES: readonly string[] = [msg('Administrator'), msg('Sales manager'), msg('Sales representative')]
+
+export function roleLabel(name: string): string {
+  return BUILT_IN_ROLES.includes(name) ? t(name) : name
+}
 
 export interface UserListQuery {
   q?: string

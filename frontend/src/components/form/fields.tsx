@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { t } from '@/lib/i18n'
 
 // Thin wrappers that bind react-hook-form fields to shadcn's Field layout, so every form shows labels,
 // hints and errors (client- or server-side) the same way.
@@ -91,6 +92,7 @@ export function FormTextarea<T extends FieldValues>({
 
 export interface SelectOption {
   value: string
+  /** Translated here, so option lists can be defined outside a component with msg(). */
   label: string
 }
 
@@ -105,7 +107,7 @@ export function FormSelect<T extends FieldValues>({
   disabled,
   className,
   options,
-  placeholder = 'Select…',
+  placeholder,
   noneLabel,
 }: BaseFieldProps<T> & {
   options: SelectOption[]
@@ -130,13 +132,13 @@ export function FormSelect<T extends FieldValues>({
         name={field.name}
       >
         <SelectTrigger id={id} ref={fieldRef} onBlur={field.onBlur} aria-invalid={fieldState.invalid} className="w-full">
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={placeholder ?? t('Select…')} />
         </SelectTrigger>
         <SelectContent>
           {noneLabel && <SelectItem value={NONE}>{noneLabel}</SelectItem>}
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
-              {option.label}
+              {t(option.label)}
             </SelectItem>
           ))}
         </SelectContent>

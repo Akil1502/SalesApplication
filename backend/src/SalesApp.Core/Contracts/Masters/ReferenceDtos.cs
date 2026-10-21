@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SalesApp.Core.Entities;
 using SalesApp.Core.Validation;
 
 namespace SalesApp.Core.Contracts.Masters;
@@ -60,6 +61,9 @@ public sealed record CompanySettingsDto(
     decimal? PurchaseApprovalLimit,
     decimal OverReceiptTolerancePercent,
     decimal BillPriceTolerancePercent,
+    string? BrandColour,
+    DocumentLanguage DocumentLanguage,
+    string? LogoUrl,
     string RowVersion);
 
 public sealed record CompanySettingsSaveRequest
@@ -129,6 +133,22 @@ public sealed record CompanySettingsSaveRequest
     [DecimalRange(0, 50, ErrorMessage = "Use 0% to 50%."), DecimalPlaces(2)]
     public decimal BillPriceTolerancePercent { get; init; } = 2m;
 
+    /// <summary>The app's colour as #rrggbb; empty keeps the standard indigo.</summary>
+    [RegularExpression("^#[0-9A-Fa-f]{6}$", ErrorMessage = "Choose a colour such as #4F46E5.")]
+    public string? BrandColour { get; init; }
+
+    /// <summary>Printed documents for customers and suppliers who haven't chosen their own language.</summary>
+    public DocumentLanguage DocumentLanguage { get; init; }
+
     [Required]
     public string RowVersion { get; init; } = string.Empty;
 }
+
+/// <summary>
+/// What the app shows before anyone signs in (the sign-in page and the browser tab): only the company's name, colour
+/// and logo, nothing else from the settings.
+/// </summary>
+/// <param name="CompanyName">The trade name, or the legal name when there isn't one.</param>
+/// <param name="BrandColour">#rrggbb, or null for the standard indigo.</param>
+/// <param name="LogoUrl">Changes with every new logo, so browsers can cache each one for good; null when there's no logo.</param>
+public sealed record BrandingDto(string CompanyName, string? BrandColour, string? LogoUrl);

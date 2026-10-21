@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using SalesApp.Core.Localization;
 
 namespace SalesApp.Core.Validation;
 
@@ -23,23 +24,23 @@ public static partial class Gstin
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return "GSTIN is required.";
+            return L.Msg("GSTIN is required.");
         }
 
         var gstin = Normalize(value);
         if (gstin.Length != 15)
         {
-            return "GSTIN must be exactly 15 characters.";
+            return L.Msg("GSTIN must be exactly 15 characters.");
         }
 
         if (!FormatRegex().IsMatch(gstin))
         {
-            return "GSTIN format is invalid. Expected 2-digit state code, 10-character PAN, entity number, 'Z' and a check character.";
+            return L.Msg("GSTIN format is invalid. Expected 2-digit state code, 10-character PAN, entity number, 'Z' and a check character.");
         }
 
         if (ComputeCheckCharacter(gstin.AsSpan(0, 14)) != gstin[14])
         {
-            return "GSTIN check character doesn't match. Please re-check the number for typos.";
+            return L.Msg("GSTIN check character doesn't match. Please re-check the number for typos.");
         }
 
         return null;

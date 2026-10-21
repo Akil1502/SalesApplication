@@ -3,30 +3,31 @@ import { useEffect, useId } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { FormInput, FormSelect, FormTextarea } from '@/components/form/fields'
 import { ProductPicker, type PickedProduct } from '@/components/ProductPicker'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatQuantity, todayInIndia } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
 import { adjustmentReasons, useAdjustStock, type AdjustmentMode, type AdjustmentReason } from './api'
 
 const schema = z
   .object({
-    product: z.custom<PickedProduct | null>().refine((p): boolean => p !== null, { error: 'Choose a product.' }),
+    product: z.custom<PickedProduct | null>().refine((p): boolean => p !== null, { error: () => t('Choose a product.') }),
     mode: z.enum(['Change', 'SetCount']),
-    quantity: z.string().trim().regex(/^-?\d+(\.\d{1,3})?$/, { error: 'Enter a quantity with up to 3 decimals.' }),
-    reason: z.string().min(1, { error: 'Choose a reason.' }),
-    movementDate: z.string().min(1, { error: 'Choose a date.' }),
-    notes: z.string().trim().min(1, { error: 'Explain the adjustment.' }).max(500),
+    quantity: z.string().trim().regex(/^-?\d+(\.\d{1,3})?$/, { error: () => t('Enter a quantity with up to 3 decimals.') }),
+    reason: z.string().min(1, { error: () => t('Choose a reason.') }),
+    movementDate: z.string().min(1, { error: () => t('Choose a date.') }),
+    notes: z.string().trim().min(1, { error: () => t('Explain the adjustment.') }).max(500),
   })
   .superRefine((v, ctx) => {
     const n = Number(v.quantity)
-    if (v.mode === 'Change' && n === 0) ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Enter how much to add (+) or remove (−).' })
-    if (v.mode === 'SetCount' && n < 0) ctx.addIssue({ code: 'custom', path: ['quantity'], message: "A counted quantity can't be negative." })
+    if (v.mode === 'Change' && n === 0) ctx.addIssue({ code: 'custom', path: ['quantity'], message: t('Enter how much to add (+) or remove (−).') })
+    if (v.mode === 'SetCount' && n < 0) ctx.addIssue({ code: 'custom', path: ['quantity'], message: t("A counted quantity can't be negative.") })
   })
 
 type Values = z.infer<typeof schema>
@@ -65,7 +66,7 @@ export function AdjustStockDialog({ open, onOpenChange, product = null }: Adjust
         movementDate: values.movementDate,
         notes: values.notes,
       })
-      toast.success(`${movement.productName}: stock is now ${formatQuantity(movement.balanceAfter, movement.unit)}`)
+      toast.success(t('{product}: stock is now {quantity}', { product: movement.productName, quantity: formatQuantity(movement.balanceAfter, movement.unit) }))
       onOpenChange(false)
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['quantity', 'reason', 'movementDate', 'notes'])) toast.error(errorMessage(error))
@@ -77,8 +78,8 @@ export function AdjustStockDialog({ open, onOpenChange, product = null }: Adjust
       <DialogContent className="sm:max-w-lg">
         <form onSubmit={onSubmit} noValidate>
           <DialogHeader>
-            <DialogTitle>Adjust stock</DialogTitle>
-            <DialogDescription>Corrections are recorded in the stock ledger with your name and the reason.</DialogDescription>
+            <DialogTitle>{t('Adjust stock')}</DialogTitle>
+            <DialogDescription>{t('Corrections are recorded in the stock ledger with your name and the reason.')}</DialogDescription>
           </DialogHeader>
 
           <FieldGroup className="py-4">
@@ -87,10 +88,10 @@ export function AdjustStockDialog({ open, onOpenChange, product = null }: Adjust
               name="product"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={pickerId}>Product</FieldLabel>
+                  <FieldLabel htmlFor={pickerId}>{t('Product')}</FieldLabel>
                   <ProductPicker id={pickerId} value={field.value ?? null} onChange={field.onChange} invalid={fieldState.invalid} />
                   {field.value && (
-                    <p className="text-sm text-muted-foreground">On hand now: {formatQuantity(field.value.quantityOnHand, field.value.unit)}</p>
+                    <p className="text-sm text-muted-foreground">{t('On hand now: {quantity}', { quantity: formatQuantity(field.value.quantityOnHand, field.value.unit) })}</p>
                   )}
                   <FieldError errors={[fieldState.error]} />
                 </Field>
@@ -101,12 +102,16 @@ export function AdjustStockDialog({ open, onOpenChange, product = null }: Adjust
               control={control}
               name="mode"
               render={({ field }) => (
-                <Tabs value={field.value} onValueChange={field.onChange}>
-                  <TabsList className="w-full">
-                    <TabsTrigger value="Change">Add or remove</TabsTrigger>
-                    <TabsTrigger value="SetCount">Set counted quantity</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                <SegmentedControl
+                  label={msg('How to adjust')}
+                  fullWidth
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  options={[
+                    { value: 'Change', label: msg('Add or remove') },
+                    { value: 'SetCount', label: msg('Set counted quantity') },
+                  ]}
+                />
               )}
             />
 
@@ -114,31 +119,31 @@ export function AdjustStockDialog({ open, onOpenChange, product = null }: Adjust
               <FormInput
                 control={control}
                 name="quantity"
-                label={mode === 'SetCount' ? 'Counted quantity' : 'Change (+ adds, − removes)'}
+                label={mode === 'SetCount' ? t('Counted quantity') : t('Change (+ adds, − removes)')}
                 inputMode="decimal"
-                placeholder={mode === 'SetCount' ? 'e.g. 480' : 'e.g. -12.5'}
+                placeholder={mode === 'SetCount' ? t('e.g. 480') : t('e.g. -12.5')}
                 description={
                   resulting === null
                     ? undefined
                     : resulting < 0
-                      ? `That's more than the ${formatQuantity(picked!.quantityOnHand, picked!.unit)} in stock; stock can't go below zero.`
-                      : `Stock after: ${formatQuantity(resulting, picked!.unit)}`
+                      ? t("That's more than the {quantity} in stock; stock can't go below zero.", { quantity: formatQuantity(picked!.quantityOnHand, picked!.unit) })
+                      : t('Stock after: {quantity}', { quantity: formatQuantity(resulting, picked!.unit) })
                 }
               />
-              <FormInput control={control} name="movementDate" label="Date" type="date" max={todayInIndia()} />
+              <FormInput control={control} name="movementDate" label={t('Date')} type="date" max={todayInIndia()} />
             </div>
 
-            <FormSelect control={control} name="reason" label="Reason" options={adjustmentReasons} />
-            <FormTextarea control={control} name="notes" label="Notes" description="Required. For example: 'Monthly count, bay 3' or 'Water damage in godown'." />
+            <FormSelect control={control} name="reason" label={t('Reason')} options={adjustmentReasons} />
+            <FormTextarea control={control} name="notes" label={t('Notes')} description={t("Required. For example: 'Monthly count, bay 3' or 'Water damage in godown'.")} />
           </FieldGroup>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting && <Spinner />}
-              Post adjustment
+              {t('Post adjustment')}
             </Button>
           </DialogFooter>
         </form>

@@ -2,43 +2,62 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useParams } from 'react-router'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api } from '@/lib/api/client'
+import { api, type Schemas } from '@/lib/api/client'
 import { errorMessage, unwrap } from '@/lib/api/errors'
 import { formatAmount, formatBusinessDate, formatPercent, formatQuantity } from '@/lib/format'
-import { useOrder } from '../api'
-import { cell, headCell, numCell, PrintShell } from './PrintShell'
+import { t } from '@/lib/i18n'
+import { useOrder, type Order } from '../api'
+import { dateLanguage, docText, useDocumentLanguage } from './document-language'
+import { DocAmountInWords, DocField, DocText, DocumentLanguageScope } from './DocText'
+import { PrintLogo, PrintShell, cell, headCell, numCell } from './PrintShell'
 
-/** Quotation (or order confirmation, once confirmed) laid out for A4 printing. */
+const isQuote = (o: Order) => o.status === 'Draft' || o.status === 'Quoted'
+
+/** Quotation (or order confirmation, once confirmed) laid out for A4 printing, in the customer's language. */
 export function QuotationPrintPage() {
   const id = Number(useParams().id)
   const order = useOrder(id)
   const company = useQuery({ queryKey: ['settings', 'company'], queryFn: () => unwrap(api.GET('/api/settings/company')) })
 
   const o = order.data
-  const isQuote = o?.status === 'Draft' || o?.status === 'Quoted'
-  const title = isQuote ? 'QUOTATION' : 'ORDER CONFIRMATION'
-  const docNumber = o ? (isQuote ? (o.quotationNumber ?? `${o.number} (draft)`) : o.number) : ''
+  const docNumber = o ? (isQuote(o) ? (o.quotationNumber ?? t('{number} (draft)', { number: o.number })) : o.number) : ''
 
-  // The title becomes the default PDF file name; restore it when leaving the page.
+  // The title becomes the default PDF file name (in English, whatever the document's language); restore it when leaving.
   useEffect(() => {
     if (!o) return
-    document.title = `${isQuote ? 'Quotation' : 'Order'} ${docNumber}`
+    const previous = document.title
+    document.title = isQuote(o) ? docText('English', 'Quotation {number}', { number: docNumber }) : docText('English', 'Order {number}', { number: docNumber })
     return () => {
-      document.title = 'SalesApp'
+      document.title = previous
     }
-  }, [o, isQuote, docNumber])
+  }, [o, docNumber])
 
   if (order.isPending || company.isPending) return <Skeleton className="m-8 h-[60vh]" />
   if (order.error || company.error) return <p className="m-8 text-red-700">{errorMessage(order.error ?? company.error)}</p>
 
-  const c = company.data
-  const inter = o!.isInterState
-  const sgst = o!.usesUtgst ? 'UTGST' : 'SGST'
+  return (
+    <PrintShell
+      title={isQuote(order.data) ? t('Quotation {number}', { number: docNumber }) : t('Order {number}', { number: docNumber })}
+      languages={[order.data.documentLanguage]}
+    >
+      <DocumentLanguageScope language={order.data.documentLanguage}>
+        <QuotationDocument o={order.data} c={company.data} docNumber={docNumber} />
+      </DocumentLanguageScope>
+    </PrintShell>
+  )
+}
+
+function QuotationDocument({ o, c, docNumber }: { o: Order; c: Schemas['CompanySettingsDto']; docNumber: string }) {
+  const dates = dateLanguage(useDocumentLanguage())
+  const quote = isQuote(o)
+  const inter = o.isInterState
+  const sgst = o.usesUtgst ? 'UTGST' : 'SGST'
 
   return (
-    <PrintShell title={`${isQuote ? 'Quotation' : 'Order'} ${docNumber}`}>
+    <>
       <header className="mb-3 flex items-start justify-between gap-6 border-b-2 border-neutral-800 pb-3">
         <div>
+          <PrintLogo />
           <h1 className="text-xl font-bold">{c.legalName}</h1>
           <p className="max-w-[95mm]">
             {c.addressLine1}
@@ -47,28 +66,32 @@ export function QuotationPrintPage() {
           <p className="mt-1 font-semibold">GSTIN: {c.gstin}</p>
         </div>
         <div className="text-right">
-          <p className="text-lg font-bold tracking-wide">{title}</p>
+          <p className="text-lg font-bold tracking-wide">{quote ? <DocText text="QUOTATION" /> : <DocText text="ORDER CONFIRMATION" />}</p>
           <p>
-            <b>No.</b> {docNumber}
+            <DocField label="No.">{docNumber}</DocField>
           </p>
           <p>
-            <b>Date</b> {formatBusinessDate(o!.orderDate)}
+            <DocField label="Date">{formatBusinessDate(o.orderDate, dates)}</DocField>
           </p>
-          {isQuote && o!.validUntil && (
+          {quote && o.validUntil && (
             <p>
-              <b>Valid until</b> {formatBusinessDate(o!.validUntil)}
+              <DocField label="Valid until">{formatBusinessDate(o.validUntil, dates)}</DocField>
             </p>
           )}
         </div>
       </header>
 
       <div className="mb-3 border border-neutral-400 p-2">
-        <p className="mb-1 font-semibold uppercase">To</p>
-        <p className="font-semibold">{o!.customerName}</p>
-        <p>GSTIN: {o!.customerGstin ?? 'Unregistered'}</p>
+        <p className="mb-1 font-semibold uppercase">
+          <DocText text="To" />
+        </p>
+        <p className="font-semibold">{o.customerName}</p>
+        <p>GSTIN: {o.customerGstin ?? <DocText text="Unregistered" inline />}</p>
         <p>
-          Place of supply: {o!.placeOfSupplyStateName} ({o!.placeOfSupplyStateCode})
-          {o!.customerReference && ` · Your ref: ${o!.customerReference}`}
+          <DocField label="Place of supply:">
+            {o.placeOfSupplyStateName} ({o.placeOfSupplyStateCode})
+          </DocField>
+          {o.customerReference && <DocField label="Your ref:">{o.customerReference}</DocField>}
         </p>
       </div>
 
@@ -76,18 +99,30 @@ export function QuotationPrintPage() {
         <thead>
           <tr>
             <th className={headCell}>#</th>
-            <th className={headCell}>Description</th>
+            <th className={headCell}>
+              <DocText text="Description" />
+            </th>
             <th className={headCell}>HSN</th>
-            <th className={`${headCell} text-right`}>Qty</th>
-            <th className={`${headCell} text-right`}>Rate</th>
-            <th className={`${headCell} text-right`}>Disc.</th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Qty" />
+            </th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Rate" />
+            </th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Disc." />
+            </th>
             <th className={`${headCell} text-right`}>GST</th>
-            <th className={`${headCell} text-right`}>Taxable</th>
-            <th className={`${headCell} text-right`}>Amount</th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Taxable" />
+            </th>
+            <th className={`${headCell} text-right`}>
+              <DocText text="Amount" />
+            </th>
           </tr>
         </thead>
         <tbody>
-          {o!.lines.map((l) => (
+          {o.lines.map((l) => (
             <tr key={l.id}>
               <td className={cell}>{l.lineNumber}</td>
               <td className={cell}>
@@ -108,52 +143,66 @@ export function QuotationPrintPage() {
       </table>
 
       <div className="mb-4 flex items-start justify-between gap-6">
-        <p className="max-w-[110mm]">
-          <b>Amount in words:</b> {o!.amountInWords}
-          {isQuote && <span className="mt-2 block text-neutral-600">GST is charged at the rate in force on the invoice date.</span>}
-        </p>
+        <div className="max-w-[110mm] space-y-2">
+          <DocAmountInWords english={o.amountInWords} tamil={o.amountInWordsTamil} />
+          {quote && (
+            <p className="text-neutral-600">
+              <DocText text="GST is charged at the rate in force on the invoice date." />
+            </p>
+          )}
+        </div>
         <table className="min-w-[65mm] border-collapse">
           <tbody>
             <tr>
-              <td className={cell}>Taxable value</td>
-              <td className={numCell}>{formatAmount(o!.taxableValue)}</td>
+              <td className={cell}>
+                <DocText text="Taxable value" />
+              </td>
+              <td className={numCell}>{formatAmount(o.taxableValue)}</td>
             </tr>
             {inter ? (
               <tr>
                 <td className={cell}>IGST</td>
-                <td className={numCell}>{formatAmount(o!.igstAmount)}</td>
+                <td className={numCell}>{formatAmount(o.igstAmount)}</td>
               </tr>
             ) : (
               <>
                 <tr>
                   <td className={cell}>CGST</td>
-                  <td className={numCell}>{formatAmount(o!.cgstAmount)}</td>
+                  <td className={numCell}>{formatAmount(o.cgstAmount)}</td>
                 </tr>
                 <tr>
                   <td className={cell}>{sgst}</td>
-                  <td className={numCell}>{formatAmount(o!.sgstAmount)}</td>
+                  <td className={numCell}>{formatAmount(o.sgstAmount)}</td>
                 </tr>
               </>
             )}
             <tr>
-              <td className={cell}>Round off</td>
-              <td className={numCell}>{formatAmount(o!.roundOff)}</td>
+              <td className={cell}>
+                <DocText text="Round off" />
+              </td>
+              <td className={numCell}>{formatAmount(o.roundOff)}</td>
             </tr>
             <tr>
-              <td className={`${cell} text-sm font-bold`}>Total (₹)</td>
-              <td className={`${numCell} text-sm font-bold`}>{formatAmount(o!.grandTotal)}</td>
+              <td className={`${cell} text-sm font-bold`}>
+                <DocText text="Total (₹)" />
+              </td>
+              <td className={`${numCell} text-sm font-bold`}>{formatAmount(o.grandTotal)}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      {o!.notes && <p className="mb-4 whitespace-pre-line">{o!.notes}</p>}
+      {o.notes && <p className="mb-4 whitespace-pre-line">{o.notes}</p>}
       <div className="flex justify-end">
         <div className="text-right">
-          <p>For {c.legalName}</p>
-          <p className="mt-10 border-t border-neutral-500 pt-1">Authorised signatory</p>
+          <p>
+            <DocText text="For {name}" values={{ name: c.legalName }} />
+          </p>
+          <p className="mt-10 border-t border-neutral-500 pt-1">
+            <DocText text="Authorised signatory" />
+          </p>
         </div>
       </div>
-    </PrintShell>
+    </>
   )
 }

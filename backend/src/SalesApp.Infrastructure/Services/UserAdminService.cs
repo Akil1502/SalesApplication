@@ -206,8 +206,8 @@ public sealed class UserAdminService(
         // A reset is how an admin helps a locked-out user, so clear the lockout too.
         await users.SetLockoutEndDateAsync(user, null);
         await users.ResetAccessFailedCountAsync(user);
-        await audit.RecordAsync(new AuditEvent(AuditAction.PasswordReset, "User", user.Id.ToString(), $"{user.FullName} ({user.Email})",
-            "Password reset by an administrator; any lockout was cleared."), cancellationToken);
+        await audit.RecordAsync(new AuditEvent(AuditAction.PasswordReset, L.Msg("User"), user.Id.ToString(), $"{user.FullName} ({user.Email})",
+            L.Msg("Password reset by an administrator; any lockout was cleared.")), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -279,24 +279,24 @@ public sealed class UserAdminService(
         var changes = new List<AuditChange>();
         if (oldRole != role.Name)
         {
-            changes.Add(new AuditChange("Role", oldRole, role.Name));
+            changes.Add(new AuditChange(L.Msg("Role"), oldRole, role.Name));
         }
 
         var (addedBefore, addedNow) = (Names(oldAdded), Names(stored.Where(c => c.IsGranted).Select(c => c.Permission)));
         if (addedBefore != addedNow)
         {
-            changes.Add(new AuditChange("Added for this user", addedBefore, addedNow));
+            changes.Add(new AuditChange(L.Msg("Added for this user"), addedBefore, addedNow));
         }
 
         var (removedBefore, removedNow) = (Names(oldRemoved), Names(stored.Where(c => !c.IsGranted).Select(c => c.Permission)));
         if (removedBefore != removedNow)
         {
-            changes.Add(new AuditChange("Taken away for this user", removedBefore, removedNow));
+            changes.Add(new AuditChange(L.Msg("Taken away for this user"), removedBefore, removedNow));
         }
 
         if (changes.Count > 0)
         {
-            await audit.RecordAsync(new AuditEvent(AuditAction.PermissionsChanged, "User", user.Id.ToString(), $"{user.FullName} ({user.Email})", Changes: changes), cancellationToken);
+            await audit.RecordAsync(new AuditEvent(AuditAction.PermissionsChanged, L.Msg("User"), user.Id.ToString(), $"{user.FullName} ({user.Email})", Changes: changes), cancellationToken);
         }
     }
 

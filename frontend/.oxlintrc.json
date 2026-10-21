@@ -8,10 +8,16 @@
   },
   "overrides": [
     {
-      "files": ["src/components/ui/**", "src/hooks/use-mobile.ts"],
+      "files": ["src/components/ui/**"],
       "rules": {
         "react/only-export-components": "off",
         "react/set-state-in-effect": "off"
+      }
+    },
+    {
+      "files": ["src/components/three/**"],
+      "rules": {
+        "react/immutability": "off"
       }
     }
   ]

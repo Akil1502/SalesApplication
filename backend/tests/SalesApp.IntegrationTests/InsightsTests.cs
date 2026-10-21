@@ -78,10 +78,19 @@ public sealed class InsightsTests(DemoDataFactory factory) : IClassFixture<DemoD
         Assert.All(metrics.Forecast.Next, n => Assert.True(n.Low <= n.Forecast && n.Forecast <= n.High));
         Assert.DoesNotContain(metrics.Forecast.History, h => h.Month >= new DateOnly(today.Year, today.Month, 1)); // full months only
 
-        // The three products whose suppliers are late right now.
-        Assert.Contains("GT-VST", metrics.Reorder.Select(r => r.Sku));
-        Assert.Contains("HT-TWL", metrics.Reorder.Select(r => r.Sku));
-        Assert.Contains("PC-40", metrics.Reorder.Select(r => r.Sku));
+        // The three products whose suppliers are late right now: any that have sold out must be reordered. GT-VST got
+        // nothing, so it always has; whether the others' part deliveries still leave them above their reorder point
+        // depends on how demand happened to fall, which changes from day to day.
+        var late = await db.PurchaseOrders
+            .Where(o => (o.Status == PurchaseOrderStatus.Ordered || o.Status == PurchaseOrderStatus.PartlyReceived) && o.ExpectedDate < today)
+            .SelectMany(o => o.Lines.Where(l => l.QuantityReceived < l.Quantity))
+            .Select(l => new { l.Product!.Sku, l.Product.Stock!.QuantityOnHand })
+            .Distinct()
+            .ToListAsync(Ct);
+        Assert.Superset(new HashSet<string> { "GT-VST", "HT-TWL", "PC-40" }, late.Select(l => l.Sku).ToHashSet());
+        var soldOut = late.Where(l => l.QuantityOnHand <= 0).Select(l => l.Sku).ToList();
+        Assert.Contains("GT-VST", soldOut);
+        Assert.All(soldOut, sku => Assert.Contains(sku, metrics.Reorder.Select(r => r.Sku)));
         var vests = metrics.Reorder.Single(r => r.Sku == "GT-VST");
         Assert.True(vests.RunsOutBeforeDelivery);
         Assert.True(vests.SuggestedQuantity > 0);

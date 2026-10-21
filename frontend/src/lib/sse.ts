@@ -1,5 +1,6 @@
 import { authStore } from '@/features/auth/auth-store'
-import { ApiRequestError, isApiError } from '@/lib/api/errors'
+import { ApiRequestError, isApiError, statusMessage } from '@/lib/api/errors'
+import { acceptLanguage, t } from '@/lib/i18n'
 
 export interface SseEvent {
   event: string
@@ -45,13 +46,18 @@ export async function postEventStream(path: string, body: unknown, onEvent: (eve
   try {
     response = await globalThis.fetch(path, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        'Accept-Language': acceptLanguage(),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(body),
       signal,
     })
   } catch (error) {
     if (signal?.aborted) throw error
-    throw new ApiRequestError(0, { message: 'Could not reach the server. Check that the API is running and try again.', traceId: '' })
+    throw new ApiRequestError(0, { message: t('Could not reach the server. Check that the API is running and try again.'), traceId: '' })
   }
 
   if (response.status === 401) authStore.clear('expired')
@@ -59,7 +65,7 @@ export async function postEventStream(path: string, body: unknown, onEvent: (eve
     const error: unknown = await response.json().catch(() => null)
     throw new ApiRequestError(
       response.status,
-      isApiError(error) ? error : { message: `The server returned ${response.status} ${response.statusText}.`, traceId: '' },
+      isApiError(error) ? error : { message: statusMessage(response), traceId: '' },
     )
   }
 

@@ -1,19 +1,20 @@
+import { msg, t } from '@/lib/i18n'
 import type { CreditNoteKind, ReturnDisposition, ReturnDocumentStatus, ReturnReason } from './api'
 
 export const creditNoteKindLabels: Record<CreditNoteKind, string> = {
-  GoodsReturn: 'Goods returned',
-  PriceCorrection: 'Price correction',
+  GoodsReturn: msg('Goods returned'),
+  PriceCorrection: msg('Price correction'),
 }
 
 export const returnReasonLabels: Record<ReturnReason, string> = {
-  Damaged: 'Damaged',
-  WrongItem: 'Wrong item',
-  QualityIssue: 'Quality issue',
-  ExcessSupplied: 'Excess supplied',
-  RateDifference: 'Rate difference',
-  ShortSupply: 'Short supply',
-  Discount: 'Discount after the sale',
-  Other: 'Other',
+  Damaged: msg('Damaged'),
+  WrongItem: msg('Wrong item'),
+  QualityIssue: msg('Quality issue'),
+  ExcessSupplied: msg('Excess supplied'),
+  RateDifference: msg('Rate difference'),
+  ShortSupply: msg('Short supply'),
+  Discount: msg('Discount after the sale'),
+  Other: msg('Other'),
 }
 
 /** Reasons that fit goods coming back, and ones that fit a value-only correction. */
@@ -21,13 +22,14 @@ export const goodsReasons: ReturnReason[] = ['Damaged', 'WrongItem', 'QualityIss
 export const priceReasons: ReturnReason[] = ['RateDifference', 'ShortSupply', 'Discount', 'Other']
 
 export const dispositionLabels: Record<ReturnDisposition, string> = {
-  Restock: 'Back into stock',
-  Damaged: 'Damaged: write off',
+  Restock: msg('Back into stock'),
+  Damaged: msg('Damaged: write off'),
 }
 
 export const returnStatusLabels: Record<ReturnDocumentStatus, string> = {
-  Issued: 'Issued',
-  Cancelled: 'Cancelled',
+  Issued: msg('Issued'),
+  Cancelled: msg('Cancelled'),
 }
 
-export const reasonOptions = (reasons: ReturnReason[]) => reasons.map((r) => ({ value: r, label: returnReasonLabels[r] }))
+/** Options for a select; the labels are translated here, so call it while rendering. */
+export const reasonOptions = (reasons: ReturnReason[]) => reasons.map((r) => ({ value: r, label: t(returnReasonLabels[r]) }))

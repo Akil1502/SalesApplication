@@ -192,7 +192,7 @@ public sealed class OrderExtractionService(
             if (line.ProductId > 0)
             {
                 // A product id that isn't in the catalog is never trusted, whatever the model's confidence.
-                note = "The suggested product isn't in the catalog; choose one.";
+                note = L.Show("The suggested product isn't in the catalog; choose one.");
             }
 
             if (aliases.TryGetValue(AliasText.Normalize(line.SourceText), out var aliased) && products.ContainsKey(aliased.Id))

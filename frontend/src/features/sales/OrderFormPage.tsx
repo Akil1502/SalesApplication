@@ -28,6 +28,7 @@ import { api } from '@/lib/api/client'
 import { ApiRequestError, errorMessage, unwrap } from '@/lib/api/errors'
 import { formatDate, formatINR, formatPercent, formatQuantity, todayInIndia } from '@/lib/format'
 import { calculateTotals } from '@/lib/gst'
+import { t } from '@/lib/i18n'
 import { useStates } from '@/lib/lookups'
 import { cn } from '@/lib/utils'
 import { useCancelOrder, useConfirmOrder, useOrder, useQuoteOrder, useSaveOrder, type Order } from './api'
@@ -126,7 +127,7 @@ export function OrderFormPage() {
     try {
       const saved = await save.mutateAsync({ id, body: toSaveRequest(values, order.data?.rowVersion) })
       reset(toFormValues(saved))
-      toast.success(isNew ? `Order ${saved.number} created` : 'Order saved')
+      toast.success(isNew ? t('Order {number} created', { number: saved.number }) : t('Order saved'))
       if (isNew) setCreatedId(saved.id)
     } catch (error) {
       applyServerErrors(error)
@@ -148,7 +149,10 @@ export function OrderFormPage() {
   }
 
   const doConfirm = (overrideCreditLimit: boolean) =>
-    runAction(() => confirm.mutateAsync({ id: id!, rowVersion: order.data!.rowVersion, overrideCreditLimit }), `Order ${order.data!.number} confirmed`)
+    runAction(
+      () => confirm.mutateAsync({ id: id!, rowVersion: order.data!.rowVersion, overrideCreditLimit }),
+      t('Order {number} confirmed', { number: order.data!.number }),
+    )
 
   if (!isNew && order.isPending) return <Skeleton className="h-96 w-full max-w-6xl" />
   if (!isNew && order.error) {
@@ -168,27 +172,27 @@ export function OrderFormPage() {
       <UnsavedChangesGuard when={dirty && createdId === null} />
 
       <PageHeader
-        title={isNew ? 'New order' : (o?.number ?? 'Order')}
+        title={isNew ? t('New order') : (o?.number ?? t('Order'))}
         description={
           o ? (
             <span className="inline-flex flex-wrap items-center gap-2">
               <OrderStatusBadge status={o.status} />
-              {o.quotationNumber && <span className="font-mono text-xs">Quotation {o.quotationNumber}</span>}
+              {o.quotationNumber && <span className="font-mono text-xs">{t('Quotation {number}', { number: o.quotationNumber })}</span>}
               {o.invoiceNumber && (
                 <Link className="font-mono text-xs underline underline-offset-4" to={`/invoices/${o.invoiceId}`}>
-                  Invoice {o.invoiceNumber}
+                  {t('Invoice {number}', { number: o.invoiceNumber })}
                 </Link>
               )}
             </span>
           ) : (
-            'Start as a draft. Mark it as quoted to send to the customer, then confirm when they accept.'
+            t('Start as a draft. Mark it as quoted to send to the customer, then confirm when they accept.')
           )
         }
         actions={
           <Button variant="ghost" asChild>
             <Link to="/orders">
               <ArrowLeft />
-              Back to orders
+              {t('Back to orders')}
             </Link>
           </Button>
         }
@@ -197,17 +201,22 @@ export function OrderFormPage() {
       {o?.status === 'Cancelled' && (
         <Alert variant="destructive">
           <Ban />
-          <AlertDescription>Cancelled {formatDate(o.cancelledAtUtc)}: {o.cancellationReason}</AlertDescription>
+          <AlertDescription>{t('Cancelled {date}: {reason}', { date: formatDate(o.cancelledAtUtc), reason: o.cancellationReason ?? '' })}</AlertDescription>
         </Alert>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Customer & terms</CardTitle>
+          <CardTitle>{t('Customer & terms')}</CardTitle>
           {posState && (
             <CardDescription>
-              Place of supply: {posState.name} ({posState.code}) —{' '}
-              {isInterState ? 'inter-state, IGST applies' : `intra-state, CGST + ${usesUtgst ? 'UTGST' : 'SGST'} apply`}
+              {isInterState
+                ? t('Place of supply: {state} ({code}) — inter-state, IGST applies', { state: posState.name, code: posState.code })
+                : t('Place of supply: {state} ({code}) — intra-state, CGST + {sgst} apply', {
+                    state: posState.name,
+                    code: posState.code,
+                    sgst: usesUtgst ? 'UTGST' : 'SGST',
+                  })}
             </CardDescription>
           )}
         </CardHeader>
@@ -218,37 +227,37 @@ export function OrderFormPage() {
               name="customer"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} className="sm:col-span-2">
-                  <FieldLabel htmlFor={customerPickerId}>Customer</FieldLabel>
+                  <FieldLabel htmlFor={customerPickerId}>{t('Customer')}</FieldLabel>
                   <CustomerPicker id={customerPickerId} value={field.value} onChange={field.onChange} disabled={!editable} invalid={fieldState.invalid} />
                   <FieldError errors={[fieldState.error]} />
                 </Field>
               )}
             />
-            <FormInput control={control} name="orderDate" label="Order date" type="date" max={todayInIndia()} disabled={!editable} />
-            <FormInput control={control} name="validUntil" label="Quote valid until" type="date" disabled={!editable} />
-            <FormInput control={control} name="customerReference" label="Customer PO number" placeholder="Optional" disabled={!editable} className="sm:col-span-2" />
-            <FormTextarea control={control} name="notes" label="Notes" rows={1} disabled={!editable} className="sm:col-span-2" />
+            <FormInput control={control} name="orderDate" label={t('Order date')} type="date" max={todayInIndia()} disabled={!editable} />
+            <FormInput control={control} name="validUntil" label={t('Quote valid until')} type="date" disabled={!editable} />
+            <FormInput control={control} name="customerReference" label={t('Customer PO number')} placeholder={t('Optional')} disabled={!editable} className="sm:col-span-2" />
+            <FormTextarea control={control} name="notes" label={t('Notes')} rows={1} disabled={!editable} className="sm:col-span-2" />
           </FieldGroup>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
-          <CardDescription>Prices exclude GST. The rate comes from each product's HSN code.</CardDescription>
+          <CardTitle>{t('Items')}</CardTitle>
+          <CardDescription>{t("Prices exclude GST. The rate comes from each product's HSN code.")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="overflow-x-auto rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead className="min-w-64">Product</TableHead>
-                  <TableHead className="w-32">Quantity</TableHead>
-                  <TableHead className="w-32">Price (₹)</TableHead>
-                  <TableHead className="w-24">Disc %</TableHead>
+                  <TableHead className="min-w-64">{t('Product')}</TableHead>
+                  <TableHead className="w-32">{t('Quantity')}</TableHead>
+                  <TableHead className="w-32">{t('Price (₹)')}</TableHead>
+                  <TableHead className="w-24">{t('Disc %')}</TableHead>
                   <TableHead className="w-16 text-right">GST</TableHead>
-                  <TableHead className="w-32 text-right">Taxable</TableHead>
-                  <TableHead className="w-32 text-right">Total</TableHead>
+                  <TableHead className="w-32 text-right">{t('Taxable')}</TableHead>
+                  <TableHead className="w-32 text-right">{t('Total')}</TableHead>
                   {editable && <TableHead className="w-12" />}
                 </TableRow>
               </TableHeader>
@@ -280,7 +289,7 @@ export function OrderFormPage() {
                               {line?.product && (
                                 <span className={cn('inline-flex items-center gap-1 text-xs', short ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground')}>
                                   {short && <TriangleAlert className="size-3" />}
-                                  {formatQuantity(line.product.quantityOnHand, line.product.unit)} in stock
+                                  {t('{quantity} in stock', { quantity: formatQuantity(line.product.quantityOnHand, line.product.unit) })}
                                 </span>
                               )}
                               <FieldError errors={[fieldState.error]} />
@@ -300,7 +309,13 @@ export function OrderFormPage() {
                                   inputMode="decimal"
                                   disabled={!editable}
                                   placeholder={name === 'discountPercent' ? '0' : undefined}
-                                  aria-label={`${name === 'quantity' ? 'Quantity' : name === 'unitPrice' ? 'Price' : 'Discount'}, line ${index + 1}`}
+                                  aria-label={
+                                    name === 'quantity'
+                                      ? t('Quantity, line {line}', { line: index + 1 })
+                                      : name === 'unitPrice'
+                                        ? t('Price, line {line}', { line: index + 1 })
+                                        : t('Discount, line {line}', { line: index + 1 })
+                                  }
                                   aria-invalid={fieldState.invalid}
                                 />
                                 <FieldError errors={[fieldState.error]} />
@@ -318,7 +333,7 @@ export function OrderFormPage() {
                             type="button"
                             variant="ghost"
                             size="icon-sm"
-                            aria-label={`Remove line ${index + 1}`}
+                            aria-label={t('Remove line {line}', { line: index + 1 })}
                             disabled={lines.fields.length === 1}
                             onClick={() => lines.remove(index)}
                           >
@@ -338,13 +353,13 @@ export function OrderFormPage() {
             {editable ? (
               <Button type="button" variant="outline" size="sm" onClick={() => lines.append(emptyLine)} disabled={lines.fields.length >= 200}>
                 <Plus />
-                Add product
+                {t('Add product')}
               </Button>
             ) : (
               <span />
             )}
             <div className="flex min-w-72 flex-col gap-1.5 text-sm">
-              <TotalsRow label="Taxable value" value={formatINR(preview.taxableValue)} />
+              <TotalsRow label={t('Taxable value')} value={formatINR(preview.taxableValue)} />
               {isInterState ? (
                 <TotalsRow label="IGST" value={formatINR(preview.igstAmount)} />
               ) : (
@@ -353,8 +368,8 @@ export function OrderFormPage() {
                   <TotalsRow label={usesUtgst ? 'UTGST' : 'SGST'} value={formatINR(preview.sgstAmount)} />
                 </>
               )}
-              <TotalsRow label="Round off" value={formatINR(preview.roundOff)} />
-              <TotalsRow label="Total" value={formatINR(preview.grandTotal)} strong />
+              <TotalsRow label={t('Round off')} value={formatINR(preview.roundOff)} />
+              <TotalsRow label={t('Total')} value={formatINR(preview.grandTotal)} strong />
               {o && !dirty && <p className="text-xs text-muted-foreground">{o.amountInWords}</p>}
             </div>
           </div>
@@ -365,18 +380,18 @@ export function OrderFormPage() {
 
       {/* Action bar: what's possible depends on the order's status. */}
       <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
-        {o && dirty && editable && <span className="mr-auto text-sm text-muted-foreground">Save your changes before quoting or confirming.</span>}
+        {o && dirty && editable && <span className="mr-auto text-sm text-muted-foreground">{t('Save your changes before quoting or confirming.')}</span>}
         {o && canEdit && (status === 'Draft' || status === 'Quoted' || status === 'Confirmed') && (
           <Button type="button" variant="ghost" className="text-destructive" disabled={busy} onClick={() => setCancelOpen(true)}>
             <Ban />
-            Cancel order
+            {t('Cancel order')}
           </Button>
         )}
         {o && status !== 'Cancelled' && (
           <Button type="button" variant="outline" asChild>
             <Link to={`/orders/${o.id}/print`} target="_blank">
               <Printer />
-              {status === 'Draft' || status === 'Quoted' ? 'Print quotation' : 'Print order'}
+              {status === 'Draft' || status === 'Quoted' ? t('Print quotation') : t('Print order')}
             </Link>
           </Button>
         )}
@@ -385,36 +400,36 @@ export function OrderFormPage() {
             type="button"
             variant="outline"
             disabled={busy || dirty}
-            onClick={() => runAction(() => quote.mutateAsync({ id: o.id, rowVersion: o.rowVersion }), `Marked as quoted`)}
+            onClick={() => runAction(() => quote.mutateAsync({ id: o.id, rowVersion: o.rowVersion }), t('Marked as quoted'))}
           >
             <Send />
-            Mark as quoted
+            {t('Mark as quoted')}
           </Button>
         )}
         {o && canEdit && (status === 'Draft' || status === 'Quoted') && (
           <Button type="button" variant="outline" disabled={busy || dirty} onClick={() => doConfirm(false)}>
             <CheckCircle2 />
-            Confirm order
+            {t('Confirm order')}
           </Button>
         )}
         {o && status === 'Confirmed' && can(Permissions.InvoicesEdit) && (
           <Button type="button" onClick={() => setInvoiceOpen(true)}>
             <ReceiptIndianRupee />
-            Issue invoice
+            {t('Issue invoice')}
           </Button>
         )}
         {o && status === 'Invoiced' && can(Permissions.InvoicesView) && (
           <Button type="button" asChild>
             <Link to={`/invoices/${o.invoiceId}`}>
               <FileText />
-              View invoice
+              {t('View invoice')}
             </Link>
           </Button>
         )}
         {editable && (
           <Button type="submit" disabled={busy || (!isNew && !dirty)}>
             {save.isPending && <Spinner />}
-            {isNew ? 'Create draft' : 'Save changes'}
+            {isNew ? t('Create draft') : t('Save changes')}
           </Button>
         )}
       </div>
@@ -425,9 +440,9 @@ export function OrderFormPage() {
       <ConfirmDialog
         open={creditProblem !== null}
         onOpenChange={(open) => !open && setCreditProblem(null)}
-        title="Over the credit limit"
+        title={t('Over the credit limit')}
         description={creditProblem ?? ''}
-        confirmLabel={canOverride ? 'Confirm anyway' : 'OK'}
+        confirmLabel={canOverride ? t('Confirm anyway') : t('OK')}
         destructive={canOverride}
         onConfirm={() => {
           setCreditProblem(null)
@@ -438,11 +453,11 @@ export function OrderFormPage() {
         <ReasonDialog
           open={cancelOpen}
           onOpenChange={setCancelOpen}
-          title={`Cancel ${o.number}?`}
-          description="The order stays on record as cancelled. This can't be undone."
-          confirmLabel="Cancel order"
+          title={t('Cancel {number}?', { number: o.number })}
+          description={t("The order stays on record as cancelled. This can't be undone.")}
+          confirmLabel={t('Cancel order')}
           onConfirm={async (reason) => {
-            await runAction(() => cancel.mutateAsync({ id: o.id, rowVersion: o.rowVersion, reason }), `Order ${o.number} cancelled`)
+            await runAction(() => cancel.mutateAsync({ id: o.id, rowVersion: o.rowVersion, reason }), t('Order {number} cancelled', { number: o.number }))
             setCancelOpen(false)
           }}
         />

@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { formatINR } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import type { ReturnDocumentStatus } from './api'
 import { returnStatusLabels } from './labels'
 
@@ -13,7 +14,7 @@ export function ReturnStatusBadge({ status }: { status: ReturnDocumentStatus }) 
           : 'border-emerald-600/30 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
       }
     >
-      {returnStatusLabels[status]}
+      {t(returnStatusLabels[status])}
     </Badge>
   )
 }
@@ -23,7 +24,7 @@ export function CreditLeftBadge({ amount }: { amount: number }) {
   if (amount <= 0) return null
   return (
     <Badge variant="outline" className="border-violet-600/30 bg-violet-50 text-violet-800 dark:bg-violet-950 dark:text-violet-300">
-      {formatINR(amount)} credit left
+      {t('{amount} credit left', { amount: formatINR(amount) })}
     </Badge>
   )
 }
@@ -32,7 +33,7 @@ export function CreditLeftBadge({ amount }: { amount: number }) {
 export function NoGstBadge() {
   return (
     <Badge variant="outline" className="border-amber-600/30 bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-      Value only, no GST
+      {t('Value only, no GST')}
     </Badge>
   )
 }

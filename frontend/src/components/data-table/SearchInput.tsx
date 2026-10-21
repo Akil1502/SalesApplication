@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { t } from '@/lib/i18n'
 
 interface SearchInputProps {
   value: string
@@ -10,8 +11,9 @@ interface SearchInputProps {
 }
 
 /** Search box that waits for a pause in typing before updating the list, so we don't query on every keystroke. */
-export function SearchInput({ value, onChange, placeholder = 'Search…', delayMs = 300 }: SearchInputProps) {
+export function SearchInput({ value, onChange, placeholder, delayMs = 300 }: SearchInputProps) {
   const [draft, setDraft] = useState(value)
+  const label = placeholder ?? t('Search…')
 
   // Follow external changes (Back button, cleared filters) by adjusting state during render,
   // React's recommended alternative to syncing props into state with an effect.
@@ -34,9 +36,12 @@ export function SearchInput({ value, onChange, placeholder = 'Search…', delayM
         type="search"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        placeholder={placeholder}
+        placeholder={label}
         className="pl-8"
-        aria-label={placeholder}
+        aria-label={label}
+        // "/" anywhere on the page jumps here.
+        data-page-search
+        aria-keyshortcuts="/"
       />
     </div>
   )

@@ -6,6 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
+import { t } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 export type PickedSupplier = Pick<Schemas['SupplierListItemDto'], 'id' | 'code' | 'name' | 'gstin' | 'city' | 'stateName'>
@@ -56,20 +57,20 @@ export function SupplierPicker({ value, onChange, disabled, invalid, id, allowNo
           disabled={disabled}
           className={cn('w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
-          <span className="truncate">{value ? (value.code ? `${value.name} (${value.code})` : value.name) : allowNone ? 'No supplier' : 'Choose a supplier…'}</span>
+          <span className="truncate">{value ? (value.code ? `${value.name} (${value.code})` : value.name) : allowNone ? t('No supplier') : t('Choose a supplier…')}</span>
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-80 p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search name, code, GSTIN, city…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('Search name, code, GSTIN, city…')} value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty>{results.isFetching ? 'Searching…' : 'No active suppliers match.'}</CommandEmpty>
+            <CommandEmpty>{results.isFetching ? t('Searching…') : t('No active suppliers match.')}</CommandEmpty>
             <CommandGroup>
               {allowNone && value && (
                 <CommandItem value="none" onSelect={() => pick(null)}>
                   <Check className="opacity-0" />
-                  <span className="text-muted-foreground">No supplier</span>
+                  <span className="text-muted-foreground">{t('No supplier')}</span>
                 </CommandItem>
               )}
               {results.data?.items.map((supplier) => (
@@ -79,7 +80,7 @@ export function SupplierPicker({ value, onChange, disabled, invalid, id, allowNo
                     <span className="truncate">{supplier.name}</span>
                     <span className="text-xs text-muted-foreground">
                       {supplier.code} · {supplier.city}, {supplier.stateName}
-                      {supplier.gstin ? ` · ${supplier.gstin}` : ' · unregistered'}
+                      {supplier.gstin ? ` · ${supplier.gstin}` : ` · ${t('unregistered')}`}
                     </span>
                   </div>
                 </CommandItem>

@@ -1,5 +1,8 @@
+import type { ComponentType } from 'react'
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { RouteError } from '@/components/errors/RouteError'
+import { RecordPanelLayout } from '@/components/layout/RecordPanelLayout'
 import { Spinner } from '@/components/ui/spinner'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { Permissions as P } from '@/features/auth/permissions'
@@ -8,79 +11,84 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 
 /**
  * Feature screens are code-split: each page's JavaScript downloads the first time it's opened,
- * so signing in doesn't pay for every screen up front.
+ * so signing in doesn't pay for every screen up front. Records (an invoice, a customer) open in a panel beside their
+ * list: their routes are children of the list's route (see withPanel).
  */
 const featureRoutes: RouteObject[] = [
   guarded([P.CustomersView], [
-    { path: '/customers', lazy: () => import('@/features/customers/CustomersPage').then((m) => ({ Component: m.CustomersPage })) },
-    { path: '/customers/:id', lazy: () => import('@/features/customers/CustomerFormPage').then((m) => ({ Component: m.CustomerFormPage })) },
-  ]),
-  guarded([P.CustomersEdit], [
-    { path: '/customers/new', lazy: () => import('@/features/customers/CustomerFormPage').then((m) => ({ Component: m.CustomerFormPage })) },
+    withPanel('/customers', () => import('@/features/customers/CustomersPage').then((m) => m.CustomersPage), [
+      guarded([P.CustomersEdit], [{ path: 'new', lazy: () => import('@/features/customers/CustomerFormPage').then((m) => ({ Component: m.CustomerFormPage })) }]),
+      { path: ':id', lazy: () => import('@/features/customers/CustomerFormPage').then((m) => ({ Component: m.CustomerFormPage })) },
+    ]),
   ]),
   guarded([P.SuppliersView], [
-    { path: '/suppliers', lazy: () => import('@/features/purchasing/SuppliersPage').then((m) => ({ Component: m.SuppliersPage })) },
-    { path: '/suppliers/:id', lazy: () => import('@/features/purchasing/SupplierFormPage').then((m) => ({ Component: m.SupplierFormPage })) },
-  ]),
-  guarded([P.SuppliersEdit], [
-    { path: '/suppliers/new', lazy: () => import('@/features/purchasing/SupplierFormPage').then((m) => ({ Component: m.SupplierFormPage })) },
+    withPanel('/suppliers', () => import('@/features/purchasing/SuppliersPage').then((m) => m.SuppliersPage), [
+      guarded([P.SuppliersEdit], [{ path: 'new', lazy: () => import('@/features/purchasing/SupplierFormPage').then((m) => ({ Component: m.SupplierFormPage })) }]),
+      { path: ':id', lazy: () => import('@/features/purchasing/SupplierFormPage').then((m) => ({ Component: m.SupplierFormPage })) },
+    ]),
   ]),
   guarded([P.PurchaseOrdersView], [
-    { path: '/purchase-orders', lazy: () => import('@/features/purchasing/PurchaseOrdersPage').then((m) => ({ Component: m.PurchaseOrdersPage })) },
-    { path: '/purchase-orders/:id', lazy: () => import('@/features/purchasing/PurchaseOrderFormPage').then((m) => ({ Component: m.PurchaseOrderFormPage })) },
-  ]),
-  guarded([P.PurchaseOrdersEdit], [
-    { path: '/purchase-orders/new', lazy: () => import('@/features/purchasing/PurchaseOrderFormPage').then((m) => ({ Component: m.PurchaseOrderFormPage })) },
+    withPanel('/purchase-orders', () => import('@/features/purchasing/PurchaseOrdersPage').then((m) => m.PurchaseOrdersPage), [
+      guarded([P.PurchaseOrdersEdit], [
+        { path: 'new', lazy: () => import('@/features/purchasing/PurchaseOrderFormPage').then((m) => ({ Component: m.PurchaseOrderFormPage })) },
+      ]),
+      { path: ':id', lazy: () => import('@/features/purchasing/PurchaseOrderFormPage').then((m) => ({ Component: m.PurchaseOrderFormPage })) },
+    ]),
   ]),
   guarded([P.SupplierBillsView], [
-    { path: '/supplier-bills', lazy: () => import('@/features/purchasing/SupplierBillsPage').then((m) => ({ Component: m.SupplierBillsPage })) },
-    { path: '/supplier-bills/:id', lazy: () => import('@/features/purchasing/SupplierBillDetailPage').then((m) => ({ Component: m.SupplierBillDetailPage })) },
-  ]),
-  guarded([P.SupplierBillsEdit], [
-    { path: '/supplier-bills/new', lazy: () => import('@/features/purchasing/SupplierBillFormPage').then((m) => ({ Component: m.SupplierBillFormPage })) },
+    withPanel('/supplier-bills', () => import('@/features/purchasing/SupplierBillsPage').then((m) => m.SupplierBillsPage), [
+      guarded([P.SupplierBillsEdit], [
+        { path: 'new', lazy: () => import('@/features/purchasing/SupplierBillFormPage').then((m) => ({ Component: m.SupplierBillFormPage })) },
+      ]),
+      { path: ':id', lazy: () => import('@/features/purchasing/SupplierBillDetailPage').then((m) => ({ Component: m.SupplierBillDetailPage })) },
+      guarded([P.SupplierReturnsEdit], [
+        { path: ':id/return', lazy: () => import('@/features/returns/SupplierReturnFormPage').then((m) => ({ Component: m.SupplierReturnFormPage })) },
+      ]),
+    ]),
   ]),
   guarded([P.SupplierPaymentsView], [
     { path: '/supplier-payments', lazy: () => import('@/features/purchasing/SupplierPaymentsPage').then((m) => ({ Component: m.SupplierPaymentsPage })) },
   ]),
   guarded([P.SupplierReturnsView], [
-    { path: '/supplier-returns', lazy: () => import('@/features/returns/SupplierReturnsPage').then((m) => ({ Component: m.SupplierReturnsPage })) },
-    { path: '/supplier-returns/:id', lazy: () => import('@/features/returns/SupplierReturnDetailPage').then((m) => ({ Component: m.SupplierReturnDetailPage })) },
-  ]),
-  guarded([P.SupplierReturnsEdit], [
-    { path: '/supplier-bills/:id/return', lazy: () => import('@/features/returns/SupplierReturnFormPage').then((m) => ({ Component: m.SupplierReturnFormPage })) },
+    withPanel('/supplier-returns', () => import('@/features/returns/SupplierReturnsPage').then((m) => m.SupplierReturnsPage), [
+      { path: ':id', lazy: () => import('@/features/returns/SupplierReturnDetailPage').then((m) => ({ Component: m.SupplierReturnDetailPage })) },
+    ]),
   ]),
   guarded([P.ProductsView], [
-    { path: '/products', lazy: () => import('@/features/products/ProductsPage').then((m) => ({ Component: m.ProductsPage })) },
-    { path: '/products/:id', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
-  ]),
-  guarded([P.ProductsEdit], [
-    { path: '/products/new', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
+    withPanel('/products', () => import('@/features/products/ProductsPage').then((m) => m.ProductsPage), [
+      guarded([P.ProductsEdit], [{ path: 'new', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) }]),
+      { path: ':id', lazy: () => import('@/features/products/ProductFormPage').then((m) => ({ Component: m.ProductFormPage })) },
+    ]),
   ]),
   guarded([P.RatesView], [{ path: '/rates', lazy: () => import('@/features/rates/RatesPage').then((m) => ({ Component: m.RatesPage })) }]),
   guarded([P.CatalogView], [{ path: '/catalog', lazy: () => import('@/features/catalog/CatalogPage').then((m) => ({ Component: m.CatalogPage })) }]),
   guarded([P.OrdersView], [
-    { path: '/orders', lazy: () => import('@/features/sales/OrdersPage').then((m) => ({ Component: m.OrdersPage })) },
-    { path: '/orders/:id', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) },
+    withPanel('/orders', () => import('@/features/sales/OrdersPage').then((m) => m.OrdersPage), [
+      guarded([P.OrdersEdit], [{ path: 'new', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) }]),
+      { path: ':id', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) },
+    ]),
   ]),
-  guarded([P.OrdersEdit], [{ path: '/orders/new', lazy: () => import('@/features/sales/OrderFormPage').then((m) => ({ Component: m.OrderFormPage })) }]),
   guarded([P.SmartEntryUse], [
     { path: '/orders/smart-entry', lazy: () => import('@/features/sales/smart-entry/SmartOrderPage').then((m) => ({ Component: m.SmartOrderPage })) },
   ]),
   guarded([P.InvoicesView], [
-    { path: '/invoices', lazy: () => import('@/features/sales/InvoicesPage').then((m) => ({ Component: m.InvoicesPage })) },
-    { path: '/invoices/:id', lazy: () => import('@/features/sales/InvoiceDetailPage').then((m) => ({ Component: m.InvoiceDetailPage })) },
+    withPanel('/invoices', () => import('@/features/sales/InvoicesPage').then((m) => m.InvoicesPage), [
+      { path: ':id', lazy: () => import('@/features/sales/InvoiceDetailPage').then((m) => ({ Component: m.InvoiceDetailPage })) },
+      guarded([P.CreditNotesEdit], [
+        { path: ':id/credit-note', lazy: () => import('@/features/returns/CreditNoteFormPage').then((m) => ({ Component: m.CreditNoteFormPage })) },
+      ]),
+    ]),
   ]),
   guarded([P.PaymentsView], [{ path: '/payments', lazy: () => import('@/features/sales/PaymentsPage').then((m) => ({ Component: m.PaymentsPage })) }]),
   guarded([P.CreditNotesView], [
-    { path: '/credit-notes', lazy: () => import('@/features/returns/CreditNotesPage').then((m) => ({ Component: m.CreditNotesPage })) },
-    { path: '/credit-notes/:id', lazy: () => import('@/features/returns/CreditNoteDetailPage').then((m) => ({ Component: m.CreditNoteDetailPage })) },
-  ]),
-  guarded([P.CreditNotesEdit], [
-    { path: '/invoices/:id/credit-note', lazy: () => import('@/features/returns/CreditNoteFormPage').then((m) => ({ Component: m.CreditNoteFormPage })) },
+    withPanel('/credit-notes', () => import('@/features/returns/CreditNotesPage').then((m) => m.CreditNotesPage), [
+      { path: ':id', lazy: () => import('@/features/returns/CreditNoteDetailPage').then((m) => ({ Component: m.CreditNoteDetailPage })) },
+    ]),
   ]),
   guarded([P.StockView], [
-    { path: '/stock', lazy: () => import('@/features/inventory/StockPage').then((m) => ({ Component: m.StockPage })) },
-    { path: '/stock/receipts/:id', lazy: () => import('@/features/inventory/ReceiptDetailPage').then((m) => ({ Component: m.ReceiptDetailPage })) },
+    withPanel('/stock', () => import('@/features/inventory/StockPage').then((m) => m.StockPage), [
+      { path: 'receipts/:id', lazy: () => import('@/features/inventory/ReceiptDetailPage').then((m) => ({ Component: m.ReceiptDetailPage })) },
+    ]),
   ]),
   guarded([P.ReportsView], [
     { path: '/reports', lazy: () => import('@/features/reports/ReportsPage').then((m) => ({ Component: m.ReportsPage })) },
@@ -96,15 +104,33 @@ const featureRoutes: RouteObject[] = [
   guarded([P.AiUsageView], [{ path: '/admin/ai-usage', lazy: () => import('@/features/ai-usage/AiUsagePage').then((m) => ({ Component: m.AiUsagePage })) }]),
 ]
 
+/** A list page whose records (the child routes) open in a slide-over panel beside it. */
+function withPanel(list: string, load: () => Promise<ComponentType>, children: RouteObject[]): RouteObject {
+  return {
+    path: list,
+    lazy: () =>
+      load().then((List) => ({
+        Component: () => (
+          <RecordPanelLayout list={list}>
+            <List />
+          </RecordPanelLayout>
+        ),
+      })),
+    // A record that fails shows its error in the panel, leaving the list usable.
+    children: [{ errorElement: <RouteError variant="panel" />, children }],
+  }
+}
+
 /** Routes that need any one of these permissions; anyone else is sent home. */
 function guarded(anyOf: string[], children: RouteObject[]): RouteObject {
   return { element: <RequirePermission anyOf={anyOf} />, children }
 }
 
 export const routes: RouteObject[] = [
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <LoginPage />, errorElement: <RouteError variant="full" /> },
   {
     element: <RequireAuth />,
+    errorElement: <RouteError variant="full" />,
     // Shown while the first screen's code-split chunk downloads on a fresh page load.
     hydrateFallbackElement: (
       <div className="flex h-svh items-center justify-center">
@@ -115,18 +141,25 @@ export const routes: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          // The dashboard is lazy too: it carries the charting library, which no other screen needs. Users without it
-          // land on the first page they may open.
           {
-            element: <HomeGate />,
-            children: [{ index: true, lazy: () => import('@/features/dashboard/DashboardPage').then((m) => ({ Component: m.DashboardPage })) }],
+            // A page that fails shows its error inside the app, with the menus still there.
+            errorElement: <RouteError />,
+            children: [
+              // The dashboard is lazy too: it carries the charting library, which no other screen needs. Users without
+              // it land on the first page they may open.
+              {
+                element: <HomeGate />,
+                children: [{ index: true, lazy: () => import('@/features/dashboard/DashboardPage').then((m) => ({ Component: m.DashboardPage })) }],
+              },
+              ...featureRoutes,
+            ],
           },
-          ...featureRoutes,
         ],
       },
       // Printable documents render without the sidebar.
       guarded([P.InvoicesView], [
         { path: '/invoices/:id/print', lazy: () => import('@/features/sales/print/InvoicePrintPage').then((m) => ({ Component: m.InvoicePrintPage })) },
+        { path: '/invoices/print', lazy: () => import('@/features/sales/print/InvoicesPrintPage').then((m) => ({ Component: m.InvoicesPrintPage })) },
       ]),
       guarded([P.OrdersView], [
         { path: '/orders/:id/print', lazy: () => import('@/features/sales/print/QuotationPrintPage').then((m) => ({ Component: m.QuotationPrintPage })) },

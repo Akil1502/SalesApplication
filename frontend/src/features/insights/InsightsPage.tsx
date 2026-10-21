@@ -20,7 +20,9 @@ import {
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
+import { StillOrb } from '@/components/fx/StillOrb'
 import { PageHeader } from '@/components/PageHeader'
+import { AiOrb3D } from '@/components/three/scenes'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,16 +37,17 @@ import { StatTile } from '@/features/dashboard/StatTile'
 import { ReorderDialog } from '@/features/purchasing/ReorderDialog'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatINRCompact } from '@/lib/format'
+import { msg, t, tn } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useInsights, useRefreshInsights, type Anomaly, type AnomalyKind, type CustomerTrend, type Insights, type InsightCardKind } from './api'
 import { ForecastChart } from './ForecastChart'
 import { anomalyLabels, anomalyLink, coverText, forecastExplanation, monthYear } from './insight-format'
 
 const cardStyles: Record<InsightCardKind, { icon: LucideIcon; label: string; className: string }> = {
-  Opportunity: { icon: TrendingUp, label: 'Opportunity', className: 'text-viz-up' },
-  Risk: { icon: TriangleAlert, label: 'Risk', className: 'text-viz-down' },
-  Action: { icon: ArrowRight, label: 'Action', className: 'text-primary' },
-  Info: { icon: Info, label: 'Info', className: 'text-muted-foreground' },
+  Opportunity: { icon: TrendingUp, label: msg('Opportunity'), className: 'text-viz-up' },
+  Risk: { icon: TriangleAlert, label: msg('Risk'), className: 'text-viz-down' },
+  Action: { icon: ArrowRight, label: msg('Action'), className: 'text-primary' },
+  Info: { icon: Info, label: msg('Info'), className: 'text-muted-foreground' },
 }
 
 const anomalyIcons: Record<AnomalyKind, LucideIcon> = {
@@ -58,19 +61,20 @@ const anomalyIcons: Record<AnomalyKind, LucideIcon> = {
 }
 
 /** Claude's written summary, or why there isn't one. Only parts whose figures were found in the metrics are shown. */
-function Briefing({ insights }: { insights: Insights }) {
+function Briefing({ insights, working }: { insights: Insights; working: boolean }) {
   const narrative = insights.narrative ?? null
   const note = insights.narrativeNote ?? null
 
   if (!narrative) {
+    const reason = note ?? t("The written summary couldn't be produced this time.")
     return (
       <Card>
         <CardContent className="flex items-start gap-3 text-sm text-muted-foreground">
           <Lightbulb className="mt-0.5 size-4 shrink-0" />
           <p>
             {insights.narrativeStatus === 'AiOff'
-              ? 'The written summary needs the AI features, which are switched off. Everything below is computed from your sales data without AI.'
-              : `${note ?? "The written summary couldn't be produced this time."} The figures below are unaffected.`}
+              ? t('The written summary needs the AI features, which are switched off. Everything below is computed from your sales data without AI.')
+              : t('{reason} The figures below are unaffected.', { reason })}
           </p>
         </CardContent>
       </Card>
@@ -78,19 +82,29 @@ function Briefing({ insights }: { insights: Insights }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="relative overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-16 -right-16 size-64 rounded-full opacity-60"
+        style={{ background: 'radial-gradient(circle, color-mix(in oklch, var(--brand) 16%, transparent), transparent 70%)' }}
+      />
+      <AiOrb3D
+        active={working}
+        className="absolute top-2 right-2 hidden size-28 sm:block"
+        fallback={<StillOrb active={working} className="absolute top-2 right-2 hidden size-28 sm:flex" />}
+      />
+      <CardHeader className="relative sm:pr-32">
         <div className="flex flex-wrap items-center gap-2">
           {insights.narrativeStatus === 'Verified' ? (
             <Badge variant="secondary" className="gap-1">
-              <CheckCircle2 className="size-3 text-viz-up" /> Every figure checked against the data
+              <CheckCircle2 className="size-3 text-viz-up" /> {t('Every figure checked against the data')}
             </Badge>
           ) : (
             <Badge variant="secondary" className="gap-1">
-              <TriangleAlert className="size-3 text-amber-600" /> Parts with unconfirmed figures were left out
+              <TriangleAlert className="size-3 text-amber-600" /> {t('Parts with unconfirmed figures were left out')}
             </Badge>
           )}
-          <span className="text-xs text-muted-foreground">Written by Claude from the figures below</span>
+          <span className="text-xs text-muted-foreground">{t('Written by Claude from the figures below')}</span>
         </div>
         <CardTitle className="text-lg leading-snug">{narrative.headline}</CardTitle>
         {narrative.summary && <CardDescription className="text-sm leading-relaxed text-foreground">{narrative.summary}</CardDescription>}
@@ -102,7 +116,7 @@ function Briefing({ insights }: { insights: Insights }) {
             return (
               <div key={card.title} className="flex flex-col gap-1 rounded-lg border p-3">
                 <p className={cn('flex items-center gap-1.5 text-xs font-medium', style.className)}>
-                  <style.icon className="size-3.5" /> {style.label}
+                  <style.icon className="size-3.5" /> {t(style.label)}
                 </p>
                 <p className="text-sm font-medium">{card.title}</p>
                 <p className="text-sm text-muted-foreground">{card.body}</p>
@@ -123,7 +137,7 @@ function AnomalyItem({ anomaly }: { anomaly: Anomaly }) {
     <li className="flex gap-3 py-3 first:pt-0 last:pb-0">
       <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 space-y-0.5 text-sm">
-        <p className="text-xs font-medium text-muted-foreground">{anomalyLabels[anomaly.kind]}</p>
+        <p className="text-xs font-medium text-muted-foreground">{t(anomalyLabels[anomaly.kind])}</p>
         <p className="font-medium">{anomaly.title}</p>
         <p className="text-muted-foreground">{anomaly.detail}</p>
         {link && (
@@ -142,10 +156,10 @@ function TrendTable({ rows, empty }: { rows: CustomerTrend[]; empty: string }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Customer</TableHead>
-          <TableHead className="text-right">This year (₹)</TableHead>
-          <TableHead className="text-right">Same period last year (₹)</TableHead>
-          <TableHead className="text-right">Change</TableHead>
+          <TableHead>{t('Customer')}</TableHead>
+          <TableHead className="text-right">{t('This year (₹)')}</TableHead>
+          <TableHead className="text-right">{t('Same period last year (₹)')}</TableHead>
+          <TableHead className="text-right">{t('Change')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -160,7 +174,7 @@ function TrendTable({ rows, empty }: { rows: CustomerTrend[]; empty: string }) {
             <TableCell className="text-right tabular-nums">{formatINR(row.thisYear, 0).replace('₹', '')}</TableCell>
             <TableCell className="text-right tabular-nums">{formatINR(row.lastYearSamePeriod, 0).replace('₹', '')}</TableCell>
             <TableCell className={cn('text-right tabular-nums', row.change >= 0 ? 'text-viz-up' : 'text-viz-down')}>
-              {row.changePercent != null ? `${row.changePercent > 0 ? '+' : ''}${row.changePercent}%` : 'New'}
+              {row.changePercent != null ? `${row.changePercent > 0 ? '+' : ''}${row.changePercent}%` : t('New')}
             </TableCell>
           </TableRow>
         ))}
@@ -204,14 +218,14 @@ export function InsightsPage() {
 
   function recompute() {
     refresh.mutate(undefined, {
-      onSuccess: () => toast.success('Insights updated.'),
+      onSuccess: () => toast.success(t('Insights updated.')),
       onError: (error) => toast.error(errorMessage(error)),
     })
   }
 
   const refreshButton = (
     <Button onClick={recompute} disabled={refresh.isPending} variant="outline">
-      {refresh.isPending ? <Spinner /> : <RefreshCw />} {refresh.isPending ? 'Working it out…' : 'Refresh now'}
+      {refresh.isPending ? <Spinner /> : <RefreshCw />} {refresh.isPending ? t('Working it out…') : t('Refresh now')}
     </Button>
   )
 
@@ -221,8 +235,8 @@ export function InsightsPage() {
   return (
     <>
       <PageHeader
-        title="AI insights"
-        description="The sales forecast, customer trends, what to reorder and what's out of the ordinary, computed from your sales data. Updated every morning; the written summary keeps only what its figures support."
+        title={t('AI insights')}
+        description={t("The sales forecast, customer trends, what to reorder and what's out of the ordinary, computed from your sales data. Updated every morning; the written summary keeps only what its figures support.")}
         actions={refreshButton}
       />
 
@@ -236,8 +250,8 @@ export function InsightsPage() {
             <EmptyMedia variant="icon">
               <Lightbulb />
             </EmptyMedia>
-            <EmptyTitle>No insights yet</EmptyTitle>
-            <EmptyDescription>They're worked out every morning. Work them out now to see this month's forecast, reorder suggestions and anything unusual.</EmptyDescription>
+            <EmptyTitle>{t('No insights yet')}</EmptyTitle>
+            <EmptyDescription>{t("They're worked out every morning. Work them out now to see this month's forecast, reorder suggestions and anything unusual.")}</EmptyDescription>
           </EmptyHeader>
           {refreshButton}
         </Empty>
@@ -247,55 +261,69 @@ export function InsightsPage() {
         <>
           <p className="-mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="size-3.5" />
-            {data.trigger === 'Nightly' ? 'Morning update' : 'Refreshed'} {formatDate(data.generatedAtUtc)}, using data up to {formatBusinessDate(metrics.asOf)}
-            {data.costInr > 0 && ` · summary cost about ${formatINR(data.costInr)}`}
+            {data.trigger === 'Nightly'
+              ? t('Morning update {date}, using data up to {asOf}', { date: formatDate(data.generatedAtUtc), asOf: formatBusinessDate(metrics.asOf) })
+              : t('Refreshed {date}, using data up to {asOf}', { date: formatDate(data.generatedAtUtc), asOf: formatBusinessDate(metrics.asOf) })}
+            {data.costInr > 0 && ` · ${t('summary cost about {cost}', { cost: formatINR(data.costInr) })}`}
           </p>
 
-          <Briefing insights={data} />
+          <Briefing insights={data} working={refresh.isPending} />
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="fx-stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
-              label={`Sales, FY ${metrics.sales.financialYear} so far`}
+              label={t('Sales, FY {year} so far', { year: metrics.sales.financialYear })}
               icon={IndianRupee}
               value={formatINRCompact(metrics.sales.financialYearToDate)}
               isLoading={false}
-              delta={{ value: metrics.sales.growthPercent != null ? metrics.sales.growthPercent / 100 : null, comparison: 'same period last year' }}
+              delta={{
+                value: metrics.sales.growthPercent != null ? metrics.sales.growthPercent / 100 : null,
+                versus: t('vs same period last year'),
+                none: t('No sales same period last year to compare'),
+              }}
             />
             <StatTile
-              label={`Sales in ${monthYear(metrics.sales.lastFullMonth)}`}
+              label={t('Sales in {month}', { month: monthYear(metrics.sales.lastFullMonth) })}
               icon={CalendarRange}
               value={formatINRCompact(metrics.sales.lastFullMonthSales)}
               isLoading={false}
-              delta={{ value: metrics.sales.monthGrowthPercent != null ? metrics.sales.monthGrowthPercent / 100 : null, comparison: 'same month last year' }}
+              delta={{
+                value: metrics.sales.monthGrowthPercent != null ? metrics.sales.monthGrowthPercent / 100 : null,
+                versus: t('vs same month last year'),
+                none: t('No sales same month last year to compare'),
+              }}
             />
             <StatTile
-              label="This month so far"
+              label={t('This month so far')}
               icon={TrendingUp}
               value={formatINRCompact(metrics.sales.monthToDate)}
               isLoading={false}
-              hint={metrics.forecast.next[0] ? `Forecast for the month: ${formatINRCompact(metrics.forecast.next[0].forecast)}` : undefined}
+              hint={metrics.forecast.next[0] ? t('Forecast for the month: {amount}', { amount: formatINRCompact(metrics.forecast.next[0].forecast) }) : undefined}
             />
             <StatTile
-              label="Overdue"
+              label={t('Overdue')}
               icon={Wallet}
               value={formatINRCompact(metrics.receivables.overdue)}
               isLoading={false}
-              hint={`${metrics.receivables.overdueInvoices} invoices from ${metrics.receivables.customersOverdue} customers; ${formatINRCompact(metrics.receivables.overdueOver90Days)} over 90 days`}
+              hint={t('{invoices} invoices from {customers} customers; {amount} over 90 days', {
+                invoices: metrics.receivables.overdueInvoices,
+                customers: metrics.receivables.customersOverdue,
+                amount: formatINRCompact(metrics.receivables.overdueOver90Days),
+              })}
               to="/reports/receivables-ageing"
             />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-5">
-            <Section title="Sales forecast" description={forecastExplanation(metrics.forecast)} className="xl:col-span-3">
+            <Section title={t('Sales forecast')} description={forecastExplanation(metrics.forecast)} className="xl:col-span-3">
               <ForecastChart forecast={metrics.forecast} />
             </Section>
             <Section
-              title="Worth a look"
-              description="Things out of the ordinary in the last year, found by comparing each customer and product with its own history."
+              title={t('Worth a look')}
+              description={t('Things out of the ordinary in the last year, found by comparing each customer and product with its own history.')}
               className="xl:col-span-2"
             >
               {metrics.anomalies.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nothing unusual stands out.</p>
+                <p className="text-sm text-muted-foreground">{t('Nothing unusual stands out.')}</p>
               ) : (
                 <ul className="max-h-[28rem] divide-y overflow-y-auto pr-1">
                   {metrics.anomalies.map((anomaly, i) => (
@@ -307,14 +335,14 @@ export function InsightsPage() {
           </div>
 
           <Section
-            title="Reorder suggestions"
-            description="Products at or below their reorder point: expected demand over the supplier's lead time plus safety stock for about a 95% chance of not running out. Demand counts only days the product was in stock and allows for the season ahead."
+            title={t('Reorder suggestions')}
+            description={t("Products at or below their reorder point: expected demand over the supplier's lead time plus safety stock for about a 95% chance of not running out. Demand counts only days the product was in stock and allows for the season ahead.")}
             action={
               metrics.reorder.length > 0 &&
               can(Permissions.PurchaseOrdersEdit) && (
                 <>
                   <Button variant="outline" size="sm" onClick={() => setReorderOpen(true)}>
-                    Draft purchase orders
+                    {t('Draft purchase orders')}
                   </Button>
                   <ReorderDialog
                     open={reorderOpen}
@@ -327,19 +355,19 @@ export function InsightsPage() {
             }
           >
             {metrics.reorder.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No product needs reordering yet.</p>
+              <p className="text-sm text-muted-foreground">{t('No product needs reordering yet.')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right">On hand</TableHead>
-                      <TableHead className="text-right">Sells per day</TableHead>
-                      <TableHead className="text-right">Stock lasts</TableHead>
-                      <TableHead className="text-right">Lead time</TableHead>
-                      <TableHead className="text-right">Reorder point</TableHead>
-                      <TableHead className="text-right">Order</TableHead>
+                      <TableHead>{t('Product')}</TableHead>
+                      <TableHead className="text-right">{t('On hand')}</TableHead>
+                      <TableHead className="text-right">{t('Sells per day')}</TableHead>
+                      <TableHead className="text-right">{t('Stock lasts')}</TableHead>
+                      <TableHead className="text-right">{t('Lead time')}</TableHead>
+                      <TableHead className="text-right">{t('Reorder point')}</TableHead>
+                      <TableHead className="text-right">{t('Order')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -352,17 +380,17 @@ export function InsightsPage() {
                           <span className="block text-xs text-muted-foreground">{r.name}</span>
                           {r.runsOutBeforeDelivery && (
                             <Badge variant="destructive" className="mt-1">
-                              Runs out before a delivery could arrive
+                              {t('Runs out before a delivery could arrive')}
                             </Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{r.onHand.toLocaleString('en-IN')} {r.unit}</TableCell>
                         <TableCell className="text-right tabular-nums">{r.dailyDemand.toLocaleString('en-IN')}</TableCell>
                         <TableCell className="text-right tabular-nums">{coverText(r.daysOfCover)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{r.leadTimeDays} days</TableCell>
+                        <TableCell className="text-right tabular-nums">{tn(r.leadTimeDays, '{count} day', '{count} days')}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {r.reorderPoint.toLocaleString('en-IN')}
-                          <span className="block text-xs text-muted-foreground">set at {r.configuredReorderLevel.toLocaleString('en-IN')}</span>
+                          <span className="block text-xs text-muted-foreground">{t('set at {level}', { level: r.configuredReorderLevel.toLocaleString('en-IN') })}</span>
                         </TableCell>
                         <TableCell className="text-right font-medium tabular-nums">
                           {r.suggestedQuantity.toLocaleString('en-IN')} {r.unit}
@@ -375,21 +403,21 @@ export function InsightsPage() {
             )}
           </Section>
 
-          <Section title="Customers" description="This financial year so far against the same period last year (sales excluding GST).">
+          <Section title={t('Customers')} description={t('This financial year so far against the same period last year (sales excluding GST).')}>
             <Tabs defaultValue="top">
               <TabsList>
-                <TabsTrigger value="top">Top customers</TabsTrigger>
-                <TabsTrigger value="growing">Growing</TabsTrigger>
-                <TabsTrigger value="declining">Declining</TabsTrigger>
+                <TabsTrigger value="top">{t('Top customers')}</TabsTrigger>
+                <TabsTrigger value="growing">{t('Growing')}</TabsTrigger>
+                <TabsTrigger value="declining">{t('Declining')}</TabsTrigger>
               </TabsList>
               <TabsContent value="top" className="overflow-x-auto">
-                <TrendTable rows={metrics.topCustomers} empty="No sales this year yet." />
+                <TrendTable rows={metrics.topCustomers} empty={t('No sales this year yet.')} />
               </TabsContent>
               <TabsContent value="growing" className="overflow-x-auto">
-                <TrendTable rows={metrics.growing} empty="No customer is ahead of last year yet." />
+                <TrendTable rows={metrics.growing} empty={t('No customer is ahead of last year yet.')} />
               </TabsContent>
               <TabsContent value="declining" className="overflow-x-auto">
-                <TrendTable rows={metrics.declining} empty="No customer is behind last year." />
+                <TrendTable rows={metrics.declining} empty={t('No customer is behind last year.')} />
               </TabsContent>
             </Tabs>
           </Section>

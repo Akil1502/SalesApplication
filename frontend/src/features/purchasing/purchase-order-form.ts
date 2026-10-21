@@ -2,36 +2,37 @@ import { z } from 'zod'
 import type { PickedProduct } from '@/components/ProductPicker'
 import type { PickedSupplier } from '@/components/SupplierPicker'
 import { todayInIndia } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
 import type { PurchaseOrder, PurchaseOrderSaveRequest } from './api'
 
 const lineSchema = z.object({
-  product: z.custom<PickedProduct | null>().refine((p): boolean => p !== null, { error: 'Choose a product.' }),
+  product: z.custom<PickedProduct | null>().refine((p): boolean => p !== null, { error: msg('Choose a product.') }),
   quantity: z
     .string()
     .trim()
-    .regex(/^\d+(\.\d{1,3})?$/, { error: 'Up to 3 decimals.' })
-    .refine((v) => Number(v) > 0, { error: 'More than zero.' }),
+    .regex(/^\d+(\.\d{1,3})?$/, { error: msg('Up to 3 decimals.') })
+    .refine((v) => Number(v) > 0, { error: msg('More than zero.') }),
   // Blank: the last price paid to this supplier, else the product's cost (filled in when saved).
-  unitPrice: z.string().trim().regex(/^(\d+(\.\d{1,2})?)?$/, { error: 'Up to 2 decimals.' }),
+  unitPrice: z.string().trim().regex(/^(\d+(\.\d{1,2})?)?$/, { error: msg('Up to 2 decimals.') }),
 })
 
 export const purchaseOrderFormSchema = z
   .object({
-    supplier: z.custom<PickedSupplier | null>().refine((s): boolean => s !== null, { error: 'Choose a supplier.' }),
-    orderDate: z.string().min(1, { error: 'Choose a date.' }),
+    supplier: z.custom<PickedSupplier | null>().refine((s): boolean => s !== null, { error: msg('Choose a supplier.') }),
+    orderDate: z.string().min(1, { error: msg('Choose a date.') }),
     expectedDate: z.string(),
     supplierReference: z.string().trim().max(50),
     notes: z.string().trim().max(2000),
-    lines: z.array(lineSchema).min(1, { error: 'Add at least one product.' }),
+    lines: z.array(lineSchema).min(1, { error: msg('Add at least one product.') }),
   })
   .superRefine((v, ctx) => {
     if (v.expectedDate && v.expectedDate < v.orderDate) {
-      ctx.addIssue({ code: 'custom', path: ['expectedDate'], message: "Can't be before the order date." })
+      ctx.addIssue({ code: 'custom', path: ['expectedDate'], message: t("Can't be before the order date.") })
     }
     const seen = new Set<number>()
     v.lines.forEach((line, i) => {
       if (!line.product) return
-      if (seen.has(line.product.id)) ctx.addIssue({ code: 'custom', path: ['lines', i, 'product'], message: 'Already on this order.' })
+      if (seen.has(line.product.id)) ctx.addIssue({ code: 'custom', path: ['lines', i, 'product'], message: t('Already on this order.') })
       seen.add(line.product.id)
     })
   })

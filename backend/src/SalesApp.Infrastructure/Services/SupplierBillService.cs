@@ -9,6 +9,7 @@ using SalesApp.Core.Purchasing;
 using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Notifications;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -33,6 +34,7 @@ public sealed class SupplierBillService(
     ILookupService lookups,
     IBusinessClock clock,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider timeProvider) : ISupplierBillService
 {
     private const string BillPrefix = "PB";
@@ -174,16 +176,16 @@ public sealed class SupplierBillService(
             bill.PurchaseOrderId, bill.PurchaseOrder!.Number,
             [.. bill.Lines.OrderBy(l => l.LineNumber).Select(l => new SupplierBillLineDto(l.Id, l.LineNumber, l.PurchaseOrderLineId, l.ProductId,
                 l.ProductSku, l.ProductName, l.HsnCode, l.Unit, l.Quantity, l.UnitPrice, l.OrderedPrice, l.TaxableValue, l.GstRate,
-                l.CgstAmount, l.SgstAmount, l.IgstAmount, l.LineTotal, l.Issue, returned.GetValueOrDefault(l.Id)?.Quantity ?? 0m))],
+                l.CgstAmount, l.SgstAmount, l.IgstAmount, l.LineTotal, L.T(l.Issue), returned.GetValueOrDefault(l.Id)?.Quantity ?? 0m))],
             bill.TaxableValue, bill.ChargesAmount, bill.ChargesGstRate, bill.ChargesDescription,
             bill.CgstAmount, bill.SgstAmount, bill.IgstAmount, bill.RoundOff, bill.GrandTotal, bill.SupplierTotal,
             bill.AmountPaid, bill.AmountCredited,
             bill.Status == SupplierBillStatus.Cancelled ? 0m : bill.GrandTotal - bill.AmountPaid - bill.AmountCredited,
             DaysOverdue(bill.Status, bill.DueDate, clock.Today),
-            bill.MatchIssuesJson is null ? [] : JsonSerializer.Deserialize<List<string>>(bill.MatchIssuesJson, Json) ?? [],
+            bill.MatchIssuesJson is null ? [] : [.. (JsonSerializer.Deserialize<List<string>>(bill.MatchIssuesJson, Json) ?? []).Select(issue => L.T(issue))],
             bill.ApprovedBy?.FullName, bill.ApprovedAtUtc, bill.ApprovalNote, bill.Notes, payments,
             creditsApplied, returns, supplierCredit,
-            bill.Status == SupplierBillStatus.Cancelled ? null : CancelBlockedReason(bill, returns.Any(r => r.Status == ReturnDocumentStatus.Issued)),
+            bill.Status == SupplierBillStatus.Cancelled ? null : L.T(CancelBlockedReason(bill, returns.Any(r => r.Status == ReturnDocumentStatus.Issued))),
             bill.CancelledAtUtc, bill.CancellationReason, bill.CreatedBy!.FullName, bill.CreatedAtUtc, RowVersions.ToToken(bill.RowVersion));
     }
 
@@ -340,7 +342,7 @@ public sealed class SupplierBillService(
 
         if (supplier.Gstin is null && bill.CgstAmount + bill.SgstAmount + bill.IgstAmount > 0)
         {
-            issues.Add($"{supplier.Name} has no GSTIN on record, so the GST on this bill can't be claimed as input credit.");
+            issues.Add(L.Msg($"{supplier.Name} has no GSTIN on record, so the GST on this bill can't be claimed as input credit."));
         }
 
         bill.MatchIssuesJson = issues.Count > 0 ? JsonSerializer.Serialize(issues, Json) : null;
@@ -348,6 +350,15 @@ public sealed class SupplierBillService(
 
         db.SupplierBills.Add(bill);
         await db.SaveChangesAsync(cancellationToken);
+        if (bill.MatchStatus == BillMatchStatus.NeedsApproval)
+        {
+            var (title, body) = NotificationText.BillApproval(bill.Number, supplier.Name, issues.FirstOrDefault(), bill.GrandTotal);
+            await notifications.RaiseAsync(new NotificationEvent(
+                NotificationKind.BillApproval,
+                title,
+                body,
+                $"/supplier-bills/{bill.Id}"), cancellationToken);
+        }
 
         foreach (var line in bill.Lines)
         {
@@ -422,8 +433,8 @@ public sealed class SupplierBillService(
     private DateTime Now => timeProvider.GetUtcNow().UtcDateTime;
 
     private static string? CancelBlockedReason(SupplierBill bill, bool hasReturns) =>
-        bill.AmountPaid > 0 ? $"Payments are recorded against {bill.Number}, so it can't be cancelled."
-        : hasReturns || bill.AmountCredited > 0 ? $"Goods have been returned against {bill.Number}, so it can't be cancelled."
+        bill.AmountPaid > 0 ? L.Msg($"Payments are recorded against {bill.Number}, so it can't be cancelled.")
+        : hasReturns || bill.AmountCredited > 0 ? L.Msg($"Goods have been returned against {bill.Number}, so it can't be cancelled.")
         : null;
 
     internal static int? DaysOverdue(SupplierBillStatus status, DateOnly dueDate, DateOnly today) =>

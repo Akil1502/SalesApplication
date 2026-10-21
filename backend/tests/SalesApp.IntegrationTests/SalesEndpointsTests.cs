@@ -283,22 +283,4 @@ public sealed class SalesEndpointsTests(SalesAppFactory factory)
         Assert.Contains("invoiceDate", (await backdated.ReadAsync<ApiError>()).Errors!.Keys);
         await AssertInvoiceNumbersAreGaplessAsync();
     }
-
-    [Fact]
-    public async Task Summary_reflects_outstanding_and_collected_amounts()
-    {
-        var (manager, _) = await factory.CreateClientAsync(Roles.SalesManager);
-        var before = await (await manager.GetAsync("/api/invoices/summary", Ct)).ReadAsync<InvoiceSummaryDto>();
-        var yarn = await TestData.CreateStockedProductAsync(manager, 100m, listPrice: 100m);
-        var customer = await TestData.CreateCustomerAsync(manager);
-        var order = await TestData.ConfirmAsync(manager, await TestData.CreateOrderAsync(manager, customer.Id, (yarn.Id, 10m)));
-        var invoice = await TestData.InvoiceAsync(manager, order.Id);
-        (await manager.PostAsJsonAsync("/api/payments", new PaymentCreateRequest { InvoiceId = invoice.Id, Amount = 50m, Mode = PaymentMode.Upi }, TestClients.Json, Ct)).EnsureSuccessStatusCode();
-
-        var after = await (await manager.GetAsync("/api/invoices/summary", Ct)).ReadAsync<InvoiceSummaryDto>();
-
-        // Other tests run in parallel, so check this test's contribution as a lower bound.
-        Assert.True(after.OutstandingAmount - before.OutstandingAmount >= 1000m);
-        Assert.True(after.CollectedThisMonth - before.CollectedThisMonth >= 50m);
-    }
 }

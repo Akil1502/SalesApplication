@@ -103,6 +103,7 @@ public sealed class DemoDataGenerator(
             var simulation = new Simulation(this, products, customers, suppliers, team, settings);
             simulation.Run();
             await simulation.SaveAsync(cancellationToken);
+            await DemoNotifications.CreateAsync(db, clock, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
 
@@ -131,6 +132,7 @@ public sealed class DemoDataGenerator(
         foreach (var sql in new[]
         {
             "UPDATE [dbo].[SalesOrders] SET [InvoiceId] = NULL",
+            "DELETE FROM [dbo].[Notifications]",
             "DELETE FROM [dbo].[CreditRefunds]",
             "DELETE FROM [dbo].[CreditAdjustments]",
             "DELETE FROM [dbo].[CreditNoteLines]",

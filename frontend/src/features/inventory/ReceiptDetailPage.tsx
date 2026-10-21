@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { errorMessage } from '@/lib/api/errors'
 import { formatBusinessDate, formatDate, formatINR, formatQuantity } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { useStockReceipt } from './api'
 
 function Detail({ label, value }: { label: string; value: string | null | undefined }) {
@@ -43,13 +44,13 @@ export function ReceiptDetailPage() {
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <PageHeader
-        title={`Goods receipt ${r.number}`}
-        description={`Recorded by ${r.createdByName} on ${formatDate(r.createdAtUtc)}. Receipts can't be edited; correct mistakes with a stock adjustment.`}
+        title={t('Goods receipt {number}', { number: r.number })}
+        description={t("Recorded by {name} on {date}. Receipts can't be edited; correct mistakes with a stock adjustment.", { name: r.createdByName, date: formatDate(r.createdAtUtc) })}
         actions={
           <Button variant="ghost" asChild>
             <Link to="/stock?tab=receipts">
               <ArrowLeft />
-              Back to receipts
+              {t('Back to receipts')}
             </Link>
           </Button>
         }
@@ -58,41 +59,41 @@ export function ReceiptDetailPage() {
       <Card>
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-5">
-            <Detail label="Received on" value={formatBusinessDate(r.receiptDate)} />
+            <Detail label={t('Received on')} value={formatBusinessDate(r.receiptDate)} />
             <div className="space-y-1">
-              <dt className="text-sm text-muted-foreground">Purchase order</dt>
+              <dt className="text-sm text-muted-foreground">{t('Purchase order')}</dt>
               <dd className="font-medium">
                 {r.purchaseOrderId ? (
                   <Link to={`/purchase-orders/${r.purchaseOrderId}`} className="font-mono underline underline-offset-4">
                     {r.purchaseOrderNumber}
                   </Link>
                 ) : (
-                  '— (before purchase orders)'
+                  t('— (before purchase orders)')
                 )}
               </dd>
             </div>
-            <Detail label="Supplier" value={r.supplierName} />
-            <Detail label="Their challan / invoice" value={r.supplierReference} />
-            <Detail label="Notes" value={r.notes} />
+            <Detail label={t('Supplier')} value={r.supplierName} />
+            <Detail label={t('Their challan / invoice')} value={r.supplierReference} />
+            <Detail label={t('Notes')} value={r.notes} />
           </dl>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Products</CardTitle>
+          <CardTitle>{t('Products')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-hidden rounded-lg border">
-            <Table>
+            <Table stack>
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead>SKU</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead className="text-right">{anyRejected ? 'Accepted' : 'Quantity'}</TableHead>
-                  {anyRejected && <TableHead>Rejected at the door</TableHead>}
-                  {showCost && <TableHead className="text-right">Cost per unit</TableHead>}
-                  {showCost && <TableHead className="text-right">Line total</TableHead>}
+                  <TableHead>{t('Product')}</TableHead>
+                  <TableHead className="text-right">{anyRejected ? t('Accepted') : t('Quantity')}</TableHead>
+                  {anyRejected && <TableHead>{t('Rejected at the door')}</TableHead>}
+                  {showCost && <TableHead className="text-right">{t('Cost per unit')}</TableHead>}
+                  {showCost && <TableHead className="text-right">{t('Line total')}</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -124,7 +125,7 @@ export function ReceiptDetailPage() {
                 <TableFooter>
                   <TableRow>
                     <TableCell colSpan={anyRejected ? 5 : 4} className="text-right">
-                      Total cost
+                      {t('Total cost')}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatINR(total)}</TableCell>
                   </TableRow>

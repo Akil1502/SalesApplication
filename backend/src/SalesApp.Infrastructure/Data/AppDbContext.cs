@@ -15,10 +15,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<State> States => Set<State>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<CompanyLogo> CompanyLogos => Set<CompanyLogo>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<UserNotificationState> UserNotificationStates => Set<UserNotificationState>();
+    public DbSet<NotificationRead> NotificationReads => Set<NotificationRead>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<HsnCode> HsnCodes => Set<HsnCode>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductRate> ProductRates => Set<ProductRate>();
+    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<StockLevel> StockLevels => Set<StockLevel>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
@@ -53,6 +58,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<InsightRun> InsightRuns => Set<InsightRun>();
     public DbSet<RoleGrant> RoleGrants => Set<RoleGrant>();
     public DbSet<UserPermissionChange> UserPermissionChanges => Set<UserPermissionChange>();
+    public DbSet<UserSetting> UserSettings => Set<UserSetting>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)

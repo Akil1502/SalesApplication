@@ -157,6 +157,7 @@ public sealed class CustomerService(
         customer.ShippingAddress = shipping;
         customer.Notes = Text.NullIfBlank(request.Notes);
         customer.IsActive = request.IsActive;
+        customer.DocumentLanguage = request.DocumentLanguage;
     }
 
     private async Task ApplyCommercialTermsAsync(Customer customer, CustomerSaveRequest request)
@@ -255,6 +256,6 @@ public sealed class CustomerService(
             c.ContactPerson, c.Phone, c.Email,
             ToDto(c.BillingAddress), c.ShippingAddress is null ? null : ToDto(c.ShippingAddress),
             c.CreditLimit, c.PaymentTermsDays, c.AssignedRepId, c.AssignedRep?.FullName,
-            c.Notes, c.IsActive, c.CreatedAtUtc, c.UpdatedAtUtc, RowVersions.ToToken(c.RowVersion));
+            c.Notes, c.IsActive, c.DocumentLanguage, c.CreatedAtUtc, c.UpdatedAtUtc, RowVersions.ToToken(c.RowVersion));
     }
 }

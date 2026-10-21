@@ -11,6 +11,7 @@ import type { PaymentMode } from '@/features/sales/api'
 import { paymentModes } from '@/features/sales/labels'
 import { applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, todayInIndia } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import type { RefundCreateRequest } from './api'
 
 interface RefundDialogProps {
@@ -39,11 +40,11 @@ function RefundForm({ title, description, dateLabel, available, minDate, rowVers
     amount: z
       .string()
       .trim()
-      .regex(/^\d+(\.\d{1,2})?$/, { error: 'Enter an amount like 5000 or 5000.50.' })
-      .refine((v) => Number(v) > 0, { error: 'More than zero.' })
-      .refine((v) => Number(v) <= available, { error: `Only ${formatINR(available)} of credit is left.` }),
+      .regex(/^\d+(\.\d{1,2})?$/, { error: t('Enter an amount like 5000 or 5000.50.') })
+      .refine((v) => Number(v) > 0, { error: t('More than zero.') })
+      .refine((v) => Number(v) <= available, { error: t('Only {amount} of credit is left.', { amount: formatINR(available) }) }),
     mode: z.string().min(1),
-    refundDate: z.string().min(1, { error: 'Choose a date.' }),
+    refundDate: z.string().min(1, { error: t('Choose a date.') }),
     reference: z.string().trim().max(50),
     notes: z.string().trim().max(500),
   })
@@ -65,7 +66,7 @@ function RefundForm({ title, description, dateLabel, available, minDate, rowVers
         notes: values.notes || null,
         rowVersion,
       })
-      toast.success(`Refund of ${formatINR(Number(values.amount))} recorded`)
+      toast.success(t('Refund of {amount} recorded', { amount: formatINR(Number(values.amount)) }))
       onOpenChange(false)
     } catch (error) {
       if (!applyFieldErrors(error, form.setError, ['amount', 'refundDate', 'reference', 'notes'])) toast.error(errorMessage(error))
@@ -79,24 +80,24 @@ function RefundForm({ title, description, dateLabel, available, minDate, rowVers
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <FieldGroup className="grid gap-4 py-4 sm:grid-cols-2">
-        <FormInput control={form.control} name="amount" label="Amount (₹)" inputMode="decimal" autoFocus />
-        <FormSelect control={form.control} name="mode" label="Mode" options={paymentModes} />
+        <FormInput control={form.control} name="amount" label={t('Amount (₹)')} inputMode="decimal" autoFocus />
+        <FormSelect control={form.control} name="mode" label={t('Mode')} options={paymentModes.map((m) => ({ ...m, label: t(m.label) }))} />
         <FormInput control={form.control} name="refundDate" label={dateLabel} type="date" min={minDate} max={todayInIndia()} />
         <FormInput
           control={form.control}
           name="reference"
-          label={mode === 'Cheque' ? 'Cheque number' : mode === 'Cash' ? 'Voucher number' : 'UTR / transaction ID'}
-          placeholder="Optional"
+          label={mode === 'Cheque' ? t('Cheque number') : mode === 'Cash' ? t('Voucher number') : t('UTR / transaction ID')}
+          placeholder={t('Optional')}
         />
-        <FormInput control={form.control} name="notes" label="Notes" placeholder="Optional" className="sm:col-span-2" />
+        <FormInput control={form.control} name="notes" label={t('Notes')} placeholder={t('Optional')} className="sm:col-span-2" />
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="submit" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting && <Spinner />}
-          Record refund
+          {t('Record refund')}
         </Button>
       </DialogFooter>
     </form>

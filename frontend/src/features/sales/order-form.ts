@@ -2,40 +2,41 @@ import { z } from 'zod'
 import type { PickedCustomer } from '@/components/CustomerPicker'
 import type { PickedProduct } from '@/components/ProductPicker'
 import { todayInIndia } from '@/lib/format'
+import { msg } from '@/lib/i18n'
 import type { Order, OrderSaveRequest } from './api'
 
 const lineSchema = z.object({
-  product: z.custom<PickedProduct | null>().refine((p): boolean => p !== null, { error: 'Choose a product.' }),
+  product: z.custom<PickedProduct | null>().refine((p): boolean => p !== null, { error: msg('Choose a product.') }),
   quantity: z
     .string()
     .trim()
-    .regex(/^\d+(\.\d{1,3})?$/, { error: 'Up to 3 decimals.' })
-    .refine((v) => Number(v) > 0, { error: 'More than zero.' }),
-  unitPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/, { error: 'Up to 2 decimals.' }),
+    .regex(/^\d+(\.\d{1,3})?$/, { error: msg('Up to 3 decimals.') })
+    .refine((v) => Number(v) > 0, { error: msg('More than zero.') }),
+  unitPrice: z.string().trim().regex(/^\d+(\.\d{1,2})?$/, { error: msg('Up to 2 decimals.') }),
   discountPercent: z
     .string()
     .trim()
-    .regex(/^(\d+(\.\d{1,2})?)?$/, { error: 'Up to 2 decimals.' })
-    .refine((v) => v === '' || Number(v) <= 100, { error: 'At most 100%.' }),
+    .regex(/^(\d+(\.\d{1,2})?)?$/, { error: msg('Up to 2 decimals.') })
+    .refine((v) => v === '' || Number(v) <= 100, { error: msg('At most 100%.') }),
 })
 
 export const orderFormSchema = z
   .object({
-    customer: z.custom<PickedCustomer | null>().refine((c): boolean => c !== null, { error: 'Choose a customer.' }),
-    orderDate: z.string().min(1, { error: 'Choose a date.' }),
+    customer: z.custom<PickedCustomer | null>().refine((c): boolean => c !== null, { error: msg('Choose a customer.') }),
+    orderDate: z.string().min(1, { error: msg('Choose a date.') }),
     validUntil: z.string(),
     customerReference: z.string().trim().max(50),
     notes: z.string().trim().max(2000),
-    lines: z.array(lineSchema).min(1, { error: 'Add at least one product.' }),
+    lines: z.array(lineSchema).min(1, { error: msg('Add at least one product.') }),
   })
   .superRefine((v, ctx) => {
     if (v.validUntil && v.validUntil < v.orderDate) {
-      ctx.addIssue({ code: 'custom', path: ['validUntil'], message: "Can't be before the order date." })
+      ctx.addIssue({ code: 'custom', path: ['validUntil'], message: msg("Can't be before the order date.") })
     }
     const seen = new Set<number>()
     v.lines.forEach((line, i) => {
       if (!line.product) return
-      if (seen.has(line.product.id)) ctx.addIssue({ code: 'custom', path: ['lines', i, 'product'], message: 'Already on this order.' })
+      if (seen.has(line.product.id)) ctx.addIssue({ code: 'custom', path: ['lines', i, 'product'], message: msg('Already on this order.') })
       seen.add(line.product.id)
     })
   })

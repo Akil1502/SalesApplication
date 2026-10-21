@@ -2,12 +2,17 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+/* Tamil letters: Geist has none. Only downloaded when Tamil text is on screen (the font's unicode-range). */
+@import "@fontsource-variable/noto-sans-tamil";
 
-@custom-variant dark (&:is(.dark *));
+/* Printed documents force the light theme (.theme-light) even when the app is dark. */
+@custom-variant dark (&:is(.dark *):not(.theme-light *));
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: 'Geist Variable', sans-serif;
+    --font-sans: 'Geist Variable', 'Noto Sans Tamil Variable', sans-serif;
+    --color-brand: var(--brand);
+    --color-brand-2: var(--brand-2);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -57,39 +62,51 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
+:root,
+.theme-light {
+    /* A calm, professional palette: deep indigo for actions, a restrained teal accent, cool neutral surfaces and a
+       navy sidebar that frames the work area. The 3D and motion carry the boldness, not the colours. */
+    --background: oklch(0.982 0.004 265);
+    --foreground: oklch(0.21 0.03 266);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+    --card-foreground: oklch(0.21 0.03 266);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.21 0.03 266);
+    --primary: oklch(0.5 0.19 268);
+    --primary-foreground: oklch(0.985 0.003 265);
+    --secondary: oklch(0.955 0.012 266);
+    --secondary-foreground: oklch(0.27 0.05 267);
+    --muted: oklch(0.958 0.008 266);
+    --muted-foreground: oklch(0.5 0.025 266);
+    --accent: oklch(0.95 0.018 268);
+    --accent-foreground: oklch(0.3 0.08 268);
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --border: oklch(0.912 0.01 266);
+    --input: oklch(0.89 0.012 266);
+    --ring: oklch(0.62 0.16 268);
+    --chart-1: oklch(0.5 0.19 268);
+    --chart-2: oklch(0.6 0.15 240);
+    --chart-3: oklch(0.68 0.12 205);
+    --chart-4: oklch(0.72 0.13 170);
+    --chart-5: oklch(0.42 0.12 280);
+    --radius: 0.7rem;
+    --sidebar: oklch(0.225 0.05 268);
+    --sidebar-foreground: oklch(0.93 0.012 266);
+    --sidebar-primary: oklch(0.7 0.14 268);
+    --sidebar-primary-foreground: oklch(0.18 0.04 268);
+    --sidebar-accent: oklch(0.3 0.06 268);
+    --sidebar-accent-foreground: oklch(0.98 0.005 266);
+    --sidebar-border: oklch(1 0 0 / 9%);
+    --sidebar-ring: oklch(0.7 0.14 268);
+    /* Brand accents for gradients, glows and the 3D scenes. */
+    --brand: oklch(0.5 0.19 268);
+    --brand-2: oklch(0.66 0.13 205);
+    --brand-glow: oklch(0.6 0.2 268 / 35%);
+    /* Dark enough everywhere for white text and icons on it (at least 4.8:1, WCAG AA). */
+    --gradient-brand: linear-gradient(135deg, oklch(0.5 0.19 268), oklch(0.52 0.16 245) 55%, oklch(0.53 0.12 212));
+    --surface-glass: oklch(1 0 0 / 72%);
+    --shadow-elevated: 0 1px 2px oklch(0.25 0.05 268 / 6%), 0 8px 24px -8px oklch(0.25 0.05 268 / 18%);
+    --shadow-lifted: 0 2px 4px oklch(0.25 0.05 268 / 8%), 0 18px 40px -12px oklch(0.3 0.12 268 / 30%);
     /* Charts: palette checked with the dataviz validator against the white card surface. One series
        uses slot 1; receivables ageing is an ordinal ramp (older = darker); "Other" is de-emphasis gray. */
     --viz-series-1: #2a78d6;
@@ -101,40 +118,51 @@
     --viz-age-5: #104281;
     --viz-up: #006300;
     --viz-down: #d03b3b;
+    /* Motion depth: 1 for full 3D motion; the Subtle setting sets it to 0 so the same animations become plain fades. */
+    --fx-depth: 1;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
+    --background: oklch(0.165 0.026 268);
+    --foreground: oklch(0.955 0.006 266);
+    --card: oklch(0.205 0.03 268);
+    --card-foreground: oklch(0.955 0.006 266);
+    --popover: oklch(0.225 0.032 268);
+    --popover-foreground: oklch(0.955 0.006 266);
+    --primary: oklch(0.7 0.15 268);
+    --primary-foreground: oklch(0.16 0.03 268);
+    --secondary: oklch(0.265 0.032 268);
+    --secondary-foreground: oklch(0.955 0.006 266);
+    --muted: oklch(0.255 0.03 268);
+    --muted-foreground: oklch(0.73 0.02 266);
+    --accent: oklch(0.28 0.045 268);
+    --accent-foreground: oklch(0.955 0.006 266);
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --ring: oklch(0.62 0.14 268);
+    --chart-1: oklch(0.7 0.15 268);
+    --chart-2: oklch(0.72 0.12 240);
+    --chart-3: oklch(0.76 0.11 205);
+    --chart-4: oklch(0.78 0.12 170);
+    --chart-5: oklch(0.6 0.12 285);
+    --sidebar: oklch(0.13 0.024 268);
+    --sidebar-foreground: oklch(0.93 0.012 266);
+    --sidebar-primary: oklch(0.7 0.15 268);
+    --sidebar-primary-foreground: oklch(0.16 0.03 268);
+    --sidebar-accent: oklch(0.24 0.04 268);
+    --sidebar-accent-foreground: oklch(0.98 0.005 266);
+    --sidebar-border: oklch(1 0 0 / 8%);
+    --sidebar-ring: oklch(0.62 0.14 268);
+    --brand: oklch(0.68 0.15 268);
+    --brand-2: oklch(0.76 0.12 200);
+    --brand-glow: oklch(0.65 0.18 268 / 40%);
+    --gradient-brand: linear-gradient(135deg, oklch(0.5 0.19 268), oklch(0.52 0.16 245) 55%, oklch(0.53 0.12 212));
+    --surface-glass: oklch(0.2 0.03 268 / 70%);
+    --shadow-elevated: 0 1px 2px oklch(0 0 0 / 30%), 0 10px 28px -10px oklch(0 0 0 / 55%);
+    --shadow-lifted: 0 2px 6px oklch(0 0 0 / 35%), 0 22px 48px -14px oklch(0.45 0.15 268 / 45%);
     /* Dark steps of the same ramps; on a dark surface "more" reads as lighter. */
     --viz-series-1: #3987e5;
     --viz-other: oklch(0.45 0 0);
@@ -170,4 +198,513 @@
   body {
     background: white;
   }
+}
+
+/* ==========================================================================================================
+   Motion and depth. Unlayered, so these win over the utility classes they refine. Every animation reads
+   --fx-depth: full motion moves in 3D, the Subtle setting turns the same animations into plain fades, and Off
+   (or printing) stops them altogether.
+   ========================================================================================================== */
+
+html[data-motion='subtle'] {
+  --fx-depth: 0;
+}
+
+html[data-motion='off'] *,
+html[data-motion='off'] *::before,
+html[data-motion='off'] *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Looping decoration (drifting light, floating art) only plays at full motion. */
+html:not([data-motion='full']) .fx-ambient,
+html:not([data-motion='full']) .fx-ambient::before,
+html:not([data-motion='full']) .fx-ambient::after {
+  animation: none !important;
+}
+
+@media print {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@keyframes fx-rise {
+  from {
+    opacity: 0;
+    transform: perspective(1200px) translateY(calc(var(--fx-depth) * 18px)) rotateX(calc(var(--fx-depth) * 9deg))
+      scale(calc(1 - var(--fx-depth) * 0.02));
+  }
+}
+
+@keyframes fx-row {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--fx-depth) * 8px));
+  }
+}
+
+@keyframes fx-dialog-in {
+  from {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(calc(var(--fx-depth) * -16deg)) translateY(calc(var(--fx-depth) * 24px))
+      scale(calc(1 - var(--fx-depth) * 0.08));
+  }
+}
+
+@keyframes fx-dialog-out {
+  to {
+    opacity: 0;
+    transform: perspective(1000px) rotateX(calc(var(--fx-depth) * 10deg)) scale(calc(1 - var(--fx-depth) * 0.04));
+  }
+}
+
+@keyframes fx-pop {
+  0% {
+    opacity: 0;
+    transform: scale(calc(1 - var(--fx-depth) * 0.4));
+  }
+  60% {
+    opacity: 1;
+    transform: scale(calc(1 + var(--fx-depth) * 0.06));
+  }
+}
+
+@keyframes fx-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@keyframes fx-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1.5deg);
+  }
+}
+
+@keyframes fx-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(6%, -4%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-5%, 5%, 0) scale(0.95);
+  }
+}
+
+@keyframes fx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fx-pan {
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes fx-scan {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes fx-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fx-progress {
+  0% {
+    transform: translateX(-100%) scaleX(0.4);
+  }
+  50% {
+    transform: translateX(30%) scaleX(0.6);
+  }
+  100% {
+    transform: translateX(110%) scaleX(0.3);
+  }
+}
+
+/* Cards rise into place as a page opens, one after another. "backwards" fill only: once in place, hover and
+   tilt effects own the transform. */
+[data-slot='card'] {
+  animation: fx-rise 0.6s var(--ease-out) backwards;
+  transition:
+    box-shadow 0.3s var(--ease-out),
+    transform 0.3s var(--ease-out),
+    background-color 0.2s;
+  box-shadow: var(--shadow-elevated);
+}
+
+:nth-child(2) > [data-slot='card'],
+[data-slot='card']:nth-child(2) {
+  animation-delay: 0.05s;
+}
+:nth-child(3) > [data-slot='card'],
+[data-slot='card']:nth-child(3) {
+  animation-delay: 0.1s;
+}
+:nth-child(4) > [data-slot='card'],
+[data-slot='card']:nth-child(4) {
+  animation-delay: 0.15s;
+}
+:nth-child(5) > [data-slot='card'],
+[data-slot='card']:nth-child(5) {
+  animation-delay: 0.2s;
+}
+:nth-child(n + 6) > [data-slot='card'],
+[data-slot='card']:nth-child(n + 6) {
+  animation-delay: 0.25s;
+}
+
+/* Cards inside dialogs and sheets arrive with their container. */
+[data-slot='dialog-content'] [data-slot='card'],
+[data-slot='sheet-content'] [data-slot='card'] {
+  animation: none;
+}
+
+/* Clickable cards lift towards the viewer. */
+a > [data-slot='card']:hover,
+button > [data-slot='card']:hover,
+[data-slot='card'][data-interactive]:hover {
+  box-shadow: var(--shadow-lifted);
+  transform: translateY(calc(var(--fx-depth) * -3px));
+}
+
+/* Table rows cascade in, and the row under the pointer is marked with an accent edge. */
+[data-slot='table-body'] > tr {
+  animation: fx-row 0.45s var(--ease-out) backwards;
+}
+[data-slot='table-body'] > tr:nth-child(2) { animation-delay: 0.025s; }
+[data-slot='table-body'] > tr:nth-child(3) { animation-delay: 0.05s; }
+[data-slot='table-body'] > tr:nth-child(4) { animation-delay: 0.075s; }
+[data-slot='table-body'] > tr:nth-child(5) { animation-delay: 0.1s; }
+[data-slot='table-body'] > tr:nth-child(6) { animation-delay: 0.125s; }
+[data-slot='table-body'] > tr:nth-child(7) { animation-delay: 0.15s; }
+[data-slot='table-body'] > tr:nth-child(8) { animation-delay: 0.175s; }
+[data-slot='table-body'] > tr:nth-child(9) { animation-delay: 0.2s; }
+[data-slot='table-body'] > tr:nth-child(10) { animation-delay: 0.225s; }
+[data-slot='table-body'] > tr:nth-child(n + 11) { animation-delay: 0.25s; }
+
+[data-slot='table-body'] > tr[data-slot='table-row']:hover {
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+/* Dialogs swing forward out of the screen. */
+[data-slot='dialog-content'][data-state='open'],
+[data-slot='alert-dialog-content'][data-state='open'] {
+  animation: fx-dialog-in 0.42s var(--ease-out);
+}
+[data-slot='dialog-content'][data-state='closed'],
+[data-slot='alert-dialog-content'][data-state='closed'] {
+  animation: fx-dialog-out 0.18s ease-in forwards;
+}
+[data-slot='dialog-overlay'],
+[data-slot='alert-dialog-overlay'] {
+  background: color-mix(in oklch, var(--sidebar) 28%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+/* Loading placeholders shimmer instead of blinking. */
+[data-slot='skeleton'] {
+  animation: fx-shimmer 1.6s ease-in-out infinite;
+  background-image: linear-gradient(100deg, transparent 30%, color-mix(in oklch, var(--card) 70%, transparent) 50%, transparent 70%);
+  background-size: 200% 100%;
+}
+
+/* Buttons: primary actions carry the brand gradient, a soft glow and a sheen that sweeps across on hover. */
+[data-slot='button'] {
+  transition:
+    transform 0.18s var(--ease-out),
+    box-shadow 0.25s var(--ease-out),
+    background-color 0.2s,
+    background-position 0.4s var(--ease-out),
+    color 0.2s;
+}
+[data-slot='button']:active:not(:disabled) {
+  transform: scale(0.97);
+}
+[data-slot='button'][data-variant='default'] {
+  position: relative;
+  overflow: hidden;
+  /* White on the brand gradient in both themes (the gradient is dark enough for it). */
+  color: oklch(0.99 0 0);
+  background-image: var(--gradient-brand);
+  background-size: 160% 100%;
+  background-position: 0% 50%;
+  box-shadow:
+    0 1px 2px oklch(0.3 0.12 268 / 25%),
+    inset 0 1px 0 oklch(1 0 0 / 18%);
+}
+[data-slot='button'][data-variant='default']:hover:not(:disabled) {
+  background-position: 100% 50%;
+  box-shadow:
+    0 6px 18px -6px var(--brand-glow),
+    inset 0 1px 0 oklch(1 0 0 / 22%);
+  /* --magnet-x/y: the button leans towards the pointer (set by the cursor effects at full motion). */
+  transform: translate(var(--magnet-x, 0px), calc(var(--magnet-y, 0px) - var(--fx-depth) * 1px));
+}
+[data-slot='button'][data-variant='default']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, oklch(1 0 0 / 28%) 50%, transparent 65%);
+  transform: translateX(-120%);
+  transition: transform 0.7s var(--ease-out);
+  pointer-events: none;
+}
+[data-slot='button'][data-variant='default']:hover:not(:disabled)::after {
+  transform: translateX(120%);
+}
+
+/* Badges pop in. */
+[data-slot='badge'] {
+  animation: fx-pop 0.45s var(--ease-out) backwards;
+}
+
+/* Empty states settle in. */
+[data-slot='empty'] {
+  animation: fx-rise 0.6s var(--ease-out) backwards;
+}
+
+/* Sidebar: the active page is a lit pill with an accent edge, and icons spring on hover. */
+[data-sidebar='menu-button'] > svg {
+  transition: transform 0.3s var(--ease-spring);
+}
+[data-sidebar='menu-button']:hover > svg {
+  transform: scale(calc(1 + var(--fx-depth) * 0.15)) rotate(calc(var(--fx-depth) * -6deg));
+}
+[data-sidebar='menu-button'][data-active='true'] {
+  background: transparent;
+  color: var(--sidebar-accent-foreground);
+}
+
+/* Utilities for the effect components. */
+.fx-glass {
+  background: var(--surface-glass);
+  backdrop-filter: blur(14px) saturate(1.4);
+}
+.fx-gradient-text {
+  background: var(--gradient-brand);
+  background-clip: text;
+  color: transparent;
+}
+.fx-float {
+  animation: fx-float 6s ease-in-out infinite;
+}
+.fx-pop {
+  animation: fx-pop 0.5s var(--ease-out) backwards;
+}
+
+/* Grids of wrapped cards (tilting tiles) arrive one after another too. */
+.fx-stagger > :nth-child(2) [data-slot='card'] { animation-delay: 0.06s; }
+.fx-stagger > :nth-child(3) [data-slot='card'] { animation-delay: 0.12s; }
+.fx-stagger > :nth-child(4) [data-slot='card'] { animation-delay: 0.18s; }
+.fx-stagger > :nth-child(5) [data-slot='card'] { animation-delay: 0.24s; }
+.fx-stagger > :nth-child(n + 6) [data-slot='card'] { animation-delay: 0.3s; }
+
+@keyframes fx-breathe {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.75;
+  }
+}
+
+/* The list row whose record is open in the side panel. */
+[data-slot='table-body'] > tr[data-state='selected'] {
+  background: color-mix(in oklch, var(--brand) 10%, transparent);
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+
+/* Cursor spotlight: a soft light follows the pointer across cards (--spot-x/y set by the cursor effects). */
+[data-slot='card'] {
+  position: relative;
+  isolation: isolate;
+}
+[data-slot='card']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    380px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in oklch, var(--brand) 13%, transparent),
+    transparent 65%
+  );
+}
+html[data-motion='full'] [data-slot='card']:hover::before {
+  opacity: 1;
+}
+
+/* Scroll reveals: cards below the fold wait tipped back and rise as they scroll into view. */
+html[data-motion='full'] [data-slot='card'][data-reveal='pending'] {
+  animation: none;
+  opacity: 0;
+  transform: perspective(1200px) translateY(44px) rotateX(10deg) scale(0.97);
+}
+html[data-motion='full'] [data-slot='card'][data-reveal='shown'] {
+  animation: none;
+  transition:
+    opacity 0.8s var(--ease-out),
+    transform 0.8s var(--ease-out);
+}
+
+@keyframes fx-swing {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes fx-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* Line-item tables become a card per row when the page or the side panel is narrower than the table needs. Cells are
+   labelled with their column heading (data-label, set by the Table component); the product is each card's title. */
+@container page (max-width: 56rem) {
+  table[data-stack],
+  table[data-stack] > tbody,
+  table[data-stack] > tfoot {
+    display: block;
+    width: 100%;
+  }
+  table[data-stack] > thead {
+    display: none;
+  }
+  table[data-stack] > tbody > tr {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+    margin-bottom: 0.6rem;
+    padding: 0.5rem 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    box-shadow: var(--shadow-elevated);
+  }
+  table[data-stack] > tbody > tr:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+  table[data-stack] > tbody > tr > td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.2rem 0.6rem;
+    text-align: right;
+    white-space: normal;
+  }
+  table[data-stack] > tbody > tr > td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-align: left;
+  }
+  table[data-stack] > tbody > tr > td:not([data-label]) {
+    justify-content: flex-end;
+  }
+  table[data-stack] > tbody > tr > td[data-label='#'] {
+    display: none;
+  }
+  table[data-stack] > tbody > tr > td[data-label='Product'] {
+    order: -1;
+    justify-content: flex-start;
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-weight: 500;
+  }
+  table[data-stack] > tbody > tr > td[data-label='Product']::before {
+    display: none;
+  }
+  table[data-stack] > tbody > tr > td[data-label='Product'] > * {
+    flex: 1;
+  }
+  table[data-stack] > tfoot > tr {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 0.4rem 0.6rem;
+  }
+  table[data-stack] > tfoot > tr > td {
+    padding: 0.15rem 0;
+    border: 0;
+  }
+}
+
+
+/* Compact rows, for those who like to see more of a list at once. */
+table[data-density='compact'] td {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+}
+
+/* A ticked row is tinted, so a selection reads at a glance. */
+[data-slot='table-body'] > tr[data-ticked] {
+  background: color-mix(in oklch, var(--brand) 7%, transparent);
+}
+
+/* Customising the dashboard: cards sway gently so it's clear they can be moved (full motion only). */
+@keyframes fx-wiggle {
+  from {
+    rotate: -0.3deg;
+  }
+  to {
+    rotate: 0.3deg;
+  }
+}
+html[data-motion='full'] [data-dashboard-editing] [data-dashboard-item]:not([data-dragging]) {
+  animation: fx-wiggle 0.45s ease-in-out infinite alternate;
+}
+html[data-motion='full'] [data-dashboard-editing] [data-dashboard-item]:nth-child(2n) {
+  animation-delay: -0.22s;
 }

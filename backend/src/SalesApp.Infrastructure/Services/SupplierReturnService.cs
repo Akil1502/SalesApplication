@@ -150,11 +150,13 @@ public sealed class SupplierReturnService(
             ret.TaxableValue, ret.CgstAmount, ret.SgstAmount, ret.IgstAmount, ret.RoundOff, ret.GrandTotal,
             ret.AmountAdjusted, ret.AmountRefunded, cancelled ? 0m : ret.GrandTotal - ret.AmountAdjusted - ret.AmountRefunded,
             AmountInWords.Rupees(ret.GrandTotal),
+            AmountInWords.TamilRupees(ret.GrandTotal),
+            await DocumentLanguages.ForSupplierAsync(db, ret.SupplierId, cancellationToken),
             [.. ret.Adjustments.OrderBy(a => a.AdjustmentDate).ThenBy(a => a.Id).Select(a => new CreditUseDto(a.Id, ret.Id, ret.Number,
                 a.SupplierBillId, a.SupplierBill!.Number, a.AdjustmentDate, a.Amount, cancelled, a.CreatedBy!.FullName, a.CreatedAtUtc))],
             [.. ret.Refunds.OrderBy(f => f.RefundDate).ThenBy(f => f.Id).Select(f => new RefundDto(f.Id, f.RefundDate, f.Amount, f.Mode,
                 f.Reference, f.Notes, f.CreatedBy!.FullName, f.CreatedAtUtc))],
-            ret.CancelledAtUtc, ret.CancellationReason, CancelBlockedReason(ret),
+            ret.CancelledAtUtc, ret.CancellationReason, L.T(CancelBlockedReason(ret)),
             ret.CreatedBy!.FullName, ret.CreatedAtUtc, RowVersions.ToToken(ret.RowVersion));
     }
 
@@ -245,7 +247,7 @@ public sealed class SupplierReturnService(
                 line.ProductId, StockMovementType.PurchaseReturn, -line.Quantity, ret.ReturnDate,
                 UnitCost: line.UnitPrice,
                 ReferenceType: StockReferenceTypes.SupplierReturn, ReferenceId: ret.Id, ReferenceNumber: ret.Number,
-                Notes: $"Returned to {ret.SupplierName} against {bill.Number}"), cancellationToken);
+                Notes: L.Msg($"Returned to {ret.SupplierName} against {bill.Number}")), cancellationToken);
             await StockCosting.ApplyReturnAsync(db, line.ProductId, movement.BalanceAfter + line.Quantity, line.Quantity, line.UnitPrice, cancellationToken);
         }
 
@@ -319,7 +321,7 @@ public sealed class SupplierReturnService(
                 : $"Nothing is owed on {bill.Number}.");
         }
 
-        var date = ValidateDate(request.Date, "date", ret.ReturnDate > bill.BillDate ? ret.ReturnDate : bill.BillDate, "the return or the bill");
+        var date = ValidateDate(request.Date, "date", ret.ReturnDate > bill.BillDate ? ret.ReturnDate : bill.BillDate, L.Msg("the return or the bill"));
         if (!await Credits.CreditBillAsync(db, bill.Id, request.Amount, cancellationToken))
         {
             throw new ConflictException($"{bill.Number} changed meanwhile (another payment or credit). Reload and try again.");
@@ -351,7 +353,7 @@ public sealed class SupplierReturnService(
                 : $"No credit is left on {ret.Number}.");
         }
 
-        var date = ValidateDate(request.RefundDate, "refundDate", ret.ReturnDate, "the return");
+        var date = ValidateDate(request.RefundDate, "refundDate", ret.ReturnDate, L.Msg("the return"));
         ret.Refunds.Add(new SupplierRefund
         {
             RefundDate = date,
@@ -397,7 +399,7 @@ public sealed class SupplierReturnService(
                 line.ProductId, StockMovementType.PurchaseReturn, line.Quantity, clock.Today,
                 UnitCost: line.UnitPrice,
                 ReferenceType: StockReferenceTypes.SupplierReturn, ReferenceId: ret.Id, ReferenceNumber: ret.Number,
-                Notes: $"Return cancelled: {ret.CancellationReason}"), cancellationToken);
+                Notes: L.Msg($"Return cancelled: {ret.CancellationReason}")), cancellationToken);
             await StockCosting.ApplyReceiptAsync(db, line.ProductId, movement.BalanceAfter - line.Quantity, line.Quantity, line.UnitPrice, cancellationToken);
         }
 
@@ -424,7 +426,7 @@ public sealed class SupplierReturnService(
             throw new ValidationException("reason", "A supplier return is for goods sent back. Choose why they went back.");
         }
 
-        var date = ValidateDate(request.ReturnDate, "returnDate", bill.BillDate, "the bill");
+        var date = ValidateDate(request.ReturnDate, "returnDate", bill.BillDate, L.Msg("the bill"));
         if (request.SupplierCreditNoteDate is { } noteDate && noteDate > clock.Today)
         {
             throw new ValidationException("supplierCreditNoteDate", "The date can't be in the future.");

@@ -8,6 +8,7 @@ using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Notifications;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -25,6 +26,7 @@ public sealed class PaymentService(
     AppDbContext db,
     IBusinessClock clock,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider timeProvider) : IPaymentService
 {
     /// <summary>Income-tax Act s.269ST: no cash receipt of ₹2,00,000 or more from one person in a day.</summary>
@@ -145,6 +147,13 @@ public sealed class PaymentService(
         };
         db.Payments.Add(payment);
         await db.SaveChangesAsync(cancellationToken);
+        var (title, body) = NotificationText.PaymentReceived(payment.Amount, invoice.CustomerName, payment.Mode, invoice.Number);
+        await notifications.RaiseAsync(new NotificationEvent(
+            NotificationKind.PaymentReceived,
+            title,
+            body,
+            $"/invoices/{invoice.Id}",
+            invoice.CustomerId), cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
         return await db.Payments.AsNoTracking()

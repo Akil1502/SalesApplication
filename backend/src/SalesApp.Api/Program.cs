@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -10,6 +11,8 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using SalesApp.AI;
 using SalesApp.Api.Errors;
+using SalesApp.Api.Json;
+using SalesApp.Api.Localization;
 using SalesApp.Api.OpenApi;
 using SalesApp.Api.Security;
 using SalesApp.Core.Security;
@@ -17,6 +20,7 @@ using SalesApp.Infrastructure;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.DemoData;
 using SalesApp.Infrastructure.Insights;
+using SalesApp.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +47,7 @@ builder.Services
     {
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.Converters.Add(new UtcDateTimeConverter());
         // Numbers must be JSON numbers. The web default also accepts "12" strings, which makes the
         // OpenAPI document (and the generated TypeScript) type every number as number | string.
         options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict;
@@ -62,12 +67,14 @@ builder.Services.AddProblemDetails();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.Converters.Add(new UtcDateTimeConverter());
     options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
 });
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
     options.AddOperationTransformer<CamelCaseQueryParametersTransformer>();
+    options.AddSchemaTransformer<DateTimeSchemaTransformer>();
 });
 
 builder.Services
@@ -129,6 +136,12 @@ builder.Services
         };
     });
 
+// Product photo addresses are signed with a key derived from the token key, so there's no extra secret to manage.
+builder.Services
+    .AddOptions<ProductImageOptions>()
+    .Configure<IOptions<JwtOptions>>((images, jwt) => images.SigningKey = HKDF.DeriveKey(
+        HashAlgorithmName.SHA256, Encoding.UTF8.GetBytes(jwt.Value.SigningKey), 32, info: "SalesApp product images"u8.ToArray()));
+
 // Role and permissions come from the database on each request, so an administrator's change applies at once.
 builder.Services.AddScoped<IClaimsTransformation, PermissionClaimsTransformation>();
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
@@ -140,6 +153,8 @@ builder.Services.AddAuthorizationBuilder()
 // ---- Pipeline ----------------------------------------------------------------
 var app = builder.Build();
 
+// First, so everything after it (error responses included) answers in the request's language.
+app.UseRequestLanguage();
 app.UseExceptionHandler();
 app.UseSecurityHeaders(contentSecurityPolicy: !app.Environment.IsDevelopment());
 

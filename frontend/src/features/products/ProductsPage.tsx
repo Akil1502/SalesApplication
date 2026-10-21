@@ -1,10 +1,11 @@
-import { Plus, TriangleAlert } from 'lucide-react'
+import { LayoutGrid, List, Plus, TriangleAlert } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import { DataTable, type Column } from '@/components/data-table/DataTable'
 import { Pagination } from '@/components/data-table/Pagination'
 import { SearchInput } from '@/components/data-table/SearchInput'
 import { useListParams } from '@/components/data-table/use-list-params'
 import { PageHeader } from '@/components/PageHeader'
+import { ProductThumb } from '@/components/ProductThumb'
 import { ActiveBadge } from '@/components/StatusBadge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,25 +15,37 @@ import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { formatINR, formatPercent, formatQuantity } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
 import { useCategories } from '@/lib/lookups'
 import { useProducts, type ProductListItem } from './api'
+import { ProductGallery } from './ProductGallery'
 
 const ALL = 'all'
 
 const columns: Column<ProductListItem>[] = [
   { key: 'sku', header: 'SKU', sortKey: 'sku', cell: (p) => <span className="font-mono text-xs">{p.sku}</span>, className: 'w-36' },
-  { key: 'name', header: 'Product', sortKey: 'name', cell: (p) => <span className="font-medium">{p.name}</span> },
-  { key: 'category', header: 'Category', sortKey: 'category', cell: (p) => p.categoryName },
+  {
+    key: 'name',
+    header: msg('Product'),
+    sortKey: 'name',
+    cell: (p) => (
+      <span className="flex items-center gap-3">
+        <ProductThumb productId={p.id} name={p.name} preview />
+        <span className="font-medium">{p.name}</span>
+      </span>
+    ),
+  },
+  { key: 'category', header: msg('Category'), sortKey: 'category', cell: (p) => p.categoryName },
   { key: 'hsn', header: 'HSN · GST', cell: (p) => <span className="tabular-nums">{p.hsnCode} · {formatPercent(p.gstRate)}</span> },
   {
     key: 'price',
-    header: 'Price today',
+    header: msg('Price today'),
     align: 'right',
     cell: (p) => (
       <span className="inline-flex items-center gap-1.5">
         {p.hasRate && (
-          <Badge variant="outline" title={`From the rate list; list price ${formatINR(p.listPrice)}`}>
-            Rate list
+          <Badge variant="outline" title={t('From the rate list; list price {price}', { price: formatINR(p.listPrice) })}>
+            {t('Rate list')}
           </Badge>
         )}
         {formatINR(p.price)} / {p.unit}
@@ -41,17 +54,17 @@ const columns: Column<ProductListItem>[] = [
   },
   {
     key: 'stock',
-    header: 'In stock',
+    header: msg('In stock'),
     sortKey: 'quantityOnHand',
     align: 'right',
     cell: (p) => (
       <span className={p.quantityOnHand <= p.reorderLevel ? 'inline-flex items-center gap-1 text-amber-700 dark:text-amber-400' : ''}>
-        {p.quantityOnHand <= p.reorderLevel && <TriangleAlert className="size-3.5" aria-label="At or below reorder level" />}
+        {p.quantityOnHand <= p.reorderLevel && <TriangleAlert className="size-3.5" aria-label={t('At or below reorder level')} />}
         {formatQuantity(p.quantityOnHand, p.unit)}
       </span>
     ),
   },
-  { key: 'status', header: 'Status', cell: (p) => <ActiveBadge active={p.isActive} /> },
+  { key: 'status', header: msg('Status'), cell: (p) => <ActiveBadge active={p.isActive} /> },
 ]
 
 export function ProductsPage() {
@@ -62,6 +75,7 @@ export function ProductsPage() {
   const categories = useCategories()
   const categoryId = params.filters.categoryId ? Number(params.filters.categoryId) : undefined
   const lowStockOnly = params.filters.lowStock === 'true'
+  const gallery = params.filters.view === 'gallery'
 
   const products = useProducts({
     q: params.q || undefined,
@@ -78,14 +92,14 @@ export function ProductsPage() {
   return (
     <>
       <PageHeader
-        title="Products"
-        description="Prices exclude GST. The HSN code sets the GST rate on invoices."
+        title={t('Products')}
+        description={t('Prices exclude GST. The HSN code sets the GST rate on invoices.')}
         actions={
           canEdit && (
             <Button asChild>
               <Link to="/products/new">
                 <Plus />
-                New product
+                {t('New product')}
               </Link>
             </Button>
           )
@@ -93,16 +107,16 @@ export function ProductsPage() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search SKU, name or HSN" />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search SKU, name or HSN')} />
         <Select
           value={categoryId?.toString() ?? ALL}
           onValueChange={(value) => update({ filters: { categoryId: value === ALL ? undefined : value } })}
         >
-          <SelectTrigger className="w-52" aria-label="Filter by category">
+          <SelectTrigger className="w-52" aria-label={t('Filter by category')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All categories</SelectItem>
+            <SelectItem value={ALL}>{t('All categories')}</SelectItem>
             {categories.data?.map((c) => (
               <SelectItem key={c.id} value={c.id.toString()}>
                 {c.name}
@@ -112,26 +126,45 @@ export function ProductsPage() {
         </Select>
         <div className="flex items-center gap-2">
           <Switch id="low-stock" checked={lowStockOnly} onCheckedChange={(on) => update({ filters: { lowStock: on ? 'true' : undefined } })} />
-          <Label htmlFor="low-stock">Low stock only</Label>
+          <Label htmlFor="low-stock">{t('Low stock only')}</Label>
         </div>
         <div className="flex items-center gap-2">
           <Switch id="show-inactive" checked={params.includeInactive} onCheckedChange={(includeInactive) => update({ includeInactive })} />
-          <Label htmlFor="show-inactive">Show inactive</Label>
+          <Label htmlFor="show-inactive">{t('Show inactive')}</Label>
+        </div>
+        <div className="ml-auto flex gap-1 rounded-lg border bg-card p-0.5" role="group" aria-label={t('Show as')}>
+          <Button size="sm" variant={gallery ? 'ghost' : 'secondary'} aria-pressed={!gallery} onClick={() => update({ filters: { view: undefined } })}>
+            <List /> {t('Table')}
+          </Button>
+          <Button size="sm" variant={gallery ? 'secondary' : 'ghost'} aria-pressed={gallery} onClick={() => update({ filters: { view: 'gallery' } })}>
+            <LayoutGrid /> {t('Gallery')}
+          </Button>
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        rows={products.data?.items}
-        getRowKey={(p) => p.id}
-        isLoading={products.isPending}
-        error={products.error}
-        onRowClick={(p) => navigate(`/products/${p.id}`)}
-        sort={params.sort}
-        onSortChange={(sort) => update({ sort })}
-        emptyTitle={filtered ? 'No products match' : 'No products yet'}
-        emptyDescription={filtered ? 'Try a different search or filter.' : canEdit ? 'Add products to start quoting and invoicing.' : undefined}
-      />
+      {gallery ? (
+        <ProductGallery
+          items={products.data?.items}
+          isLoading={products.isPending}
+          onOpen={(p) => navigate(`/products/${p.id}`)}
+          emptyTitle={filtered ? t('No products match') : t('No products yet')}
+          emptyDescription={filtered ? t('Try a different search or filter.') : undefined}
+        />
+      ) : (
+        <DataTable
+          settingsKey="products"
+          columns={columns}
+          rows={products.data?.items}
+          getRowKey={(p) => p.id}
+          isLoading={products.isPending}
+          error={products.error}
+          onRowClick={(p) => navigate(`/products/${p.id}`)}
+          sort={params.sort}
+          onSortChange={(sort) => update({ sort })}
+          emptyTitle={filtered ? t('No products match') : t('No products yet')}
+          emptyDescription={filtered ? t('Try a different search or filter.') : canEdit ? t('Add products to start quoting and invoicing.') : undefined}
+        />
+      )}
 
       {products.data && (
         <Pagination

@@ -49,6 +49,7 @@ export const Permissions = {
   PurchaseOrdersApprove: 'purchase-orders.approve',
   SupplierBillsApprove: 'supplier-bills.approve',
   BillReadingUse: 'bill-reading.use',
+  AllCustomersActivity: 'customers.all-activity',
 } as const
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions]

@@ -76,12 +76,12 @@ public sealed class AskController(
         catch (Exception exception) when (exception is AiUnavailableException or AiBudgetExceededException or AiRefusedException
             or AiServiceException or ValidationException)
         {
-            await Send("error", new { message = exception.Message });
+            await Send("error", new { message = L.T(exception.Message) });
         }
         catch (Exception exception)
         {
             logger.LogError(exception, "Ask-your-data failed");
-            await Send("error", new { message = "Something went wrong while answering. Please try again." });
+            await Send("error", new { message = L.Show("Something went wrong while answering. Please try again.") });
         }
     }
 
@@ -111,7 +111,7 @@ public sealed class AskController(
             columns, rows, new Dictionary<string, object?>());
         var company = await settings.GetAsync(cancellationToken);
         var bytes = ExcelReportWriter.Write(report, company.TradeName ?? company.LegalName);
-        await audit.RecordAsync(new AuditEvent(AuditAction.Exported, Summary: $"Downloaded an Ask your data answer as Excel: \"{title}\" ({rows.Count} rows)."), cancellationToken);
+        await audit.RecordAsync(new AuditEvent(AuditAction.Exported, Summary: L.Msg($"Downloaded an Ask your data answer as Excel: \"{title}\" ({rows.Count} rows).")), cancellationToken);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"answer_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx");
     }
 

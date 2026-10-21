@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
+import { msg, t } from '@/lib/i18n'
 
 export type AiUsageSummary = Schemas['AiUsageSummaryDto']
 export type AiCall = Schemas['AiCallDto']
@@ -30,12 +31,16 @@ export function useAiQueries(params: { page: number; q?: string; outcome?: AiQue
   })
 }
 
-/** The names people know the features by. */
+/** The names people know the features by (marked; translate with t() where shown). */
 export const featureLabels: Record<string, string> = {
-  OrderEntry: 'Smart order entry',
-  AskData: 'Ask your data',
-  Assistant: 'Assistant',
-  Insights: 'AI insights',
+  OrderEntry: msg('Smart order entry'),
+  AskData: msg('Ask your data'),
+  Assistant: msg('Assistant'),
+  Insights: msg('AI insights'),
 }
 
-export const featureLabel = (feature: string) => featureLabels[feature] ?? feature
+/** A feature's name in the language on screen. */
+export const featureLabel = (feature: string) => {
+  const label = featureLabels[feature]
+  return label ? t(label) : feature
+}

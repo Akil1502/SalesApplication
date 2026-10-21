@@ -50,16 +50,16 @@ public sealed class CustomerMatcher(AppDbContext db)
                 candidates.FirstOrDefault(c => c.Id == found.Id)?.Score ?? 1m);
             warning = foundBy switch
             {
-                CustomerMatchSource.Gstin => $"The order quotes GSTIN {gstin}, which belongs to {found.Name}, not {selected.Name}.",
-                CustomerMatchSource.Phone => $"The phone number in the order belongs to {found.Name}, not {selected.Name}.",
-                _ => $"The order looks like it's from {found.Name}, {found.City}, not {selected.Name}.",
+                CustomerMatchSource.Gstin => L.Show($"The order quotes GSTIN {gstin}, which belongs to {found.Name}, not {selected.Name}."),
+                CustomerMatchSource.Phone => L.Show($"The phone number in the order belongs to {found.Name}, not {selected.Name}."),
+                _ => L.Show($"The order looks like it's from {found.Name}, {found.City}, not {selected.Name}."),
             };
         }
         else if (found is null && gstin is not null && gstin != selected.Gstin)
         {
             warning = selected.Gstin is null
-                ? $"The order quotes GSTIN {gstin}, but no GSTIN is recorded for {selected.Name}."
-                : $"The order quotes GSTIN {gstin}, but {selected.Name}'s GSTIN is {selected.Gstin}.";
+                ? L.Show($"The order quotes GSTIN {gstin}, but no GSTIN is recorded for {selected.Name}.")
+                : L.Show($"The order quotes GSTIN {gstin}, but {selected.Name}'s GSTIN is {selected.Gstin}.");
         }
 
         return new CustomerSuggestionDto(selected.Id, selected.Name, CustomerMatchSource.Selected, clues, candidates, warning, suggested);

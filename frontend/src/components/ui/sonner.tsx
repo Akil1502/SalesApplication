@@ -1,15 +1,19 @@
+import { useContext } from "react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { PreferencesContext } from "@/components/fx/preferences-context"
+import { InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import { AnimatedCheck } from "@/components/fx/AnimatedCheck"
 
-// The shadcn template reads the theme from next-themes; this Vite app follows the OS setting directly.
-const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
+// The shadcn template reads the theme from next-themes; this app follows the user's light/dark choice.
+const Toaster = ({ theme, ...props }: ToasterProps) => {
+  const resolvedTheme = useContext(PreferencesContext)?.resolvedTheme
   return (
     <Sonner
-      theme={theme}
+      theme={theme ?? resolvedTheme ?? "system"}
       className="toaster group"
       icons={{
         success: (
-          <CircleCheckIcon className="size-4" />
+          <AnimatedCheck className="size-4" />
         ),
         info: (
           <InfoIcon className="size-4" />

@@ -4,6 +4,7 @@ import { allowedNavItems } from '@/components/layout/navigation'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
 import { useAiStatus } from '@/features/ai/api'
+import { t } from '@/lib/i18n'
 import { useAuth } from './auth-context'
 import { authStore } from './auth-store'
 import { Permissions } from './permissions'
@@ -58,8 +59,8 @@ export function HomeGate() {
         <EmptyMedia variant="icon">
           <ShieldOff />
         </EmptyMedia>
-        <EmptyTitle>No pages yet</EmptyTitle>
-        <EmptyDescription>Your account doesn't have access to any part of SalesApp yet. Ask an administrator to give you access.</EmptyDescription>
+        <EmptyTitle>{t('No pages yet')}</EmptyTitle>
+        <EmptyDescription>{t("Your account doesn't have access to any part of SalesApp yet. Ask an administrator to give you access.")}</EmptyDescription>
       </EmptyHeader>
     </Empty>
   )

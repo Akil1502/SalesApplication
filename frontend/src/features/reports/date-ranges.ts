@@ -1,12 +1,14 @@
+import { msg } from '@/lib/i18n'
+
 export type RangePreset = 'this-month' | 'last-month' | 'this-fy' | 'last-fy' | 'last-12-months' | 'custom'
 
 export const rangePresets: { value: RangePreset; label: string }[] = [
-  { value: 'this-month', label: 'This month' },
-  { value: 'last-month', label: 'Last month' },
-  { value: 'this-fy', label: 'This financial year' },
-  { value: 'last-fy', label: 'Last financial year' },
-  { value: 'last-12-months', label: 'Last 12 months' },
-  { value: 'custom', label: 'Custom range' },
+  { value: 'this-month', label: msg('This month') },
+  { value: 'last-month', label: msg('Last month') },
+  { value: 'this-fy', label: msg('This financial year') },
+  { value: 'last-fy', label: msg('Last financial year') },
+  { value: 'last-12-months', label: msg('Last 12 months') },
+  { value: 'custom', label: msg('Custom range') },
 ]
 
 export interface DateRange {

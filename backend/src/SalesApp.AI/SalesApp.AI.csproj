@@ -20,4 +20,9 @@
     <InternalsVisibleTo Include="SalesApp.IntegrationTests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- L.T / L.Msg: text in the request's language (SalesApp.Core/Localization). -->
+    <Using Include="SalesApp.Core.Localization" />
+  </ItemGroup>
+
 </Project>

@@ -76,11 +76,11 @@ public sealed class BillReadingService(
             {
                 // Two bill lines on one order line can't be saved; the clerk merges or reassigns them.
                 orderLine = null;
-                note = "Another line of the bill is already matched to this product; check which is right.";
+                note = L.Show("Another line of the bill is already matched to this product; check which is right.");
             }
             else if (orderLine is null && line.PoLineId != 0)
             {
-                note = "The suggested order line isn't on this order; choose one.";
+                note = L.Show("The suggested order line isn't on this order; choose one.");
             }
 
             var confidence = orderLine is null ? ExtractionConfidence.Low : Confidence(line.Confidence);
@@ -97,19 +97,19 @@ public sealed class BillReadingService(
         if (unmatchedLines > 0)
         {
             warnings.Add(unmatchedLines == 1
-                ? "One line of the bill couldn't be matched to the order. Choose the order line or leave it off."
-                : $"{unmatchedLines} lines of the bill couldn't be matched to the order. Choose the order lines or leave them off.");
+                ? L.Show("One line of the bill couldn't be matched to the order. Choose the order line or leave it off.")
+                : L.Show($"{unmatchedLines} lines of the bill couldn't be matched to the order. Choose the order lines or leave them off."));
         }
 
         // The supplier and the invoice.
         var gstin = Blank(reply.SupplierGstin)?.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
         if (gstin is not null && supplier.Gstin is not null && gstin != supplier.Gstin)
         {
-            warnings.Add($"The bill's GSTIN {gstin} isn't {supplier.Name}'s ({supplier.Gstin}). Check it's really their invoice.");
+            warnings.Add(L.Show($"The bill's GSTIN {gstin} isn't {supplier.Name}'s ({supplier.Gstin}). Check it's really their invoice."));
         }
         else if (gstin is not null && !Gstin.IsValid(gstin))
         {
-            warnings.Add($"The GSTIN on the bill, {gstin}, isn't a valid GSTIN; it may have been misread.");
+            warnings.Add(L.Show($"The GSTIN on the bill, {gstin}, isn't a valid GSTIN; it may have been misread."));
         }
 
         var invoiceNumber = Clip(Blank(reply.InvoiceNumber), 30);
@@ -120,20 +120,20 @@ public sealed class BillReadingService(
                 .Select(b => b.Number).FirstOrDefaultAsync(cancellationToken);
             if (existing is not null)
             {
-                warnings.Add($"Invoice {invoiceNumber} from {supplier.Name} is already entered as {existing}.");
+                warnings.Add(L.Show($"Invoice {invoiceNumber} from {supplier.Name} is already entered as {existing}."));
             }
         }
 
         var poNumber = Blank(reply.PoNumber);
         if (poNumber is not null && !string.Equals(poNumber, order.Number, StringComparison.OrdinalIgnoreCase))
         {
-            warnings.Add($"The bill quotes order {poNumber}, not {order.Number}. Check it's for this order.");
+            warnings.Add(L.Show($"The bill quotes order {poNumber}, not {order.Number}. Check it's for this order."));
         }
 
         var billDate = Date(reply.InvoiceDate);
         if (billDate > clock.Today)
         {
-            warnings.Add("The invoice date is in the future; it may have been misread.");
+            warnings.Add(L.Show("The invoice date is in the future; it may have been misread."));
         }
 
         // Charges become one amount on the bill, at the rate of the largest charge.
@@ -143,7 +143,7 @@ public sealed class BillReadingService(
         var chargesText = charges.Count == 0 ? null : Clip(string.Join(", ", charges.Select(c => Blank(c.Description) ?? "Charges").Distinct()), 100);
         if (charges.Select(c => c.GstRate).Distinct().Count() > 1)
         {
-            warnings.Add("The bill's charges are taxed at different rates; they're entered together at the rate of the largest. Check the GST.");
+            warnings.Add(L.Show("The bill's charges are taxed at different rates; they're entered together at the rate of the largest. Check the GST."));
         }
 
         // Do the lines add up to what the supplier printed? Worked out the way the bill will be saved.
@@ -161,13 +161,13 @@ public sealed class BillReadingService(
             var ours = GstCalculator.Calculate(gstLines, supplier.Address.StateCode != companyState).GrandTotal;
             if (Math.Abs(ours - stated) > 1m)
             {
-                warnings.Add($"The lines and charges come to ₹{AmountInWords.IndianGrouping(ours)} with GST, but the bill's total is ₹{AmountInWords.IndianGrouping(stated)}. Check the quantities, rates and charges.");
+                warnings.Add(L.Show($"The lines and charges come to ₹{AmountInWords.IndianGrouping(ours)} with GST, but the bill's total is ₹{AmountInWords.IndianGrouping(stated)}. Check the quantities, rates and charges."));
             }
         }
 
         if (!reply.IsInvoice)
         {
-            warnings.Insert(0, "This doesn't look like a supplier's tax invoice.");
+            warnings.Insert(0, L.Show("This doesn't look like a supplier's tax invoice."));
         }
 
         var usage = response.Usage;

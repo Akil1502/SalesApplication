@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { t } from '@/lib/i18n'
 import type { BillMatchStatus, PurchaseOrderStatus, SupplierBillStatus } from './api'
 import { billStatusLabels, matchStatusLabels, purchaseOrderStatusLabels } from './labels'
 
@@ -25,11 +26,11 @@ export function PurchaseOrderStatusBadge({ status, late }: { status: PurchaseOrd
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <Badge variant="outline" className={orderTones[status]}>
-        {purchaseOrderStatusLabels[status]}
+        {t(purchaseOrderStatusLabels[status])}
       </Badge>
       {late && (
         <Badge variant="outline" className={tone.red}>
-          Late
+          {t('Late')}
         </Badge>
       )}
     </span>
@@ -47,11 +48,11 @@ export function BillStatusBadge({ status, daysOverdue }: { status: SupplierBillS
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
       <Badge variant="outline" className={billTones[status]}>
-        {billStatusLabels[status]}
+        {t(billStatusLabels[status])}
       </Badge>
       {daysOverdue != null && (
         <Badge variant="outline" className={tone.red}>
-          {daysOverdue}d overdue
+          {t('{days}d overdue', { days: daysOverdue })}
         </Badge>
       )}
     </span>
@@ -67,7 +68,7 @@ const matchTones: Record<BillMatchStatus, string> = {
 export function MatchBadge({ status }: { status: BillMatchStatus }) {
   return (
     <Badge variant="outline" className={matchTones[status]}>
-      {matchStatusLabels[status]}
+      {t(matchStatusLabels[status])}
     </Badge>
   )
 }

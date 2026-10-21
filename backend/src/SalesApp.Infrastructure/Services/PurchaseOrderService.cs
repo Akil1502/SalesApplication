@@ -10,6 +10,7 @@ using SalesApp.Core.Security;
 using SalesApp.Core.Tax;
 using SalesApp.Infrastructure.Data;
 using SalesApp.Infrastructure.Data.Configurations;
+using SalesApp.Infrastructure.Notifications;
 
 namespace SalesApp.Infrastructure.Services;
 
@@ -42,6 +43,7 @@ public sealed class PurchaseOrderService(
     ILookupService lookups,
     IBusinessClock clock,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider timeProvider) : IPurchaseOrderService
 {
     private const string OrderPrefix = "PO";
@@ -155,6 +157,8 @@ public sealed class PurchaseOrderService(
             supplier.ContactPerson, order.IsInterState, order.SupplierReference, order.Notes, lineDtos,
             totals.TaxableValue, totals.CgstAmount, totals.SgstAmount, totals.IgstAmount, totals.RoundOff, totals.GrandTotal,
             AmountInWords.Rupees(totals.GrandTotal),
+            AmountInWords.TamilRupees(totals.GrandTotal),
+            supplier.DocumentLanguage ?? settings.DocumentLanguage,
             limit is { } l && totals.GrandTotal > l, limit,
             order.SubmittedAtUtc, order.ApprovedBy?.FullName, order.ApprovedAtUtc, order.RejectionReason, order.OrderedAtUtc,
             order.ClosedAtUtc, order.CloseReason, order.CancelledAtUtc, order.CancellationReason,
@@ -242,6 +246,16 @@ public sealed class PurchaseOrderService(
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        if (order.Status == PurchaseOrderStatus.PendingApproval)
+        {
+            var (title, body) = NotificationText.PurchaseOrderApproval(order.Number, supplier.Name, order.GrandTotal, settings.PurchaseApprovalLimit ?? 0);
+            await notifications.RaiseAsync(new NotificationEvent(
+                NotificationKind.PurchaseOrderApproval,
+                title,
+                body,
+                $"/purchase-orders/{order.Id}"), cancellationToken);
+        }
+
         return await GetAsync(id, cancellationToken);
     }
 
@@ -557,10 +571,16 @@ public sealed class PurchaseOrderService(
         return quantity > 0 ? quantity : reorderLevel;
     }
 
+    /// <summary>The status as a word inside a sentence ("PO/26-27/00042 is closed"); marked so it's translated with it.</summary>
     private static string Describe(PurchaseOrderStatus status) => status switch
     {
-        PurchaseOrderStatus.PendingApproval => "waiting for approval",
-        PurchaseOrderStatus.PartlyReceived => "partly received",
+        PurchaseOrderStatus.Draft => L.Msg("a draft"),
+        PurchaseOrderStatus.PendingApproval => L.Msg("waiting for approval"),
+        PurchaseOrderStatus.Ordered => L.Msg("ordered"),
+        PurchaseOrderStatus.PartlyReceived => L.Msg("partly received"),
+        PurchaseOrderStatus.Received => L.Msg("received"),
+        PurchaseOrderStatus.Closed => L.Msg("closed"),
+        PurchaseOrderStatus.Cancelled => L.Msg("cancelled"),
         _ => status.ToString().ToLowerInvariant(),
     };
 

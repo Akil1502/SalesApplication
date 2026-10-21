@@ -10,6 +10,7 @@ using SalesApp.Core.Contracts.Insights;
 using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 using SalesApp.Infrastructure.Data;
+using SalesApp.Infrastructure.Notifications;
 using SalesApp.Infrastructure.Insights;
 
 namespace SalesApp.AI.Insights;
@@ -32,6 +33,7 @@ public sealed class InsightsService(
     IClaudeGateway claude,
     AppDbContext db,
     ICurrentUser currentUser,
+    INotificationWriter notifications,
     TimeProvider time,
     IOptionsMonitor<AiOptions> aiOptions,
     ILogger<InsightsService> logger) : IInsightsService
@@ -55,7 +57,7 @@ public sealed class InsightsService(
 
         var briefing = claude.IsAvailable
             ? await WriteBriefingAsync(computed, metricsJson, cancellationToken)
-            : new Briefing(null, NarrativeStatus.AiOff, "AI is switched off or has no API key, so there's no written summary.", 0m);
+            : new Briefing(null, null, NarrativeStatus.AiOff, L.Msg("AI is switched off or has no API key, so there's no written summary."), 0m);
 
         var run = new InsightRun
         {
@@ -64,6 +66,7 @@ public sealed class InsightsService(
             RequestedByUserId = currentUser.IsSystem ? null : currentUser.UserId,
             MetricsJson = metricsJson,
             NarrativeJson = briefing.Narrative is null ? null : JsonSerializer.Serialize(briefing.Narrative, Json),
+            NarrativeTamilJson = briefing.Tamil is null ? null : JsonSerializer.Serialize(briefing.Tamil, Json),
             NarrativeStatus = briefing.Status,
             NarrativeNote = briefing.Note is { Length: > 1000 } note ? note[..1000] : briefing.Note,
             CostUsd = briefing.CostUsd,
@@ -71,14 +74,24 @@ public sealed class InsightsService(
         };
         db.InsightRuns.Add(run);
         await db.SaveChangesAsync(CancellationToken.None);
+        // Fixed words rather than Claude's headline, so everyone reads it in their own language.
+        await notifications.RaiseAsync(new NotificationEvent(
+            NotificationKind.InsightsReady,
+            L.Msg("New insights are ready"),
+            L.Msg("Forecasts, unusual months and reorder suggestions have been worked out again."),
+            "/insights"), CancellationToken.None);
         return ToDto(run);
     }
 
-    private sealed record Briefing(InsightNarrativeDto? Narrative, NarrativeStatus Status, string? Note, decimal CostUsd);
+    private sealed record Briefing(InsightNarrativeDto? Narrative, InsightNarrativeDto? Tamil, NarrativeStatus Status, string? Note, decimal CostUsd);
 
-    private sealed record Reply(string Headline, string Summary, List<ReplyCard> Cards);
+    private sealed record Reply(string Headline, string Summary, List<ReplyCard> Cards, TamilReply? Tamil);
 
     private sealed record ReplyCard(string Kind, string Title, string Body);
+
+    private sealed record TamilReply(string Headline, string Summary, List<TamilCard> Cards);
+
+    private sealed record TamilCard(string Title, string Body);
 
     private async Task<Briefing> WriteBriefingAsync(InsightMetricsDto computed, string metricsJson, CancellationToken cancellationToken)
     {
@@ -110,8 +123,8 @@ public sealed class InsightsService(
         catch (Exception exception) when (exception is AiServiceException or AiRefusedException or AiBudgetExceededException or AiUnavailableException or JsonException)
         {
             logger.LogWarning(exception, "Insights briefing failed");
-            var reason = exception is JsonException ? "Claude's reply couldn't be read." : exception.Message;
-            return new Briefing(null, NarrativeStatus.Failed, $"The written summary couldn't be produced: {reason}", cost);
+            var reason = exception is JsonException ? L.Msg("Claude's reply couldn't be read.") : exception.Message;
+            return new Briefing(null, null, NarrativeStatus.Failed, L.Msg($"The written summary couldn't be produced: {reason}"), cost);
         }
     }
 
@@ -122,31 +135,53 @@ public sealed class InsightsService(
 
     private static List<string> Unverified(Reply reply, List<decimal> known) =>
         [.. new[] { reply.Headline, reply.Summary }.Concat(reply.Cards.Select(c => $"{c.Title} {c.Body}"))
+            .Concat(reply.Tamil is { } tamil ? new[] { tamil.Headline, tamil.Summary }.Concat(tamil.Cards.Select(c => $"{c.Title} {c.Body}")) : [])
             .SelectMany(text => NarrativeNumberCheck.Unverified(text, known)).Distinct()];
 
-    /// <summary>Keeps the parts whose figures all check out; a headline that doesn't is replaced with a computed one.</summary>
+    /// <summary>
+    /// Keeps the parts whose figures all check out; a headline that doesn't is replaced with a computed one. A Tamil
+    /// card is kept only beside its English card, so the two versions say the same things.
+    /// </summary>
     private static Briefing Keep(Reply reply, List<decimal> known, InsightMetricsDto computed, decimal cost)
     {
         bool Checks(string text) => NarrativeNumberCheck.Unverified(text, known).Count == 0;
 
         var removed = Unverified(reply, known);
-        var cards = reply.Cards
-            .Take(InsightNarrativePrompt.MaxCards)
-            .Where(c => Checks($"{c.Title} {c.Body}"))
-            .Select(c => new InsightCardDto(Kind(c.Kind), c.Title.Trim(), c.Body.Trim()))
-            .ToList();
+        var english = new List<InsightCardDto>();
+        var tamil = new List<InsightCardDto>();
+        var tamilCards = reply.Tamil?.Cards ?? [];
+        foreach (var (card, i) in reply.Cards.Take(InsightNarrativePrompt.MaxCards).Select((c, i) => (c, i)))
+        {
+            if (!Checks($"{card.Title} {card.Body}"))
+            {
+                continue;
+            }
+
+            english.Add(new InsightCardDto(Kind(card.Kind), card.Title.Trim(), card.Body.Trim()));
+            if (i < tamilCards.Count && Checks($"{tamilCards[i].Title} {tamilCards[i].Body}"))
+            {
+                tamil.Add(new InsightCardDto(Kind(card.Kind), tamilCards[i].Title.Trim(), tamilCards[i].Body.Trim()));
+            }
+        }
+
         var summary = Checks(reply.Summary) ? reply.Summary.Trim() : "";
         var headline = Checks(reply.Headline) ? reply.Headline.Trim() : DefaultHeadline(computed);
+        InsightNarrativeDto? inTamil = null;
+        if (reply.Tamil is { } t)
+        {
+            var tamilHeadline = Checks(t.Headline) && headline == reply.Headline.Trim() ? t.Headline.Trim() : L.ToTamil(headline);
+            inTamil = new InsightNarrativeDto(tamilHeadline, summary.Length > 0 && Checks(t.Summary) ? t.Summary.Trim() : "", tamil);
+        }
 
         if (removed.Count == 0)
         {
-            return new Briefing(new InsightNarrativeDto(headline, summary, cards), NarrativeStatus.Verified, null, cost);
+            return new Briefing(new InsightNarrativeDto(headline, summary, english), inTamil, NarrativeStatus.Verified, null, cost);
         }
 
-        var note = $"Left out because these figures aren't in the metrics: {string.Join(", ", removed)}.";
-        return cards.Count > 0 || summary.Length > 0
-            ? new Briefing(new InsightNarrativeDto(headline, summary, cards), NarrativeStatus.Trimmed, note, cost)
-            : new Briefing(null, NarrativeStatus.Failed, note, cost);
+        var note = L.Msg($"Left out because these figures aren't in the metrics: {string.Join(", ", removed)}.");
+        return english.Count > 0 || summary.Length > 0
+            ? new Briefing(new InsightNarrativeDto(headline, summary, english), inTamil, NarrativeStatus.Trimmed, note, cost)
+            : new Briefing(null, null, NarrativeStatus.Failed, note, cost);
     }
 
     private static InsightCardKind Kind(string kind) => kind.ToLowerInvariant() switch
@@ -162,18 +197,30 @@ public sealed class InsightsService(
     {
         var sales = computed.Sales;
         var amount = "₹" + sales.FinancialYearToDate.ToString("#,##0", India);
-        return sales.GrowthPercent is { } growth
-            ? $"Sales this financial year: {amount}, {(growth >= 0 ? "up" : "down")} {Math.Abs(growth).ToString("0.0", CultureInfo.InvariantCulture)}% on last year"
-            : $"Sales this financial year: {amount}";
+        if (sales.GrowthPercent is not { } growth)
+        {
+            return L.Msg($"Sales this financial year: {amount}");
+        }
+
+        var change = Math.Abs(growth).ToString("0.0", CultureInfo.InvariantCulture);
+        return growth >= 0
+            ? L.Msg($"Sales this financial year: {amount}, up {change}% on last year")
+            : L.Msg($"Sales this financial year: {amount}, down {change}% on last year");
     }
 
-    private InsightsDto ToDto(InsightRun run) => new(
-        run.Id,
-        run.CreatedAtUtc,
-        run.Trigger,
-        JsonSerializer.Deserialize<InsightMetricsDto>(run.MetricsJson, Json)!,
-        run.NarrativeJson is null ? null : JsonSerializer.Deserialize<InsightNarrativeDto>(run.NarrativeJson, Json),
-        run.NarrativeStatus,
-        run.NarrativeNote,
-        Math.Round(run.CostUsd * aiOptions.CurrentValue.UsdToInr, 2));
+    /// <summary>In the reader's language: the Tamil write-up when there is one, and the computed alerts and notes translated.</summary>
+    private InsightsDto ToDto(InsightRun run)
+    {
+        var metrics = JsonSerializer.Deserialize<InsightMetricsDto>(run.MetricsJson, Json)!;
+        var narrative = L.InTamil && run.NarrativeTamilJson is { } tamil ? tamil : run.NarrativeJson;
+        return new(
+            run.Id,
+            run.CreatedAtUtc,
+            run.Trigger,
+            metrics with { Anomalies = [.. metrics.Anomalies.Select(a => a with { Title = L.T(a.Title), Detail = L.T(a.Detail) })] },
+            narrative is null ? null : JsonSerializer.Deserialize<InsightNarrativeDto>(narrative, Json),
+            run.NarrativeStatus,
+            L.T(run.NarrativeNote),
+            Math.Round(run.CostUsd * aiOptions.CurrentValue.UsdToInr, 2));
+    }
 }

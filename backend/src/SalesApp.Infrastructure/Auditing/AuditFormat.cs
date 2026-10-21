@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using SalesApp.Core.Entities;
 using SalesApp.Core.Security;
 
 namespace SalesApp.Infrastructure.Auditing;
@@ -16,74 +17,116 @@ public static class AuditFormat
 
     private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
     {
-        ["AssignedRepId"] = "Sales rep",
-        ["CategoryId"] = "Category",
-        ["HsnCodeId"] = "HSN code",
-        ["CustomerId"] = "Customer",
-        ["ProductId"] = "Product",
-        ["InvoiceId"] = "Invoice",
-        ["SalesOrderId"] = "Order",
-        ["SupplierId"] = "Supplier",
-        ["PreferredSupplierId"] = "Preferred supplier",
-        ["PurchaseOrderId"] = "Purchase order",
-        ["SupplierBillId"] = "Bill",
-        ["ApprovedByUserId"] = "Approved by",
-        ["SupplierInvoiceNumber"] = "Supplier's invoice number",
-        ["PurchaseApprovalLimit"] = "Purchase approval limit",
-        ["OverReceiptTolerancePercent"] = "Over-receipt tolerance",
-        ["BillPriceTolerancePercent"] = "Bill price tolerance",
-        ["ChargesGstRate"] = "GST rate on charges",
-        ["BankIfsc"] = "Bank IFSC",
-        ["Gstin"] = "GSTIN",
-        ["Pan"] = "PAN",
-        ["Ifsc"] = "IFSC",
-        ["Sku"] = "SKU",
-        ["IsActive"] = "Active",
-        ["PaymentTermsDays"] = "Payment terms (days)",
-        ["LeadTimeDays"] = "Lead time (days)",
-        ["GstRate"] = "GST rate",
-        ["PlaceOfSupplyStateCode"] = "Place of supply",
-        ["StateCode"] = "State",
-        ["Pincode"] = "PIN code",
-        ["Line1"] = "line 1",
-        ["Line2"] = "line 2",
-        ["EffectiveFrom"] = "From",
-        ["EffectiveTo"] = "To",
-        ["Type"] = "Type",
-        ["CreditNoteId"] = "Credit note",
-        ["SupplierReturnId"] = "Supplier return",
-        ["CreditNoteDate"] = "Date",
-        ["ReturnDate"] = "Date",
-        ["AdjustmentDate"] = "Date",
-        ["RefundDate"] = "Date",
-        ["Kind"] = "Type",
-        ["ReasonNote"] = "Details",
-        ["WithGst"] = "Reduces GST",
-        ["AmountAdjusted"] = "Set against invoices or bills",
-        ["AmountRefunded"] = "Refunded",
-        ["AmountCredited"] = "Credited",
-        ["SupplierCreditNoteNumber"] = "Supplier's credit note number",
-        ["SupplierCreditNoteDate"] = "Supplier's credit note date",
+        ["AssignedRepId"] = L.Msg("Sales rep"),
+        ["CategoryId"] = L.Msg("Category"),
+        ["HsnCodeId"] = L.Msg("HSN code"),
+        ["CustomerId"] = L.Msg("Customer"),
+        ["ProductId"] = L.Msg("Product"),
+        ["InvoiceId"] = L.Msg("Invoice"),
+        ["SalesOrderId"] = L.Msg("Order"),
+        ["SupplierId"] = L.Msg("Supplier"),
+        ["PreferredSupplierId"] = L.Msg("Preferred supplier"),
+        ["PurchaseOrderId"] = L.Msg("Purchase order"),
+        ["SupplierBillId"] = L.Msg("Bill"),
+        ["ApprovedByUserId"] = L.Msg("Approved by"),
+        ["SupplierInvoiceNumber"] = L.Msg("Supplier's invoice number"),
+        ["PurchaseApprovalLimit"] = L.Msg("Purchase approval limit"),
+        ["OverReceiptTolerancePercent"] = L.Msg("Over-receipt tolerance"),
+        ["BillPriceTolerancePercent"] = L.Msg("Bill price tolerance"),
+        ["ChargesGstRate"] = L.Msg("GST rate on charges"),
+        ["BankIfsc"] = L.Msg("Bank IFSC"),
+        ["Gstin"] = L.Msg("GSTIN"),
+        ["Pan"] = L.Msg("PAN"),
+        ["Ifsc"] = L.Msg("IFSC"),
+        ["Sku"] = L.Msg("SKU"),
+        ["IsActive"] = L.Msg("Active"),
+        ["PaymentTermsDays"] = L.Msg("Payment terms (days)"),
+        ["LeadTimeDays"] = L.Msg("Lead time (days)"),
+        ["GstRate"] = L.Msg("GST rate"),
+        ["PlaceOfSupplyStateCode"] = L.Msg("Place of supply"),
+        ["StateCode"] = L.Msg("State"),
+        ["Pincode"] = L.Msg("PIN code"),
+        ["Line1"] = L.Msg("line 1"),
+        ["Line2"] = L.Msg("line 2"),
+        ["EffectiveFrom"] = L.Msg("From"),
+        ["EffectiveTo"] = L.Msg("To"),
+        ["Type"] = L.Msg("Type"),
+        ["CreditNoteId"] = L.Msg("Credit note"),
+        ["SupplierReturnId"] = L.Msg("Supplier return"),
+        ["CreditNoteDate"] = L.Msg("Date"),
+        ["ReturnDate"] = L.Msg("Date"),
+        ["AdjustmentDate"] = L.Msg("Date"),
+        ["RefundDate"] = L.Msg("Date"),
+        ["Kind"] = L.Msg("Type"),
+        ["DocumentLanguage"] = L.Msg("Document language"),
+        ["ReasonNote"] = L.Msg("Details"),
+        ["WithGst"] = L.Msg("Reduces GST"),
+        ["AmountAdjusted"] = L.Msg("Set against invoices or bills"),
+        ["AmountRefunded"] = L.Msg("Refunded"),
+        ["AmountCredited"] = L.Msg("Credited"),
+        ["SupplierCreditNoteNumber"] = L.Msg("Supplier's credit note number"),
+        ["SupplierCreditNoteDate"] = L.Msg("Supplier's credit note date"),
     };
 
     /// <summary>Enum values that aren't plain words: payment modes are acronyms, sources say what AI read.</summary>
     private static readonly Dictionary<string, string> EnumWords = new(StringComparer.Ordinal)
     {
-        ["Upi"] = "UPI",
-        ["Neft"] = "NEFT",
-        ["Rtgs"] = "RTGS",
-        ["AiText"] = "AI (text)",
-        ["AiPdf"] = "AI (PDF)",
-        ["AiImage"] = "AI (photo)",
-        ["GoodsReturn"] = "Goods returned",
-        ["PriceCorrection"] = "Price correction",
-        ["WrongItem"] = "Wrong item",
-        ["QualityIssue"] = "Quality issue",
-        ["ExcessSupplied"] = "Excess supplied",
-        ["RateDifference"] = "Rate difference",
-        ["ShortSupply"] = "Short supply",
-        ["Restock"] = "Back into stock",
+        ["Upi"] = L.Msg("UPI"),
+        ["Neft"] = L.Msg("NEFT"),
+        ["Rtgs"] = L.Msg("RTGS"),
+        ["AiText"] = L.Msg("AI (text)"),
+        ["AiPdf"] = L.Msg("AI (PDF)"),
+        ["AiImage"] = L.Msg("AI (photo)"),
+        ["GoodsReturn"] = L.Msg("Goods returned"),
+        ["PriceCorrection"] = L.Msg("Price correction"),
+        ["WrongItem"] = L.Msg("Wrong item"),
+        ["QualityIssue"] = L.Msg("Quality issue"),
+        ["ExcessSupplied"] = L.Msg("Excess supplied"),
+        ["RateDifference"] = L.Msg("Rate difference"),
+        ["ShortSupply"] = L.Msg("Short supply"),
+        ["Restock"] = L.Msg("Back into stock"),
     };
+
+    /// <summary>
+    /// Every field name and value word the trail can write for the audited records, for the translation tests: labels
+    /// are made from property names, so they aren't in the source as text.
+    /// </summary>
+    public static IEnumerable<string> TextsForTranslation()
+    {
+        static bool Scalar(Type type)
+        {
+            var t = Nullable.GetUnderlyingType(type) ?? type;
+            return t.IsPrimitive || t.IsEnum || t == typeof(string) || t == typeof(decimal) || t == typeof(DateOnly) || t == typeof(DateTime) || t == typeof(Guid);
+        }
+
+        var texts = new HashSet<string>(StringComparer.Ordinal) { Value(true, "")!, Value(false, "")! };
+        foreach (var (type, spec) in AuditedTypes.Specs)
+        {
+            foreach (var property in type.GetProperties().Where(p => p.GetMethod?.IsPublic == true && !AuditedTypes.Ignored.Contains(p.Name)))
+            {
+                if (Scalar(property.PropertyType))
+                {
+                    texts.Add(Label(property.Name));
+                    if ((Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType) is { IsEnum: true } enumType)
+                    {
+                        foreach (var value in Enum.GetValues(enumType))
+                        {
+                            texts.Add(Value(value, property.Name)!);
+                        }
+                    }
+                }
+                else if (spec.IncludeOwned && property.PropertyType == typeof(Address))
+                {
+                    foreach (var part in typeof(Address).GetProperties())
+                    {
+                        texts.Add(Label(part.Name, property.Name));
+                    }
+                }
+            }
+        }
+
+        return texts;
+    }
 
     /// <summary>"CreditLimit" → "Credit limit", "BillingAddress" + "City" → "Billing address: city".</summary>
     public static string Label(string property, string? ownerNavigation = null)
@@ -102,7 +145,7 @@ public static class AuditFormat
     {
         null => null,
         string s => string.IsNullOrWhiteSpace(s) ? null : (s.Length > 500 ? s[..497] + "…" : s),
-        bool b => b ? "Yes" : "No",
+        bool b => b ? L.Msg("Yes") : L.Msg("No"),
         DateOnly d => d.ToString("d MMM yyyy", CultureInfo.InvariantCulture),
         DateTime t => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(t, DateTimeKind.Utc), IndiaTime).ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture),
         decimal m => Decimal(m, property),
@@ -120,12 +163,12 @@ public static class AuditFormat
         {
             if (menu.View == key)
             {
-                return menu.Edit is null ? menu.Name : $"{menu.Name}: view";
+                return menu.Edit is null ? menu.Name : L.Msg($"{menu.Name}: view");
             }
 
             if (menu.Edit == key)
             {
-                return $"{menu.Name}: add & change";
+                return L.Msg($"{menu.Name}: add & change");
             }
         }
 

@@ -1,4 +1,5 @@
 using SalesApp.Core.Contracts.Users;
+using SalesApp.Core.Localization;
 
 namespace SalesApp.Core.Security;
 
@@ -58,46 +59,53 @@ public static class Permissions
     public const string SupplierBillsApprove = "supplier-bills.approve";
     public const string BillReadingUse = "bill-reading.use";
 
+    /// <summary>
+    /// Notifications about every customer's orders, payments and overdue invoices. Without it, people hear only about
+    /// the customers they look after (their assigned sales rep).
+    /// </summary>
+    public const string AllCustomersActivity = "customers.all-activity";
+
     /// <summary>The menus, in sidebar order: a View permission, and an Add &amp; change one where the menu changes data.</summary>
     public static readonly IReadOnlyList<PermissionMenuDto> Menus =
     [
-        new("Overview", "Dashboard", DashboardView, "Sales, receivables and stock at a glance.", null, null),
-        new("Sales", "Orders & quotations", OrdersView, "See and print orders and quotations.", OrdersEdit, "Create, change, quote, confirm and cancel them."),
-        new("Sales", "Smart order entry", SmartEntryUse, "Read orders from email, WhatsApp, a PDF or a photo with AI. Needs Orders: Add & change.", null, null),
-        new("Sales", "Invoices", InvoicesView, "See and print invoices.", InvoicesEdit, "Raise invoices from confirmed orders, and cancel them. Needs Orders: View."),
-        new("Sales", "Payments", PaymentsView, "See payments received.", PaymentsEdit, "Record payments, from the invoice. Needs Invoices: View."),
-        new("Sales", "Credit notes", CreditNotesView, "See and print credit notes, and the credit customers have with us.", CreditNotesEdit,
-            "Issue credit notes from invoices for returns and price corrections, set credit against invoices, record refunds and cancel credit notes. Needs Invoices: View."),
-        new("Purchases", "Purchase orders", PurchaseOrdersView, "See and print purchase orders and what has arrived against them.", PurchaseOrdersEdit, "Create and change orders, place them with suppliers, close and cancel them. Needs Suppliers and Products: View."),
-        new("Purchases", "Supplier bills", SupplierBillsView, "See supplier bills, what we owe and the price and quantity checks.", SupplierBillsEdit, "Enter bills against purchase orders, and cancel them. Needs Purchase orders: View."),
-        new("Purchases", "Supplier payments", SupplierPaymentsView, "See payments made to suppliers.", SupplierPaymentsEdit, "Record payments to suppliers, from the bill. Needs Supplier bills: View."),
-        new("Purchases", "Supplier returns", SupplierReturnsView, "See goods returned to suppliers (debit notes) and the credit we have with them.", SupplierReturnsEdit,
-            "Return goods against supplier bills, set credit against their bills, record refunds and cancel returns. Needs Supplier bills: View."),
-        new("Masters", "Customers", CustomersView, "See customers and what they owe.", CustomersEdit, "Add and change customers. Credit terms need their own right."),
-        new("Masters", "Suppliers", SuppliersView, "See suppliers and what we owe them.", SuppliersEdit, "Add and change suppliers."),
-        new("Masters", "Products", ProductsView, "See products and selling prices.", ProductsEdit, "Add and change products."),
-        new("Masters", "Rate updates", RatesView, "See each product's rate for each period.", RatesEdit, "Set rates for a period, including from Excel, and change or remove them."),
-        new("Masters", "Categories & HSN", CatalogView, "See product categories and HSN codes.", CatalogEdit, "Add and change them."),
-        new("Inventory", "Stock", StockView, "See stock levels, movements and goods receipts.", StockEdit, "Receive goods against purchase orders, and make stock adjustments. Needs Purchase orders: View."),
-        new("Insights", "Reports", ReportsView, "Run and export the standard reports.", null, null),
-        new("Insights", "Ask your data", AskDataUse, "Ask questions in plain English. Answers can draw on all sales, customer, product, stock and payment figures, and on purchases for those who can see cost prices.", null, null),
-        new("Insights", "AI insights", InsightsView, "See the AI summary, forecast and alerts, and refresh them.", null, null),
-        new("Insights", "Assistant", AssistantUse, "Chat with the assistant. It only looks up what this user may see.", null, null),
-        new("Administration", "Users & roles", UsersView, "See users and roles.", UsersEdit, "Add and change users and roles, and reset passwords."),
-        new("Administration", "Company settings", SettingsEdit, "Change the company's details, GSTIN and bank details.", null, null),
-        new("Administration", "AI usage", AiUsageView, "See AI spend, every call to Claude and every query the AI wrote.", null, null),
-        new("Administration", "Audit log", AuditView, "See who changed what and when, with old and new values, plus sign-ins and downloads; and each record's history.", null, null),
+        new(L.Msg("Overview"), L.Msg("Dashboard"), DashboardView, L.Msg("Sales, receivables and stock at a glance."), null, null),
+        new(L.Msg("Sales"), L.Msg("Orders & quotations"), OrdersView, L.Msg("See and print orders and quotations."), OrdersEdit, L.Msg("Create, change, quote, confirm and cancel them.")),
+        new(L.Msg("Sales"), L.Msg("Smart order entry"), SmartEntryUse, L.Msg("Read orders from email, WhatsApp, a PDF or a photo with AI. Needs Orders: Add & change."), null, null),
+        new(L.Msg("Sales"), L.Msg("Invoices"), InvoicesView, L.Msg("See and print invoices."), InvoicesEdit, L.Msg("Raise invoices from confirmed orders, and cancel them. Needs Orders: View.")),
+        new(L.Msg("Sales"), L.Msg("Payments"), PaymentsView, L.Msg("See payments received."), PaymentsEdit, L.Msg("Record payments, from the invoice. Needs Invoices: View.")),
+        new(L.Msg("Sales"), L.Msg("Credit notes"), CreditNotesView, L.Msg("See and print credit notes, and the credit customers have with us."), CreditNotesEdit,
+            L.Msg("Issue credit notes from invoices for returns and price corrections, set credit against invoices, record refunds and cancel credit notes. Needs Invoices: View.")),
+        new(L.Msg("Purchases"), L.Msg("Purchase orders"), PurchaseOrdersView, L.Msg("See and print purchase orders and what has arrived against them."), PurchaseOrdersEdit, L.Msg("Create and change orders, place them with suppliers, close and cancel them. Needs Suppliers and Products: View.")),
+        new(L.Msg("Purchases"), L.Msg("Supplier bills"), SupplierBillsView, L.Msg("See supplier bills, what we owe and the price and quantity checks."), SupplierBillsEdit, L.Msg("Enter bills against purchase orders, and cancel them. Needs Purchase orders: View.")),
+        new(L.Msg("Purchases"), L.Msg("Supplier payments"), SupplierPaymentsView, L.Msg("See payments made to suppliers."), SupplierPaymentsEdit, L.Msg("Record payments to suppliers, from the bill. Needs Supplier bills: View.")),
+        new(L.Msg("Purchases"), L.Msg("Supplier returns"), SupplierReturnsView, L.Msg("See goods returned to suppliers (debit notes) and the credit we have with them."), SupplierReturnsEdit,
+            L.Msg("Return goods against supplier bills, set credit against their bills, record refunds and cancel returns. Needs Supplier bills: View.")),
+        new(L.Msg("Masters"), L.Msg("Customers"), CustomersView, L.Msg("See customers and what they owe."), CustomersEdit, L.Msg("Add and change customers. Credit terms need their own right.")),
+        new(L.Msg("Masters"), L.Msg("Suppliers"), SuppliersView, L.Msg("See suppliers and what we owe them."), SuppliersEdit, L.Msg("Add and change suppliers.")),
+        new(L.Msg("Masters"), L.Msg("Products"), ProductsView, L.Msg("See products and selling prices."), ProductsEdit, L.Msg("Add and change products.")),
+        new(L.Msg("Masters"), L.Msg("Rate updates"), RatesView, L.Msg("See each product's rate for each period."), RatesEdit, L.Msg("Set rates for a period, including from Excel, and change or remove them.")),
+        new(L.Msg("Masters"), L.Msg("Categories & HSN"), CatalogView, L.Msg("See product categories and HSN codes."), CatalogEdit, L.Msg("Add and change them.")),
+        new(L.Msg("Inventory"), L.Msg("Stock"), StockView, L.Msg("See stock levels, movements and goods receipts."), StockEdit, L.Msg("Receive goods against purchase orders, and make stock adjustments. Needs Purchase orders: View.")),
+        new(L.Msg("Insights"), L.Msg("Reports"), ReportsView, L.Msg("Run and export the standard reports."), null, null),
+        new(L.Msg("Insights"), L.Msg("Ask your data"), AskDataUse, L.Msg("Ask questions in plain English or Tamil. Answers can draw on all sales, customer, product, stock and payment figures, and on purchases for those who can see cost prices."), null, null),
+        new(L.Msg("Insights"), L.Msg("AI insights"), InsightsView, L.Msg("See the AI summary, forecast and alerts, and refresh them."), null, null),
+        new(L.Msg("Insights"), L.Msg("Assistant"), AssistantUse, L.Msg("Chat with the assistant. It only looks up what this user may see."), null, null),
+        new(L.Msg("Administration"), L.Msg("Users & roles"), UsersView, L.Msg("See users and roles."), UsersEdit, L.Msg("Add and change users and roles, and reset passwords.")),
+        new(L.Msg("Administration"), L.Msg("Company settings"), SettingsEdit, L.Msg("Change the company's details, GSTIN and bank details."), null, null),
+        new(L.Msg("Administration"), L.Msg("AI usage"), AiUsageView, L.Msg("See AI spend, every call to Claude and every query the AI wrote."), null, null),
+        new(L.Msg("Administration"), L.Msg("Audit log"), AuditView, L.Msg("See who changed what and when, with old and new values, plus sign-ins and downloads; and each record's history."), null, null),
     ];
 
     public static readonly IReadOnlyList<PermissionRightDto> SpecialRights =
     [
-        new(CostPricesView, "See cost prices and margins", "Cost prices, stock value and gross margin, in screens, reports, Ask your data and the assistant."),
-        new(CreditTermsEdit, "Set credit terms", "Change a customer's credit limit, payment terms and sales rep."),
-        new(CreditLimitOverride, "Override credit limits", "Confirm an order that takes a customer over their credit limit."),
-        new(SalesRepAssignable, "Can be a sales rep", "Can be assigned customers as their sales rep."),
-        new(PurchaseOrdersApprove, "Approve purchase orders", "Approve orders above the approval limit in Company settings, and place them without waiting for approval."),
-        new(SupplierBillsApprove, "Approve bill differences", "Accept a supplier bill whose prices, quantities or totals don't match the order, so it can be paid."),
-        new(BillReadingUse, "Read supplier bills with AI", "Fill in a supplier bill from a PDF or photo of their invoice. Uses AI credit."),
+        new(CostPricesView, L.Msg("See cost prices and margins"), L.Msg("Cost prices, stock value and gross margin, in screens, reports, Ask your data and the assistant.")),
+        new(CreditTermsEdit, L.Msg("Set credit terms"), L.Msg("Change a customer's credit limit, payment terms and sales rep.")),
+        new(CreditLimitOverride, L.Msg("Override credit limits"), L.Msg("Confirm an order that takes a customer over their credit limit.")),
+        new(SalesRepAssignable, L.Msg("Can be a sales rep"), L.Msg("Can be assigned customers as their sales rep.")),
+        new(PurchaseOrdersApprove, L.Msg("Approve purchase orders"), L.Msg("Approve orders above the approval limit in Company settings, and place them without waiting for approval.")),
+        new(SupplierBillsApprove, L.Msg("Approve bill differences"), L.Msg("Accept a supplier bill whose prices, quantities or totals don't match the order, so it can be paid.")),
+        new(BillReadingUse, L.Msg("Read supplier bills with AI"), L.Msg("Fill in a supplier bill from a PDF or photo of their invoice. Uses AI credit.")),
+        new(AllCustomersActivity, L.Msg("Hear about every customer"), L.Msg("Notifications about every customer's orders, payments and overdue invoices, not just the customers they look after.")),
     ];
 
     public static readonly IReadOnlySet<string> All = Menus

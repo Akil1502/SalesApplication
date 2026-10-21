@@ -13,12 +13,13 @@ import {
   toNumberOrNull,
 } from '@/components/form/schemas'
 import { gstinStateCode, validateGstin } from '@/lib/gstin'
+import { msg, t } from '@/lib/i18n'
 import type { Customer, CustomerSaveRequest } from './api'
 
 const addressSchema = z.object({
-  line1: requiredText('Address line 1', 120),
+  line1: requiredText(msg('Address line 1'), 120),
   line2: optionalText(120),
-  city: requiredText('City', 60),
+  city: requiredText(msg('City'), 60),
   stateCode,
   pincode,
 })
@@ -28,8 +29,8 @@ const looseAddress = z.object({ line1: z.string(), line2: z.string(), city: z.st
 
 export const customerFormSchema = z
   .object({
-    code: optionalText(20).regex(/^[A-Za-z0-9-]*$/, { error: "Code may contain letters, digits and '-'." }),
-    name: requiredText('Name', 150),
+    code: optionalText(20).regex(/^[A-Za-z0-9-]*$/, { error: msg("Code may contain letters, digits and '-'.") }),
+    name: requiredText(msg('Name'), 150),
     tradeName: optionalText(150),
     gstin: optionalGstin,
     contactPerson: optionalText(100),
@@ -39,10 +40,12 @@ export const customerFormSchema = z
     shippingSameAsBilling: z.boolean(),
     shippingAddress: looseAddress,
     creditLimit: moneyString({ optional: true, max: 999_999_999 }),
-    paymentTermsDays: integerString(0, 365, 'Payment terms'),
+    paymentTermsDays: integerString(0, 365, msg('Payment terms')),
     assignedRepId: z.string(),
     notes: optionalText(2000),
     isActive: z.boolean(),
+    /** Empty: the company's default. */
+    documentLanguage: z.string(),
   })
   .superRefine((values, ctx) => {
     if (!values.shippingSameAsBilling) {
@@ -58,7 +61,7 @@ export const customerFormSchema = z
         ctx.addIssue({
           code: 'custom',
           path: ['gstin'],
-          message: `This GSTIN is registered in state code ${gstinStateCode(values.gstin)}, but the billing address is in a different state.`,
+          message: t('This GSTIN is registered in state code {code}, but the billing address is in a different state.', { code: gstinStateCode(values.gstin) }),
         })
       }
     }
@@ -84,6 +87,7 @@ export const emptyCustomerForm: CustomerFormValues = {
   assignedRepId: '',
   notes: '',
   isActive: true,
+  documentLanguage: '',
 }
 
 export function toFormValues(c: Customer): CustomerFormValues {
@@ -110,6 +114,7 @@ export function toFormValues(c: Customer): CustomerFormValues {
     assignedRepId: c.assignedRepId ?? '',
     notes: c.notes ?? '',
     isActive: c.isActive,
+    documentLanguage: c.documentLanguage ?? '',
   }
 }
 
@@ -137,6 +142,7 @@ export function toSaveRequest(v: CustomerFormValues, rowVersion: string | undefi
     assignedRepId: toNullIfBlank(v.assignedRepId),
     notes: toNullIfBlank(v.notes),
     isActive: v.isActive,
+    documentLanguage: (toNullIfBlank(v.documentLanguage) as CustomerSaveRequest['documentLanguage']) ?? null,
     rowVersion: rowVersion ?? null,
   }
 }

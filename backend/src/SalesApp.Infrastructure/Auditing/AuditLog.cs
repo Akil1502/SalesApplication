@@ -101,10 +101,14 @@ public sealed class AuditLog(AppDbContext db, IAuditActor actor, TimeProvider ti
 
         var page = await query.OrderByDescending(a => a.Id).ToPagedResultAsync(request, cancellationToken);
         return new PagedResult<AuditEntryDto>(
+            // Written in English when it happened; read in the reader's language. Changed values are data, so only the
+            // app's own words among them (Yes, No, Added, a status) are translated.
             [.. page.Items.Select(a => new AuditEntryDto(
-                a.Id, a.OccurredAtUtc, a.UserId, a.UserName, a.Action, a.EntityType, a.EntityId, a.EntityLabel, a.Summary,
-                a.ChangesJson is null ? [] : JsonSerializer.Deserialize<List<AuditChange>>(a.ChangesJson, AuditInterceptor.Json) ?? [],
-                a.IpAddress))],
+                a.Id, a.OccurredAtUtc, a.UserId, a.UserName, a.Action, a.EntityType, a.EntityId, L.T(a.EntityLabel), L.T(a.Summary),
+                a.ChangesJson is null ? [] : [.. (JsonSerializer.Deserialize<List<AuditChange>>(a.ChangesJson, AuditInterceptor.Json) ?? [])
+                    .Select(c => new AuditChange(L.T(c.Field), L.Word(c.Old), L.Word(c.New)))],
+                a.IpAddress,
+                L.T(a.EntityType)))],
             page.Page, page.PageSize, page.TotalCount);
     }
 

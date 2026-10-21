@@ -18,8 +18,10 @@ import { RecordHistory } from '@/features/audit/RecordHistory'
 import { useAuth } from '@/features/auth/auth-context'
 import { Permissions } from '@/features/auth/permissions'
 import { ProductRatesCard } from '@/features/rates/ProductRatesCard'
+import { ProductPhotoCard } from './ProductPhotoCard'
 import { ApiRequestError, applyFieldErrors, errorMessage } from '@/lib/api/errors'
 import { formatINR, formatPercent, formatQuantity } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { useCategories, useHsnCodes } from '@/lib/lookups'
 import { productUnits, useProduct, useSaveProduct } from './api'
 import { emptyProductForm, productFieldPaths, productFormSchema, toFormValues, toSaveRequest, type ProductFormValues } from './product-form'
@@ -62,7 +64,7 @@ export function ProductFormPage() {
 
   const categoryOptions: SelectOption[] = usable(categories.data, product.data?.categoryId).map((c) => ({
     value: c.id.toString(),
-    label: c.isActive ? c.name : `${c.name} (inactive)`,
+    label: c.isActive ? c.name : t('{name} (inactive)', { name: c.name }),
   }))
   const hsnOptions: SelectOption[] = usable(hsnCodes.data, product.data?.hsnCodeId).map((h) => ({
     value: h.id.toString(),
@@ -74,7 +76,7 @@ export function ProductFormPage() {
     try {
       const result = await save.mutateAsync({ id, body: toSaveRequest(values, product.data?.rowVersion) })
       reset(toFormValues(result))
-      toast.success(isNew ? `Product ${result.sku} created` : 'Product saved')
+      toast.success(isNew ? t('Product {sku} created', { sku: result.sku }) : t('Product saved'))
       setSaved(true)
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 409) setConflict(true)
@@ -100,13 +102,13 @@ export function ProductFormPage() {
       <UnsavedChangesGuard when={formState.isDirty && !saved} />
 
       <PageHeader
-        title={isNew ? 'New product' : (product.data?.name ?? 'Product')}
-        description={readOnly ? 'You can view products; changing them needs Products: Add & change.' : 'Prices exclude GST.'}
+        title={isNew ? t('New product') : (product.data?.name ?? t('Product'))}
+        description={readOnly ? t('You can view products; changing them needs Products: Add & change.') : t('Prices exclude GST.')}
         actions={
           <Button variant="ghost" asChild>
             <Link to="/products">
               <ArrowLeft />
-              Back to products
+              {t('Back to products')}
             </Link>
           </Button>
         }
@@ -115,34 +117,36 @@ export function ProductFormPage() {
       {conflict && (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
-            Someone else saved this product after you opened it. Reload to see their changes.
+            {t('Someone else saved this product after you opened it. Reload to see their changes.')}
             <Button type="button" size="sm" variant="outline" onClick={() => { setConflict(false); void product.refetch() }}>
-              Reload
+              {t('Reload')}
             </Button>
           </AlertDescription>
         </Alert>
       )}
 
+      {product.data && <ProductPhotoCard product={product.data} canEdit={canEdit} />}
+
       <fieldset disabled={readOnly} className="contents">
         <Card>
           <CardHeader>
-            <CardTitle>Product</CardTitle>
+            <CardTitle>{t('Product')}</CardTitle>
           </CardHeader>
           <CardContent>
             <FieldGroup className="grid gap-4 sm:grid-cols-2">
               <FormInput control={control} name="sku" label="SKU" className="font-mono uppercase" maxLength={40} disabled={readOnly} />
-              <FormSelect control={control} name="unit" label="Unit" options={productUnits} disabled={readOnly} />
-              <FormInput control={control} name="name" label="Name" className="sm:col-span-2" disabled={readOnly} />
-              <FormTextarea control={control} name="description" label="Description" className="sm:col-span-2" disabled={readOnly} />
-              <FormSelect control={control} name="categoryId" label="Category" options={categoryOptions} placeholder="Choose a category" disabled={readOnly} />
+              <FormSelect control={control} name="unit" label={t('Unit')} options={productUnits.map((u) => ({ ...u, label: t(u.label) }))} disabled={readOnly} />
+              <FormInput control={control} name="name" label={t('Name')} className="sm:col-span-2" disabled={readOnly} />
+              <FormTextarea control={control} name="description" label={t('Description')} className="sm:col-span-2" disabled={readOnly} />
+              <FormSelect control={control} name="categoryId" label={t('Category')} options={categoryOptions} placeholder={t('Choose a category')} disabled={readOnly} />
               <FormSelect
                 control={control}
                 name="hsnCodeId"
-                label="HSN code"
+                label={t('HSN code')}
                 options={hsnOptions}
-                placeholder="Choose an HSN code"
+                placeholder={t('Choose an HSN code')}
                 disabled={readOnly}
-                description={selectedHsn ? `GST ${formatPercent(selectedHsn.gstRate)} on invoices` : undefined}
+                description={selectedHsn ? t('GST {rate} on invoices', { rate: formatPercent(selectedHsn.gstRate) }) : undefined}
               />
             </FieldGroup>
           </CardContent>
@@ -150,21 +154,23 @@ export function ProductFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Pricing</CardTitle>
+            <CardTitle>{t('Pricing')}</CardTitle>
             <CardDescription>
-              Per unit, excluding GST. The list price applies whenever no rate period covers the order date.
-              {showCost && ' Cost price is visible only to users who may see cost prices.'}
+              {t('Per unit, excluding GST. The list price applies whenever no rate period covers the order date.')}
+              {showCost && ` ${t('Cost price is visible only to users who may see cost prices.')}`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <FieldGroup className="grid gap-4 sm:grid-cols-3">
-              <FormInput control={control} name="listPrice" label="List price (₹)" inputMode="decimal" disabled={readOnly} />
-              {showCost && <FormInput control={control} name="costPrice" label="Cost price (₹)" inputMode="decimal" placeholder="Optional" disabled={readOnly} />}
+              <FormInput control={control} name="listPrice" label={t('List price (₹)')} inputMode="decimal" disabled={readOnly} />
+              {showCost && <FormInput control={control} name="costPrice" label={t('Cost price (₹)')} inputMode="decimal" placeholder={t('Optional')} disabled={readOnly} />}
               {showCost && (
                 <div className="space-y-2 text-sm">
-                  <p className="font-medium">Gross margin</p>
+                  <p className="font-medium">{t('Gross margin')}</p>
                   <p className="text-muted-foreground tabular-nums">
-                    {margin === null ? '—' : `${formatPercent(Math.round(margin * 10) / 10)} (${formatINR(Number(listPrice) - Number(costPrice))} per unit)`}
+                    {margin === null
+                      ? '—'
+                      : t('{percent} ({amount} per unit)', { percent: formatPercent(Math.round(margin * 10) / 10), amount: formatINR(Number(listPrice) - Number(costPrice)) })}
                   </p>
                 </div>
               )}
@@ -176,47 +182,48 @@ export function ProductFormPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Stock planning</CardTitle>
+            <CardTitle>{t('Stock planning')}</CardTitle>
             <CardDescription>
               {product.data ? (
                 <>
-                  In stock: {formatQuantity(product.data.quantityOnHand, product.data.unit)}. Stock changes only through receipts,
-                  adjustments and invoices.{' '}
+                  {t('In stock: {quantity}. Stock changes only through receipts, adjustments and invoices.', {
+                    quantity: formatQuantity(product.data.quantityOnHand, product.data.unit),
+                  })}{' '}
                   <Link
                     className="underline underline-offset-4"
                     to={`/stock?tab=movements&productId=${product.data.id}&product=${encodeURIComponent(`${product.data.sku} · ${product.data.name}`)}`}
                   >
-                    View stock ledger
+                    {t('View stock ledger')}
                   </Link>
                 </>
               ) : (
-                'After saving, add opening stock from Stock → Adjust stock (reason: opening balance), or buy it with a purchase order.'
+                t('After saving, add opening stock from Stock → Adjust stock (reason: opening balance), or buy it with a purchase order.')
               )}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <FieldGroup className="grid gap-4 sm:grid-cols-3">
-              <FormInput control={control} name="reorderLevel" label="Reorder level" inputMode="decimal" description="Flag as low stock at or below this." disabled={readOnly} />
-              <FormInput control={control} name="reorderQuantity" label="Reorder quantity" inputMode="decimal" disabled={readOnly} />
-              <FormInput control={control} name="leadTimeDays" label="Lead time (days)" inputMode="numeric" disabled={readOnly} />
+              <FormInput control={control} name="reorderLevel" label={t('Reorder level')} inputMode="decimal" description={t('Flag as low stock at or below this.')} disabled={readOnly} />
+              <FormInput control={control} name="reorderQuantity" label={t('Reorder quantity')} inputMode="decimal" disabled={readOnly} />
+              <FormInput control={control} name="leadTimeDays" label={t('Lead time (days)')} inputMode="numeric" disabled={readOnly} />
               <Controller
                 control={control}
                 name="preferredSupplier"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid} className="sm:col-span-3">
-                    <FieldLabel htmlFor="preferred-supplier">Preferred supplier</FieldLabel>
+                    <FieldLabel htmlFor="preferred-supplier">{t('Preferred supplier')}</FieldLabel>
                     {can(Permissions.SuppliersView) ? (
                       <SupplierPicker id="preferred-supplier" value={field.value} onChange={field.onChange} disabled={readOnly} invalid={fieldState.invalid} allowNone />
                     ) : (
-                      <p className="text-sm">{field.value?.name ?? 'None'}</p>
+                      <p className="text-sm">{field.value?.name ?? t('None')}</p>
                     )}
-                    <FieldDescription>Reordering low stock drafts the purchase order with this supplier.</FieldDescription>
+                    <FieldDescription>{t('Reordering low stock drafts the purchase order with this supplier.')}</FieldDescription>
                     <FieldError errors={[fieldState.error]} />
                   </Field>
                 )}
               />
             </FieldGroup>
-            <FormSwitch control={control} name="isActive" label="Active" description="Inactive products can't be added to new orders." disabled={readOnly} />
+            <FormSwitch control={control} name="isActive" label={t('Active')} description={t("Inactive products can't be added to new orders.")} disabled={readOnly} />
           </CardContent>
         </Card>
       </fieldset>
@@ -226,11 +233,11 @@ export function ProductFormPage() {
       {canEdit && (
         <div className="sticky bottom-0 -mx-4 flex justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
           <Button type="button" variant="outline" onClick={() => navigate('/products')}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" disabled={formState.isSubmitting}>
             {formState.isSubmitting && <Spinner />}
-            {isNew ? 'Create product' : 'Save changes'}
+            {isNew ? t('Create product') : t('Save changes')}
           </Button>
         </div>
       )}

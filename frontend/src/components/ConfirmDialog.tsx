@@ -9,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { t } from '@/lib/i18n'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -29,7 +30,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
           <AlertDialogAction variant={destructive ? 'destructive' : 'default'} onClick={onConfirm}>
             {confirmLabel}
           </AlertDialogAction>

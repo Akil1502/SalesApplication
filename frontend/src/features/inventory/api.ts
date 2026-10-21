@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
+import { msg, t } from '@/lib/i18n'
 
 export type StockLevel = Schemas['StockLevelDto']
 export type StockStatus = Schemas['StockStatus']
@@ -11,27 +12,31 @@ export type StockReceipt = Schemas['StockReceiptDto']
 export type AdjustmentReason = NonNullable<Schemas['AdjustmentReason']>
 export type AdjustmentMode = Schemas['AdjustmentMode']
 
+/** English marked with msg(); translate with t() where shown. */
 export const movementTypeLabels: Record<StockMovementType, string> = {
-  Opening: 'Opening',
-  Receipt: 'Receipt',
-  Adjustment: 'Adjustment',
-  Sale: 'Sale',
-  SaleReversal: 'Sale reversal',
-  SaleReturn: 'Customer return',
-  PurchaseReturn: 'Returned to supplier',
+  Opening: msg('Opening'),
+  Receipt: msg('Receipt'),
+  Adjustment: msg('Adjustment'),
+  Sale: msg('Sale'),
+  SaleReversal: msg('Sale reversal'),
+  SaleReturn: msg('Customer return'),
+  PurchaseReturn: msg('Returned to supplier'),
 }
 
 export const adjustmentReasons: { value: AdjustmentReason; label: string }[] = [
-  { value: 'StockCount', label: 'Stock count' },
-  { value: 'Damaged', label: 'Damaged' },
-  { value: 'Lost', label: 'Lost / missing' },
-  { value: 'Found', label: 'Found' },
-  { value: 'OpeningBalance', label: 'Opening balance' },
-  { value: 'Other', label: 'Other' },
+  { value: 'StockCount', label: msg('Stock count') },
+  { value: 'Damaged', label: msg('Damaged') },
+  { value: 'Lost', label: msg('Lost / missing') },
+  { value: 'Found', label: msg('Found') },
+  { value: 'OpeningBalance', label: msg('Opening balance') },
+  { value: 'Other', label: msg('Other') },
 ]
 
-export const reasonLabel = (reason: AdjustmentReason | null | undefined) =>
-  adjustmentReasons.find((r) => r.value === reason)?.label ?? ''
+/** The reason in the language on screen. */
+export const reasonLabel = (reason: AdjustmentReason | null | undefined) => {
+  const label = adjustmentReasons.find((r) => r.value === reason)?.label
+  return label ? t(label) : ''
+}
 
 export const stockKeys = {
   all: ['stock'] as const,

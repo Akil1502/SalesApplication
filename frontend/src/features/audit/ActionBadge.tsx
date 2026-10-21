@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { t } from '@/lib/i18n'
 import type { AuditAction } from './api'
 import { actionLabels, isWarning } from './audit-format'
 
@@ -6,7 +7,7 @@ import { actionLabels, isWarning } from './audit-format'
 export function ActionBadge({ action }: { action: AuditAction }) {
   return (
     <Badge variant={isWarning(action) ? 'destructive' : action === 'Deleted' ? 'outline' : 'secondary'} className="whitespace-nowrap">
-      {actionLabels[action]}
+      {t(actionLabels[action])}
     </Badge>
   )
 }

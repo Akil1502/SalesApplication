@@ -61,14 +61,14 @@ public sealed class AskDataService(
         var maxQueries = Math.Clamp(options.CurrentValue.MaxQueries, 1, 10);
 
         var system = AskDataPrompt.System(manager, maxQueries);
-        var messages = new List<ClaudeMessage> { new(false, [new ClaudeTextBlock(AskDataPrompt.Question(clock.Today, question))]) };
+        var messages = new List<ClaudeMessage> { new(false, [new ClaudeTextBlock(AskDataPrompt.Question(clock.Today, question, L.InTamil))]) };
         var results = new Dictionary<string, (string Sql, string Purpose, QueryResult Result)>(StringComparer.OrdinalIgnoreCase);
         var usage = new List<ClaudeUsage>();
         var queriesRun = 0;
 
         for (var turn = 0; turn < maxQueries + 3; turn++)
         {
-            await onStep(new AskStepDto(AskStepKind.Thinking, turn == 0 ? "Working out how to answer" : "Looking at the results"));
+            await onStep(new AskStepDto(AskStepKind.Thinking, turn == 0 ? L.Show("Working out how to answer") : L.Show("Looking at the results")));
             var reply = await claude.SendTurnAsync(new ClaudeConversation(Feature, system, AskDataPrompt.Tools, messages), cancellationToken);
             usage.Add(reply.Usage);
             messages.Add(new ClaudeMessage(true, reply.Blocks));
@@ -137,20 +137,20 @@ public sealed class AskDataService(
         var outcome = await queries.RunAsync(runId, question, sql, cancellationToken);
         if (outcome.Outcome == AiQueryOutcome.Rejected)
         {
-            await onStep(new AskStepDto(AskStepKind.Rejected, $"Query refused: {outcome.Problem}", sql));
+            await onStep(new AskStepDto(AskStepKind.Rejected, L.Show($"Query refused: {outcome.Problem}"), sql));
             return new ClaudeToolResultBlock(toolUse.Id, $"Refused by the SQL checker: {outcome.Problem}", IsError: true);
         }
 
         if (outcome.Result is not { } result)
         {
-            await onStep(new AskStepDto(AskStepKind.Failed, $"Query failed: {outcome.Problem}", sql));
+            await onStep(new AskStepDto(AskStepKind.Failed, L.Show($"Query failed: {outcome.Problem}"), sql));
             return new ClaudeToolResultBlock(toolUse.Id, $"The database returned an error: {outcome.Problem}", IsError: true);
         }
 
         var resultId = $"r{results.Count + 1}";
         results[resultId] = (sql, purpose, result);
         await onStep(new AskStepDto(AskStepKind.Rows,
-            result.Truncated ? $"More than {ReadOnlySqlExecutor.MaxRows} rows; showing the first {ReadOnlySqlExecutor.MaxRows}" : $"{result.Rows.Count} rows",
+            result.Truncated ? L.Show($"More than {ReadOnlySqlExecutor.MaxRows} rows; showing the first {ReadOnlySqlExecutor.MaxRows}") : result.Rows.Count == 1 ? L.Show("1 row") : L.Show($"{result.Rows.Count} rows"),
             sql, result.Rows.Count));
         return new ClaudeToolResultBlock(toolUse.Id, QueryResultJson.ForClaude(resultId, result));
     }

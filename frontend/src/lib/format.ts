@@ -1,3 +1,5 @@
+import { getLanguage, type Language } from '@/lib/i18n'
+
 const inrFormatters = new Map<number, Intl.NumberFormat>()
 
 /**
@@ -40,16 +42,30 @@ export function formatPercent(value: number): string {
   return `${percentFormatter.format(value)}%`
 }
 
-const businessDateFormatter = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })
+const LOCALES: Record<Language, string> = { en: 'en-IN', ta: 'ta-IN' }
+const dateFormatters = new Map<string, Intl.DateTimeFormat>()
+
+/** Dates name the month in the language on screen ("13 Oct 2026", "13 அக்., 2026"); digits stay 0–9 in both. */
+function dateFormatter(language: Language, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = `${language}|${JSON.stringify(options)}`
+  let formatter = dateFormatters.get(key)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(LOCALES[language], options)
+    dateFormatters.set(key, formatter)
+  }
+  return formatter
+}
+
+const DATE: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
 
 /**
  * Formats a calendar date from the API ("2026-10-13", a DateOnly) as "13 Oct 2026". Parsed and formatted
- * in UTC so the day never shifts with the viewer's time zone.
+ * in UTC so the day never shifts with the viewer's time zone. Printed documents pass their own language.
  */
-export function formatBusinessDate(dateOnly: string | null | undefined): string {
+export function formatBusinessDate(dateOnly: string | null | undefined, language: Language = getLanguage()): string {
   if (!dateOnly) return '—'
   const date = new Date(`${dateOnly}T00:00:00Z`)
-  return Number.isNaN(date.getTime()) ? '—' : businessDateFormatter.format(date)
+  return Number.isNaN(date.getTime()) ? '—' : dateFormatter(language, { ...DATE, timeZone: 'UTC' }).format(date)
 }
 
 const indiaDateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' })
@@ -59,22 +75,23 @@ export function todayInIndia(now = new Date()): string {
   return indiaDateFormatter.format(now)
 }
 
-const dateFormatter = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-
 /** "13 Oct 2026" in the viewer's local time zone. */
-export function formatDate(isoUtc: string | null | undefined): string {
+export function formatDate(isoUtc: string | null | undefined, language: Language = getLanguage()): string {
   if (!isoUtc) return '—'
   const date = new Date(isoUtc)
-  return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date)
+  return Number.isNaN(date.getTime()) ? '—' : dateFormatter(language, DATE).format(date)
 }
 
-const dateTimeFormatter = new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-
 /** "16 Oct 2026, 11:42 am" in the viewer's local time zone. */
-export function formatDateTime(isoUtc: string | null | undefined): string {
+export function formatDateTime(isoUtc: string | null | undefined, language: Language = getLanguage()): string {
   if (!isoUtc) return '—'
   const date = new Date(isoUtc)
-  return Number.isNaN(date.getTime()) ? '—' : dateTimeFormatter.format(date)
+  return Number.isNaN(date.getTime()) ? '—' : dateFormatter(language, { ...DATE, hour: '2-digit', minute: '2-digit' }).format(date)
+}
+
+/** Any other date shape (a month and year on a chart, a weekday) in the language on screen. */
+export function formatDateParts(date: Date, options: Intl.DateTimeFormatOptions, language: Language = getLanguage()): string {
+  return dateFormatter(language, options).format(date)
 }
 
 const compactFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 })

@@ -22,7 +22,7 @@ public interface IAiUsageReport
 /// </summary>
 public sealed class AiUsageReport(AppDbContext db, IBusinessClock clock, TimeProvider time, IOptionsMonitor<AiOptions> options) : IAiUsageReport
 {
-    private const string Background = "Background (morning insights)";
+    private static string Background => L.Show("Background (morning insights)");
 
     public async Task<AiUsageSummaryDto> SummaryAsync(int days, CancellationToken cancellationToken)
     {
@@ -56,7 +56,7 @@ public sealed class AiUsageReport(AppDbContext db, IBusinessClock clock, TimePro
             .Select(g =>
             {
                 var last24 = g.Where(l => l.CreatedAtUtc >= dayAgo).Sum(l => l.CostUsd);
-                return new AiUserCostDto(g.Key, g.Key is null ? Background : g.First().UserName ?? "(deleted user)", g.Count(), Inr(g.Sum(l => l.CostUsd)),
+                return new AiUserCostDto(g.Key, g.Key is null ? Background : g.First().UserName ?? L.Show("(deleted user)"), g.Count(), Inr(g.Sum(l => l.CostUsd)),
                     Inr(last24), budget > 0 ? Math.Round(last24 / budget * 100, 1) : 0);
             })
             .OrderByDescending(u => u.CostInr)
@@ -98,7 +98,7 @@ public sealed class AiUsageReport(AppDbContext db, IBusinessClock clock, TimePro
 
         return await query
             .OrderByDescending(l => l.CreatedAtUtc).ThenByDescending(l => l.Id)
-            .Select(l => new AiCallDto(l.Id, l.CreatedAtUtc, l.Feature, l.Model, l.UserId == null ? Background : l.User != null ? l.User.FullName : "(deleted user)",
+            .Select(l => new AiCallDto(l.Id, l.CreatedAtUtc, l.Feature, l.Model, l.UserId == null ? Background : l.User != null ? l.User.FullName : L.Show("(deleted user)"),
                 l.InputTokens, l.OutputTokens, l.CacheReadTokens, l.CacheWriteTokens, Math.Round(l.CostUsd * rate, 2), l.DurationMs, l.Outcome, l.Error))
             .ToPageAsync(request, cancellationToken);
     }
@@ -119,7 +119,7 @@ public sealed class AiUsageReport(AppDbContext db, IBusinessClock clock, TimePro
 
         return await query
             .OrderByDescending(l => l.CreatedAtUtc).ThenByDescending(l => l.Id)
-            .Select(l => new AiQueryDto(l.Id, l.CreatedAtUtc, l.User != null ? l.User.FullName : "(deleted user)", l.Question, l.Sql, l.RunAs, l.Outcome, l.Error, l.RowCount, l.DurationMs))
+            .Select(l => new AiQueryDto(l.Id, l.CreatedAtUtc, l.User != null ? l.User.FullName : L.Show("(deleted user)"), l.Question, l.Sql, l.RunAs, l.Outcome, l.Error, l.RowCount, l.DurationMs))
             .ToPageAsync(request, cancellationToken);
     }
 }

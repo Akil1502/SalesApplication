@@ -28,7 +28,7 @@ public sealed class AiController(IClaudeGateway claude, IOptionsMonitor<AiOption
             return new AiStatusDto(true, null, OrderEntry: true, AskData: true, Assistant: true, BillReading: true);
         }
 
-        var reason = options.CurrentValue.Enabled ? "No Claude API key is configured." : "AI features are switched off.";
+        var reason = options.CurrentValue.Enabled ? L.Show("No Claude API key is configured.") : L.Show("AI features are switched off.");
         return new AiStatusDto(false, reason, OrderEntry: false, AskData: false, Assistant: false, BillReading: false);
     }
 }

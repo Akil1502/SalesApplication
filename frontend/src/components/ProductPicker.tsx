@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { useState } from 'react'
+import { ProductThumb } from '@/components/ProductThumb'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -8,6 +9,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { api, type Schemas } from '@/lib/api/client'
 import { unwrap } from '@/lib/api/errors'
 import { formatQuantity } from '@/lib/format'
+import { t } from '@/lib/i18n'
 import { useDebounced } from '@/lib/use-debounced'
 import { cn } from '@/lib/utils'
 
@@ -55,21 +57,24 @@ export function ProductPicker({ value, onChange, excludeIds = [], disabled, inva
           disabled={disabled}
           className={cn('w-full justify-between font-normal', !value && 'text-muted-foreground')}
         >
-          <span className="truncate">{value ? `${value.sku} · ${value.name}` : 'Choose a product…'}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            {value && <ProductThumb productId={value.id} name={value.name} size="xs" />}
+            <span className="truncate">{value ? `${value.sku} · ${value.name}` : t('Choose a product…')}</span>
+          </span>
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-80 p-0" align="start">
         {/* Filtering happens on the server, so cmdk's own filter is off. */}
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search SKU, name or HSN…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={t('Search SKU, name or HSN…')} value={search} onValueChange={setSearch} />
           <CommandList>
             {results.isFetching && !results.data && (
               <div className="flex justify-center py-6">
                 <Spinner />
               </div>
             )}
-            <CommandEmpty>{results.isFetching ? 'Searching…' : 'No active products match.'}</CommandEmpty>
+            <CommandEmpty>{results.isFetching ? t('Searching…') : t('No active products match.')}</CommandEmpty>
             <CommandGroup>
               {results.data?.items.map((product) => {
                 const excluded = excludeIds.includes(product.id) && product.id !== value?.id
@@ -85,11 +90,12 @@ export function ProductPicker({ value, onChange, excludeIds = [], disabled, inva
                     }}
                   >
                     <Check className={cn(value?.id === product.id ? 'opacity-100' : 'opacity-0')} />
+                    <ProductThumb productId={product.id} name={product.name} />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate">{product.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {product.sku} · {formatQuantity(product.quantityOnHand, product.unit)} in stock
-                        {excluded && ' · already added'}
+                        {product.sku} · {t('{quantity} in stock', { quantity: formatQuantity(product.quantityOnHand, product.unit) })}
+                        {excluded && ` · ${t('already added')}`}
                       </span>
                     </div>
                   </CommandItem>

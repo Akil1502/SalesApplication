@@ -67,7 +67,38 @@ public sealed class CompanySettings
     /// <summary>How far a bill's price may differ from the order's before the bill needs approval, as a percentage.</summary>
     public decimal BillPriceTolerancePercent { get; set; }
 
+    /// <summary>
+    /// The colour the app is drawn in, as #rrggbb; null keeps the standard indigo. Any colour is allowed: the browser
+    /// adjusts its shades wherever text on it would be hard to read.
+    /// </summary>
+    public string? BrandColour { get; set; }
+
+    /// <summary>The language of printed documents for customers and suppliers who haven't chosen their own.</summary>
+    public DocumentLanguage DocumentLanguage { get; set; }
+
     public byte[] RowVersion { get; set; } = [];
+}
+
+/// <summary>
+/// The company's logo, for the menu, the sign-in page, the browser tab and printed documents. At most one row, in
+/// its own table so reading the company settings never drags the picture along. Removing the logo keeps the row
+/// (without a picture) so the version keeps counting up: a logo added later never reuses an address a browser has
+/// cached.
+/// </summary>
+public sealed class CompanyLogo
+{
+    /// <summary>Always 1.</summary>
+    public int Id { get; set; }
+
+    /// <summary>image/png, image/jpeg or image/webp, read from the file's first bytes; null once removed.</summary>
+    public string? ContentType { get; set; }
+
+    public byte[]? ImageData { get; set; }
+
+    /// <summary>Goes up with every change; the logo's address carries it, so browsers can cache each one for good.</summary>
+    public int Version { get; set; }
+
+    public DateTime UpdatedAtUtc { get; set; }
 }
 
 public sealed class Category
@@ -95,6 +126,17 @@ public sealed class HsnCode
     public decimal GstRate { get; set; }
 
     public bool IsActive { get; set; } = true;
+}
+
+/// <summary>
+/// The language a customer's or supplier's documents are printed in (invoices, quotations, credit and debit notes,
+/// purchase orders) and their payment reminders written in. Both prints each label in English with the Tamil under it.
+/// </summary>
+public enum DocumentLanguage
+{
+    English,
+    Tamil,
+    Both,
 }
 
 public enum ProductUnit
@@ -191,6 +233,9 @@ public sealed class Customer : IAuditable
     public AppUser? AssignedRep { get; set; }
 
     public string? Notes { get; set; }
+
+    /// <summary>Null: the company's default (Company settings).</summary>
+    public DocumentLanguage? DocumentLanguage { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }

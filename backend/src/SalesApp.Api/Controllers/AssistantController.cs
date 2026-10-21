@@ -92,12 +92,12 @@ public sealed class AssistantController(
         catch (Exception exception) when (exception is AiUnavailableException or AiBudgetExceededException or AiRefusedException
             or AiServiceException or ValidationException or ConflictException or NotFoundException)
         {
-            await events.SendAsync("error", new { message = exception is AiRefusedException ? "Claude declined to answer that message." : exception.Message });
+            await events.SendAsync("error", new { message = exception is AiRefusedException ? L.Show("Claude declined to answer that message.") : L.T(exception.Message) });
         }
         catch (Exception exception)
         {
             logger.LogError(exception, "Assistant reply failed");
-            await events.SendAsync("error", new { message = "Something went wrong while replying. Please try again." });
+            await events.SendAsync("error", new { message = L.Show("Something went wrong while replying. Please try again.") });
         }
     }
 

@@ -14,6 +14,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { errorMessage } from '@/lib/api/errors'
 import { todayInIndia } from '@/lib/format'
+import { t } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 import { cn } from '@/lib/utils'
 import { downloadReportExcel, useReport, useReportDefinitions, type ReportQuery, type ReportResult } from './api'
 import { presetRange, rangePresets, type RangePreset } from './date-ranges'
@@ -57,8 +59,8 @@ function ReportTable({ report, dimmed }: { report: ReportResult; dimmed: boolean
     return (
       <Empty className="border">
         <EmptyHeader>
-          <EmptyTitle>Nothing to report</EmptyTitle>
-          <EmptyDescription>There's no data for this period. Try a wider date range.</EmptyDescription>
+          <EmptyTitle>{t('Nothing to report')}</EmptyTitle>
+          <EmptyDescription>{t("There's no data for this period. Try a wider date range.")}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )
@@ -118,7 +120,17 @@ export function ReportPage() {
     return (
       <Alert variant="destructive">
         <AlertDescription>
-          There's no report called "{key}". <Link to="/reports" className="underline">See all reports</Link>.
+          <T
+            text={`There's no report called "{key}". {link}.`}
+            values={{
+              key,
+              link: (
+                <Link to="/reports" className="underline">
+                  {t('See all reports')}
+                </Link>
+              ),
+            }}
+          />
         </AlertDescription>
       </Alert>
     )
@@ -140,17 +152,17 @@ export function ReportPage() {
   return (
     <>
       <PageHeader
-        title={definition?.title ?? 'Report'}
+        title={definition?.title ?? t('Report')}
         description={report.data?.subtitle ?? definition?.description}
         actions={
           <>
             <Button asChild variant="ghost">
               <Link to="/reports">
-                <ArrowLeft /> All reports
+                <ArrowLeft /> {t('All reports')}
               </Link>
             </Button>
             <Button onClick={download} disabled={downloading || !report.data}>
-              {downloading ? <Spinner /> : <Download />} Download Excel
+              {downloading ? <Spinner /> : <Download />} {t('Download Excel')}
             </Button>
           </>
         }
@@ -165,13 +177,13 @@ export function ReportPage() {
                 set(value === 'custom' ? { range: value, from: range.from, to: range.to } : { range: value, from: undefined, to: undefined })
               }
             >
-              <SelectTrigger className="w-52" aria-label="Date range">
+              <SelectTrigger className="w-52" aria-label={t('Date range')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {rangePresets.map((p) => (
                   <SelectItem key={p.value} value={p.value}>
-                    {p.label}
+                    {t(p.label)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -180,7 +192,7 @@ export function ReportPage() {
           {usesDateRange && preset === 'custom' && (
             <div className="flex items-center gap-2">
               <Label htmlFor="report-from" className="text-muted-foreground">
-                From
+                {t('From')}
               </Label>
               <Input
                 id="report-from"
@@ -191,7 +203,7 @@ export function ReportPage() {
                 onChange={(e) => e.target.value && set({ from: e.target.value })}
               />
               <Label htmlFor="report-to" className="text-muted-foreground">
-                to
+                {t('to')}
               </Label>
               <Input
                 id="report-to"
@@ -206,12 +218,12 @@ export function ReportPage() {
           )}
           {supportsPeriod && (
             <Select value={period} onValueChange={(value) => set({ period: value === 'month' ? undefined : value })}>
-              <SelectTrigger className="w-36" aria-label="Group by">
+              <SelectTrigger className="w-36" aria-label={t('Group by')}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="month">By month</SelectItem>
-                <SelectItem value="day">By day</SelectItem>
+                <SelectItem value="month">{t('By month')}</SelectItem>
+                <SelectItem value="day">{t('By day')}</SelectItem>
               </SelectContent>
             </Select>
           )}

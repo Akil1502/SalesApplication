@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { errorMessage } from '@/lib/api/errors'
 import { formatINR, formatQuantity } from '@/lib/format'
 import { useCreateReorderDrafts, useReorderCandidates, type ReorderCandidate } from './api'
+import { t, tc, tn } from '@/lib/i18n'
+import { T } from '@/lib/i18n/T'
 
 interface ReorderDialogProps {
   open: boolean
@@ -30,12 +32,12 @@ export function ReorderDialog({ open, onOpenChange, productIds, quantities }: Re
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Reorder</DialogTitle>
+          <DialogTitle>{t('Reorder')}</DialogTitle>
           <DialogDescription>
             {productIds
-              ? 'The products the AI insights suggest ordering, at the quantities they suggest.'
-              : 'Products at or below their reorder level that no open order covers yet.'}{' '}
-            Each supplier gets one draft order, priced at what you last paid them; check it before placing it.
+              ? t('The products the AI insights suggest ordering, at the quantities they suggest.')
+              : t('Products at or below their reorder level that no open order covers yet.')}{' '}
+            {t('Each supplier gets one draft order, priced at what you last paid them; check it before placing it.')}
           </DialogDescription>
         </DialogHeader>
         {open && <Candidates productIds={productIds} quantities={quantities} onDone={() => onOpenChange(false)} />}
@@ -75,7 +77,7 @@ function Picker({ rows, quantities, onDone }: { rows: ReorderCandidate[]; quanti
   const submit = async () => {
     try {
       const orders = await create.mutateAsync({ lines: chosen.map((c) => ({ productId: c.productId, quantity: Number(picked[c.productId]) })) })
-      toast.success(orders.length === 1 ? `Draft order ${orders[0]!.number} created` : `${orders.length} draft orders created`)
+      toast.success(orders.length === 1 ? t('Draft order {number} created', { number: orders[0]!.number }) : t('{count} draft orders created', { count: orders.length }))
       onDone()
       navigate(orders.length === 1 ? `/purchase-orders/${orders[0]!.id}` : '/purchase-orders?view=Draft')
     } catch (error) {
@@ -86,19 +88,19 @@ function Picker({ rows, quantities, onDone }: { rows: ReorderCandidate[]; quanti
   return (
     <>
       {rows.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted-foreground">Nothing needs reordering: every product is above its reorder level or already on order.</p>
+        <p className="py-6 text-center text-sm text-muted-foreground">{t('Nothing needs reordering: every product is above its reorder level or already on order.')}</p>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="w-10" />
-                <TableHead>Product</TableHead>
-                <TableHead className="text-right">On hand</TableHead>
-                <TableHead className="text-right">On order</TableHead>
-                <TableHead>Supplier</TableHead>
-                <TableHead className="text-right">Last price</TableHead>
-                <TableHead className="w-36">Order</TableHead>
+                <TableHead>{t('Product')}</TableHead>
+                <TableHead className="text-right">{t('On hand')}</TableHead>
+                <TableHead className="text-right">{t('On order')}</TableHead>
+                <TableHead>{t('Supplier')}</TableHead>
+                <TableHead className="text-right">{t('Last price')}</TableHead>
+                <TableHead className="w-36">{tc('quantity', 'Order')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -111,7 +113,7 @@ function Picker({ rows, quantities, onDone }: { rows: ReorderCandidate[]; quanti
                         checked={on}
                         disabled={c.supplierId === null}
                         onCheckedChange={(value) => toggle(c, value === true)}
-                        aria-label={`Order ${c.sku}`}
+                        aria-label={t('Order {sku}', { sku: c.sku })}
                       />
                     </TableCell>
                     <TableCell>
@@ -120,16 +122,22 @@ function Picker({ rows, quantities, onDone }: { rows: ReorderCandidate[]; quanti
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatQuantity(c.quantityOnHand, c.unit)}
-                      <span className="block text-xs text-muted-foreground">reorder at {formatQuantity(c.reorderLevel)}</span>
+                      <span className="block text-xs text-muted-foreground">{t('reorder at {quantity}', { quantity: formatQuantity(c.reorderLevel) })}</span>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{c.onOrder > 0 ? formatQuantity(c.onOrder, c.unit) : '—'}</TableCell>
                     <TableCell>
                       {c.supplierName ?? (
                         <span className="text-sm text-muted-foreground">
-                          No preferred supplier.{' '}
-                          <Link className="underline underline-offset-4" to={`/products/${c.productId}`} onClick={onDone}>
-                            Set one
-                          </Link>
+                          <T
+                            text="No preferred supplier. {link}"
+                            values={{
+                              link: (
+                                <Link className="underline underline-offset-4" to={`/products/${c.productId}`} onClick={onDone}>
+                                  {t('Set one')}
+                                </Link>
+                              ),
+                            }}
+                          />
                         </span>
                       )}
                     </TableCell>
@@ -139,7 +147,7 @@ function Picker({ rows, quantities, onDone }: { rows: ReorderCandidate[]; quanti
                         value={picked[c.productId] ?? ''}
                         disabled={!on}
                         inputMode="decimal"
-                        aria-label={`Quantity of ${c.sku}`}
+                        aria-label={t('Quantity of {sku}', { sku: c.sku })}
                         aria-invalid={on && !(Number(picked[c.productId]) > 0)}
                         onChange={(e) => setPicked((current) => ({ ...current, [c.productId]: e.target.value }))}
                       />
@@ -155,15 +163,15 @@ function Picker({ rows, quantities, onDone }: { rows: ReorderCandidate[]; quanti
       <DialogFooter className="items-center gap-2">
         {chosen.length > 0 && (
           <span className="mr-auto text-sm text-muted-foreground">
-            {chosen.length} product{chosen.length === 1 ? '' : 's'} · {suppliers} draft order{suppliers === 1 ? '' : 's'}
+            {tn(chosen.length, '{count} product', '{count} products')} · {tn(suppliers, '{count} draft order', '{count} draft orders')}
           </span>
         )}
         <Button type="button" variant="outline" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button type="button" disabled={chosen.length === 0 || invalid || create.isPending} onClick={submit}>
           {create.isPending && <Spinner />}
-          Create draft orders
+          {t('Create draft orders')}
         </Button>
       </DialogFooter>
     </>

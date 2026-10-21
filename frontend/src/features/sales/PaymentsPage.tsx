@@ -8,27 +8,28 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatBusinessDate, formatINR } from '@/lib/format'
+import { msg, t } from '@/lib/i18n'
 import { usePayments, type Payment, type PaymentMode } from './api'
 import { paymentModeLabel, paymentModes } from './labels'
 
 const ALL = 'all'
 
 const columns: Column<Payment>[] = [
-  { key: 'date', header: 'Date', cell: (p) => formatBusinessDate(p.paymentDate), className: 'w-28' },
+  { key: 'date', header: msg('Date'), cell: (p) => formatBusinessDate(p.paymentDate), className: 'w-28' },
   {
     key: 'invoice',
-    header: 'Invoice',
+    header: msg('Invoice'),
     cell: (p) => (
       <Link className="font-mono text-xs underline-offset-4 hover:underline" to={`/invoices/${p.invoiceId}`} onClick={(e) => e.stopPropagation()}>
         {p.invoiceNumber}
       </Link>
     ),
   },
-  { key: 'customer', header: 'Customer', cell: (p) => <span className="font-medium">{p.customerName}</span> },
-  { key: 'mode', header: 'Mode', cell: (p) => paymentModeLabel(p.mode) },
-  { key: 'ref', header: 'Reference', cell: (p) => <span className="font-mono text-xs">{p.reference ?? '—'}</span> },
-  { key: 'by', header: 'Recorded by', cell: (p) => p.createdByName },
-  { key: 'amount', header: 'Amount', align: 'right', cell: (p) => formatINR(p.amount) },
+  { key: 'customer', header: msg('Customer'), cell: (p) => <span className="font-medium">{p.customerName}</span> },
+  { key: 'mode', header: msg('Mode'), cell: (p) => paymentModeLabel(p.mode) },
+  { key: 'ref', header: msg('Reference'), cell: (p) => <span className="font-mono text-xs">{p.reference ?? '—'}</span> },
+  { key: 'by', header: msg('Recorded by'), cell: (p) => p.createdByName },
+  { key: 'amount', header: msg('Amount'), align: 'right', cell: (p) => formatINR(p.amount) },
 ]
 
 export function PaymentsPage() {
@@ -41,16 +42,16 @@ export function PaymentsPage() {
 
   return (
     <>
-      <PageHeader title="Payments" description="Money received against invoices. Record a payment from the invoice it settles." />
+      <PageHeader title={t('Payments')} description={t('Money received against invoices. Record a payment from the invoice it settles.')} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder="Search invoice, customer or reference" />
+        <SearchInput value={params.q} onChange={(q) => update({ q })} placeholder={t('Search invoice, customer or reference')} />
         <Select value={mode ?? ALL} onValueChange={(v) => update({ filters: { mode: v === ALL ? undefined : v } })}>
-          <SelectTrigger className="w-40" aria-label="Filter by payment mode">
+          <SelectTrigger className="w-40" aria-label={t('Filter by payment mode')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All modes</SelectItem>
+            <SelectItem value={ALL}>{t('All modes')}</SelectItem>
             {paymentModes.map((m) => (
               <SelectItem key={m.value} value={m.value}>
                 {m.label}
@@ -60,25 +61,26 @@ export function PaymentsPage() {
         </Select>
         <div className="flex items-center gap-2">
           <Label htmlFor="from" className="text-muted-foreground">
-            From
+            {t('From')}
           </Label>
           <Input id="from" type="date" className="w-40" value={from ?? ''} onChange={(e) => update({ filters: { from: e.target.value || undefined } })} />
           <Label htmlFor="to" className="text-muted-foreground">
-            to
+            {t('to')}
           </Label>
           <Input id="to" type="date" className="w-40" value={to ?? ''} onChange={(e) => update({ filters: { to: e.target.value || undefined } })} />
         </div>
       </div>
 
       <DataTable
+        settingsKey="payments"
         columns={columns}
         rows={payments.data?.items}
         getRowKey={(p) => p.id}
         isLoading={payments.isPending}
         error={payments.error}
         onRowClick={(p) => navigate(`/invoices/${p.invoiceId}`)}
-        emptyTitle="No payments"
-        emptyDescription="Payments appear here once recorded against invoices."
+        emptyTitle={t('No payments')}
+        emptyDescription={t('Payments appear here once recorded against invoices.')}
       />
       {payments.data && (
         <Pagination

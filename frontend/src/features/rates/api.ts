@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Schemas } from '@/lib/api/client'
 import { ApiRequestError, isApiError, unwrap } from '@/lib/api/errors'
+import { t } from '@/lib/i18n'
 
 export type ProductRate = Schemas['ProductRateDto']
 export type GridProduct = Schemas['ProductListItemDto']
@@ -95,7 +96,7 @@ export function useImportRates() {
 export async function downloadRateSheet(query: { on: string; categoryId?: number; q?: string }): Promise<void> {
   const { data, error, response } = await api.GET('/api/rates/excel', { params: { query }, parseAs: 'blob' })
   if (!response.ok || !data) {
-    throw new ApiRequestError(response.status, isApiError(error) ? error : { message: 'The rate sheet could not be created.', traceId: '' })
+    throw new ApiRequestError(response.status, isApiError(error) ? error : { message: t('The rate sheet could not be created.'), traceId: '' })
   }
 
   const fileName = /filename="?([^";]+)"?/.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ?? `rates-${query.on}.xlsx`

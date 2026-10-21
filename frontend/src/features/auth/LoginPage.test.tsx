@@ -27,22 +27,29 @@ function renderLogin() {
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
+const urlOf = (input: RequestInfo | URL) => (typeof input === 'string' ? input : input instanceof Request ? input.url : input.toString())
+
+/** The sign-in page also asks for the company's name and logo; everything else gets the given answer (fresh each time). */
+function mockApi(answer: () => Response) {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) =>
+    urlOf(input).includes('/api/branding') ? json(200, { companyName: 'Demo Textiles' }) : answer(),
+  )
+}
+
 describe('LoginPage', () => {
   it('validates the form before calling the API', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    const fetchSpy = mockApi(() => json(500, {}))
     renderLogin()
 
     await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
 
     expect(await screen.findByText('Enter a valid email address.')).toBeInTheDocument()
     expect(screen.getByText('Enter your password.')).toBeInTheDocument()
-    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(fetchSpy.mock.calls.filter(([input]) => urlOf(input).includes('/api/auth'))).toEqual([])
   })
 
   it('shows the server message when credentials are rejected', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      json(401, { message: 'Invalid email or password.', traceId: 't-1' }),
-    )
+    mockApi(() => json(401, { message: 'Invalid email or password.', traceId: 't-1' }))
     renderLogin()
 
     await userEvent.type(screen.getByLabelText('Email'), 'admin@salesapp.local')
@@ -54,7 +61,7 @@ describe('LoginPage', () => {
   })
 
   it('stores the session and navigates home on success', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+    mockApi(() =>
       json(200, {
         accessToken: 'token-123',
         expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),

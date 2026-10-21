@@ -26,7 +26,7 @@ source was lost, so the app has been rebuilt on a modern stack, with AI designed
 
 | Layer | Choice |
 |---|---|
-| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS + shadcn/ui, React Hook Form + Zod |
+| Frontend | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS + shadcn/ui, React Hook Form + Zod, Motion (animation), three.js + React Three Fiber (3D) |
 | API | ASP.NET Core 10 Web API, built-in OpenAPI + Scalar, JWT bearer auth |
 | Data | EF Core 10 on SQL Server (LocalDB in development) |
 | Auth | ASP.NET Core Identity (users, roles, password hashing, lockout) + JWT. Roles are editable permission sets, with per-user changes |
@@ -111,7 +111,7 @@ Administration → **Users & roles** decides who can do what.
 - **Permissions** follow the menus: each has **View**, and **Add & change** where the menu changes data (orders,
   invoices, payments, credit notes, customers, products, categories, stock, suppliers, purchase orders, supplier
   bills, supplier payments, supplier returns, users). A few special rights sit beside them: see cost prices and margins, set credit terms, override
-  credit limits, can be a customer's sales rep, approve purchase orders above the limit, approve bill differences,
+  credit limits, can be a customer's sales rep, hear about every customer (notifications), approve purchase orders above the limit, approve bill differences,
   and read supplier bills with AI.
 - **Roles** are sets of permissions. Three are built in: **Administrator** (everything, and it can't be changed),
   **Sales manager** (everything except administration, rate updates and the two purchase approvals) and **Sales representative** (orders, customers, smart order
@@ -221,6 +221,139 @@ returns** (Purchases → Supplier returns) send goods back against a supplier's 
   counted in the month it was issued; the GST summary shows credit notes apart from invoices, and GST payable takes
   supplier returns off the input credit. New registers: Credit notes and Supplier returns.
 
+## Look and feel: layouts, 3D, motion and photos
+
+The app has a calm indigo-and-teal look in light and dark, with depth and motion on every screen, or the company's
+own logo and colour.
+
+- **Your logo and colour.** **Company settings → Logo and colour** (needs Settings: Change):
+  - **Logo**: drop a PNG (transparent background works best), JPEG or WebP on the logo area or choose **Add logo**.
+    The browser shrinks it to at most 512 px and it's saved straight away. It then appears in the menu, on the
+    sign-in page, in the browser tab and above the company name on printed invoices, quotations, purchase orders,
+    credit notes and debit notes, and the company's trade name (or legal name) replaces "SalesApp". SVG isn't
+    accepted, because it can carry script. Logo changes appear in the company settings' history.
+  - **Colour**: any colour, from the picker or as `#rrggbb`. The whole app (buttons, menu, highlights, the 3D city and
+    the woven backdrop) is redrawn in it as you choose, for everyone once saved. Shades that carry text are moved
+    lighter or darker just enough to stay readable (at least 4.5:1) in light and dark mode, and the page says when
+    it has done so (bright yellow, say, becomes a deeper gold on buttons). The reset button goes back to the standard
+    indigo.
+  - The sign-in page needs the name, colour and logo before anyone has signed in, so `GET /api/branding` and the logo
+    itself are open without signing in (only those three things; rate-limited per address). The browser keeps the
+    last copy so the next visit opens in the right colours straight away.
+
+- **Three layouts, each user's choice.** **Layout** in the account menu (the avatar, top right): an *icon rail* on
+  the left that slides open with labels as you point at it, with the page moving over to make room (the default), *top menus* with large drop-down panels
+  describing each page, or a *dock* at the bottom whose icons grow under the pointer and pop up their pages.
+  Switching animates from one to the other.
+- **On phones**, a bar along the bottom has **Home**, **Orders**, a big **＋** and **Invoices** within reach of a
+  thumb, and **Menu** for every other page. **＋** slides up a menu to start a new order, read an order with smart
+  order entry, record a payment (pick the invoice; the most overdue are listed first) or add a customer. Each person
+  only sees what their role allows.
+- **A dashboard you can arrange.** Choose the period at the top (**this month**, **this quarter**, **this financial
+  year** or **last financial year**): sales (against the same days of the previous month or quarter, or the year
+  before), money collected and the top customers, products and states follow it. **Customise** lets you:
+  - drag cards by their handle (or focus the handle and use the arrow keys, Home and End);
+  - make cards wide or narrow, hide them, or switch the 3D city off;
+  - add cards: **Invoices to chase** (most overdue first, with a payment reminder per customer or for all),
+    **Recent payments**, **Purchases needing action** (orders awaiting approval, bills on hold or overdue) and
+    **Quick actions**.
+  **Done** saves your layout and **Cancel** drops the changes. Cards for things your role can't see aren't offered.
+- **Notifications.** The bell in the top bar counts what's new for you; the browser tab shows it too ("(3) Invoices ·
+  Demo Textiles") and the tab's icon gets a dot. Click it for the latest, under Today / Yesterday / Earlier, with
+  **All** / **Unread**, **Mark all read** and a "New since your last visit" label; opening one takes you to the record.
+  - **What you hear about**, only what your role lets you see: payments received, new and confirmed orders, a
+    morning summary of overdue invoices (after 9:00, `Notifications:DailyAt`), a product falling to its reorder level
+    (once, and again only after it has been restocked), purchase orders and supplier bills waiting for your approval,
+    and new AI insights. Never about things you did yourself.
+  - **Whose customers**: sales reps hear about orders, payments and overdue invoices of the customers they look after;
+    people with **Hear about every customer** (on for Sales manager, in Users & roles) hear about everyone's.
+  - **Pop-ups**: payments received and things waiting for your approval pop up as they arrive (the app checks every 45
+    seconds, and straight away when you come back to the tab). The gear in the bell switches kinds off, and turns on
+    **Windows notifications** for those important ones while the browser is in the background (on that computer).
+  - A **Notifications** card can be added to the dashboard. Notifications are kept for 90 days.
+- **English or தமிழ்.** Each person picks the app's language in the account menu (**Language** / மொழி), or on the
+  sign-in page before signing in; it's saved with their other settings. Everything switches: screens, messages from
+  the server, notifications, reports and their Excel files, the audit trail, and the AI (the assistant and Ask your
+  data answer in Tamil, and the nightly insights are written in both languages). Dates name the month in Tamil; amounts
+  keep digits 0–9 and Indian grouping. GST, GSTIN, HSN and similar terms stay in English letters.
+  - **Printed documents follow the customer, not the screen.** Each customer and supplier has a **Language for
+    documents**: English, Tamil, or English and Tamil (each label in English with the Tamil under it), or the
+    company's default from Company settings. Invoices, quotations, credit notes, debit notes and purchase orders print
+    in it, Tamil ones with the amount in Tamil words, and payment reminders are written in it. The print screen can
+    switch a one-off copy.
+  - The Tamil is reviewed by a Tamil speaker with an Excel sheet (see [docs/TRANSLATION.md](docs/TRANSLATION.md)).
+- **A guided tour** the first time you open the dashboard: about a minute, pointing at the menu, search, dashboard
+  and account menu, with steps that match your role (smart order entry, approvals), your layout and your screen.
+  **Take the tour** in the account menu runs it again. The arrow keys step through it and Esc leaves.
+- **Your settings follow you.** Layout, light/dark, motion, list columns and spacing, saved views, favourites,
+  recently viewed records, your dashboard, your language and whether you've seen the tour are saved on the server against your user (`api/me/settings`), so they're the same on any
+  computer you sign in from. Nobody else can see them. A copy in the browser keeps the first screen right while the
+  server answers.
+- **Search everything: Ctrl+K** (⌘K on a Mac), or the search box in the top bar. Jump to any page, start a new order,
+  customer, product or purchase order, or find a customer, invoice, order, product or supplier by name or number
+  (also by GSTIN or phone where the list supports it); also switches layout and light/dark. With nothing typed it
+  lists your **favourites** (the star in a record panel's top bar) and the records you **viewed recently**.
+- **Lists you can shape.** On the main lists (customers, suppliers, products, orders, invoices, payments, credit
+  notes, purchase orders, supplier bills, supplier payments, supplier returns and the stock screens):
+  - **Columns** (right of the toolbar) hides and shows columns and switches between comfortable and compact rows.
+  - **Views** saves the current search, filters and sort under a name ("Overdue chase list") to come back to in one
+    click.
+  - **Tick rows** (the boxes on the left, or X on the highlighted row) and a bar offers **Export for Excel**: a CSV of
+    the ticked rows with the visible columns, rupee amounts as plain numbers so Excel can add them up.
+  - On invoices, ticked rows can also be **printed together** (up to 50, one per page) or turned into **payment
+    reminders**: one message per customer with the invoice numbers, amounts and days overdue, which you can edit,
+    copy or open in WhatsApp. The app never sends anything itself.
+- **Records open beside their list.** Clicking an invoice, order, customer, product, supplier, purchase order,
+  supplier bill, credit note, supplier return or goods receipt grows a panel out of the row, with the list still
+  behind it (that row stays marked, and the list keeps its search, filters and page). **Full width** widens the
+  panel; Escape, the cross, Back or clicking the list closes it. The address is the record's own
+  (/invoices/42), so it can be bookmarked or shared: the list opens behind it. The arrows in the panel's top bar
+  (or J and K) step to the next and previous record in the list without closing it, and the record's title,
+  status, actions and key figures (total, balance due, credit left) stay pinned at the top as it scrolls. Where the
+  panel is too narrow for a line-items table, each line becomes a card with labelled values.
+- **Keyboard shortcuts.** ? shows them all. / jumps to the list's search; J and K move along a list, Enter opens
+  the row and X ticks it; N starts a new order, customer, product, supplier or purchase order on its list; G then a letter jumps to
+  a page (G D dashboard, G O orders, G I invoices, G C customers, G P products, G S stock, G B supplier bills, G R
+  reports). Letter keys never fire while you're typing in a field.
+- **When something goes wrong.** A page that fails shows a friendly screen with Try again (inside the app, so the
+  menus stay; a failing record shows it in the panel) and the technical details to copy for support; after an
+  update it offers to reload. A notice under the top bar says when you're offline or the server can't be reached,
+  checks again every few seconds, and reloads the page's data once it's back.
+- **Light and dark.** The sun/moon button in the top bar switches between them; **Appearance** in the account menu
+  also offers *Same as Windows* (the default). Printed documents are always light.
+- **Motion, and how much.** **Motion** in the account menu: *Full* (3D scenes, tilting cards, pages that swing into
+  place), *Subtle* (quick fades only, no 3D) or *Off*. Until someone picks, the app follows Windows' "Animation
+  effects" setting, so anyone who has turned animations off gets none.
+- **3D scenes**, drawn in code with three.js (no model or picture files):
+  - the dashboard's hero: the last 24 months of sales as the buildings of a small city (last year's street behind
+    this year's), lit windows at night, cars on the road between; drag to turn it, point at a building for its
+    month;
+  - behind every page: a softly billowing woven cloth with a few bright threads running through it;
+  - the sign-in page: yarn cones, a roll of cloth and folded linen floating in soft light, leaning towards the pointer;
+  - each product page: its photo on a card that tilts with the pointer, or a 3D model of its kind until it has one;
+  - Ask your data, smart order entry and AI insights: a rippling ball that speeds up while Claude is working.
+  The 3D library (about 250 KB) downloads after the page has loaded, once, and a scene stops drawing when it's out
+  of view; the backdrop draws at 25 frames a second. Browsers without 3D support, and the Subtle and Off settings,
+  get still versions.
+- **Success moments.** Saved messages draw a tick; a **PAID** stamp thuds onto settled invoices and supplier bills,
+  with a burst of confetti when your payment is the one that settles it; and the dashboard celebrates (once) when
+  this month's sales already beat every earlier month.
+- **Accessible.** Checked against WCAG 2.1 AA with axe-core in light and dark and in all three layouts (an automated
+  test in `src/test/a11y.test.tsx` keeps the shared parts honest): text contrast of at least 4.5:1, every list row
+  and control reachable by keyboard, a "Skip to the page" link, labelled icon buttons, and list filters that screen
+  readers announce as a choice of options.
+- **Everywhere else:** cards rise into place one after another, and further down a page they rise as you scroll to
+  them; page titles drift as you scroll; table rows cascade in; a soft light follows the pointer across cards and
+  main buttons lean towards it; summary and report tiles tilt; numbers count up; dialogs swing forward; empty lists
+  show an animated drawing; and a thin bar along the top shows when something is loading.
+- **Product photos.** On a product's page, drop a picture on the photo area or choose **Add photo** (JPEG, PNG or
+  WebP; needs Products: Add & change). The browser shrinks it before upload, to at most 1200 px plus a 400 px square
+  thumbnail, so it uploads in a moment. Photos then show in the product list (and its **Gallery** view), the
+  product picker on orders and purchase orders, invoice lines and the stock screens. They're stored in the database
+  (one backup covers everything) and changes appear in the product's history. Pictures load from signed addresses,
+  because an `<img>` tag can't send the sign-in token: only the server can make one, and each new photo gets a new
+  address, so browsers cache photos for good.
+
 ## Audit trail
 
 Administration → **Audit log** (administrators by default; anyone given the Audit log permission) shows who did what
@@ -270,6 +403,9 @@ environment variables (for example `Jwt__SigningKey`).
 | `Seed:DemoUserPassword` | `appsettings.Development.json` (dev only) | Password for the demo team created by `--seed-demo` |
 | `Anthropic:ApiKey` | user-secrets / `Anthropic__ApiKey` env | Turns on the AI features. Without it the app works normally and hides them. |
 | `Ai:*` | `appsettings.json` | Model and effort per feature, daily budget per user, requests per minute, price list. See [AI features](#ai-features). |
+| Language | Account menu (each person); Company settings (documents) | No configuration: each request's `Accept-Language` picks English or Tamil. The company's default language for printed documents is in Company settings. |
+| `Notifications:DailyEnabled`, `Notifications:DailyAt` | `appsettings.json` (optional) | The morning overdue summary (and clearing out notifications older than 90 days): on by default, after `09:00` India time. |
+| `Security:PublicRequestsPerMinute` | `appsettings.json` (optional) | Requests per minute per address to the few things open before sign-in (the company's name and logo). Default 120. |
 
 ## AI features
 
@@ -474,8 +610,8 @@ execution policy blocks scripts. Run the setup once with
 ```
 backend/
   src/SalesApp.Api/              Controllers, auth, error handling, OpenAPI
-  src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET)
-  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data, insight metrics
+  src/SalesApp.Core/             Entities, DTOs, business rules (no EF, no ASP.NET); Localization/: the server's Tamil
+  src/SalesApp.Infrastructure/   EF Core DbContext, migrations, seeding, reports, demo data, insight metrics, notifications
                                  Sql/*.sql: reporting views (rpt, rpt_mgr), the AI read-only users and the assistant's
                                  append-only rule, applied after migrations
   src/SalesApp.AI/               Claude gateway (budget, caching, usage log) and the AI features
@@ -485,15 +621,30 @@ backend/
 frontend/
   src/features/                  Feature folders (auth, customers, products, inventory, sales, dashboard, reports, ...)
   src/components/                App shell and shadcn/ui components
+  src/components/layout/         The shell: the three layouts, top bar, Ctrl+K search and the record side panel
+  src/components/data-table/     Lists: columns and spacing, saved views, ticking rows, export and bulk actions
+  src/components/fx/             Theme, motion and layout preferences, page transitions, tilt, count-up and other effects
+  src/components/tour/           The guided tour (steps by role, layout and screen)
+  src/features/branding/         The company's logo and colour: the theme built from any colour, applied before first paint
+  src/features/dashboard/        The dashboard: cards, periods, customising (layout.ts) and the 3D city hero
+  src/features/notifications/    The bell: list, settings, pop-ups and Windows notifications
+  src/components/three/          The 3D scenes (loaded on demand)
   src/lib/api/                   Typed API client generated from OpenAPI
+  src/lib/i18n/, src/locales/    English and Tamil: t(), msg(), the language switch, and the Tamil texts (ta.json)
+  src/features/sales/print/      Printed documents and their language (English, Tamil or both)
 scripts/setup-dev.ps1            One-time developer setup
+scripts/translations.cs          The Tamil review sheet: export to Excel, import the reviewer's corrections
 docs/DEPLOYMENT-IIS.md           Publishing to IIS
+docs/TRANSLATION.md              How the app is translated, the Tamil style and the glossary
 ```
 
 ## Conventions
 
 - **One error shape** for every API failure: `{ message, traceId, errors? }`. `errors` is keyed by camelCase field name, so forms can show messages next to the right input.
-- **UTC timestamps** everywhere (`*Utc` columns, `TimeProvider` for testability).
+- **UTC timestamps** everywhere (`*Utc` columns, `TimeProvider` for testability), sent to the browser with a `Z` so it
+  shows them in the viewer's own time zone.
+- **English text is the translation key**, in the web app (`t('Save')`) and on the server (`L.T(...)` where text leaves
+  it). Tests fail when something shown isn't marked or has no Tamil; see [docs/TRANSLATION.md](docs/TRANSLATION.md).
 - **`CancellationToken`** passed through every async layer.
 - **Money is `decimal(18,2)`**; quantities are `decimal(18,3)` (kg to the gram, metres to the millimetre).
 - **Optimistic concurrency**: editable records carry a `rowVersion`; saving a stale copy returns 409 and the UI offers a reload.
